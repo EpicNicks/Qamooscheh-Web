@@ -14,6 +14,12 @@
   gap: var(--space-3);
 }
 
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
 .brand {
   text-align: center;
   color: var(--color-primary);
@@ -47,4 +53,27 @@
   text-align: center;
   font-size: 0.875rem;
   color: var(--color-text-muted);
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+
+.googleWrap {
+  display: flex;
+  justify-content: center;
 }
