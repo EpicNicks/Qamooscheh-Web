@@ -27,4 +27,6 @@ The general-purpose core is built: auth, bootstrap, the skill path, the lesson e
 
 The first language-specific pass — Persian — is also done: RTL layout and native font stack for exercise content (`DirectionalText`), a tap-to-type Persian keyboard respecting `keyboard_mode` (contextual vs. isolated/ZWNJ-separated), a vocabulary panel surfacing the lexeme index's gloss/romanization, inline "Arabic vs. Persian codepoint" correction hints as the learner types, and instant correct/accepted-with-correction/incorrect feedback driven by a verified TS port of `Qamooscheh.Persian`'s normalizer and comparators (never authoritative — the server re-grades every submission).
 
-Not yet built: Japanese-specific rendering (kana/kanji display, romaji toggle, IME-friendly input) — the same pattern as the Persian pass, layered on top of the generic core rather than baked into it. Also still open: Google sign-in (the API call exists, no UI wires it up yet) and flushing the offline submission queue on reconnect.
+The offline submission queue now flushes itself: `useOfflineQueueFlush` (mounted once in `AppShell`) retries on every browser `online` event and on same-tab queue changes, merges returned card state, and surfaces a small "N pending sync" badge while sessions are queued.
+
+Not yet built: Japanese-specific rendering (kana/kanji display, romaji toggle, IME-friendly input) — the same pattern as the Persian pass, layered on top of the generic core rather than baked into it. Also still open: Google sign-in (the API call exists, no UI wires it up yet).
