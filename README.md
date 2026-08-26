@@ -16,11 +16,15 @@ npm run dev
 
 - `src/api/` — one module per backend controller, all going through `httpClient.ts` (bearer-token injection, 401-refresh-and-retry) except `content.ts`, which talks to the CDN artifact origin instead.
 - `src/types/api.ts` / `src/types/content.ts` — wire types mirrored field-for-field from the backend's `*Contracts.cs` records and `Qamooscheh.Content`'s artifact records. Keep these in sync by re-reading those files, not by guessing.
-- `src/domain/` — enums mirrored from `Qamooscheh.Domain`, plus pure client-side logic that re-derives server rules for display purposes only (`pathProgress.ts`'s skill-unlock gate, `exerciseResolution.ts`'s composite-exercise mode picker) — every one of these is re-checked authoritatively server-side.
+- `src/domain/` — enums mirrored from `Qamooscheh.Domain`, plus pure client-side logic that re-derives server rules for display purposes only (`pathProgress.ts`'s skill-unlock gate, `exerciseResolution.ts`'s composite-exercise mode picker, `answerFeedback.ts`'s instant-feedback dispatcher) — every one of these is re-checked authoritatively server-side. `domain/language.ts` maps course code to writing direction/font; `domain/persian/` is a faithful TS port of `Qamooscheh.Persian`'s normalization tiers and comparators, for feedback only.
 - `src/hooks/` — TanStack Query hooks per feature, plus `useLessonEngine.ts` (the session/lesson state machine) and `useCheckpoint.ts` (the placement-test flow).
 - `src/auth/` — token persistence + refresh, `RequireAuth` route guard.
 - `src/components/`, `src/pages/` — UI, grouped by feature (`lesson/`, `path/`, `layout/`, `common/`).
 
 ## Status
 
-This is the general-purpose scaffold: auth, bootstrap, the skill path, the lesson engine (word bank / type-in / match / speak), checkpoints, profile, friends, and leagues, all wired to the real API contracts. Deliberately not yet built: anything Persian- or Japanese-specific (native-script keyboards, romanization display, RTL layout, per-language answer normalization) — that's the next pass, layered on top of this generic core rather than baked into it.
+The general-purpose core is built: auth, bootstrap, the skill path, the lesson engine (word bank / type-in / match / speak), checkpoints, profile, friends, leagues, and settings (`GET`/`PUT /v1/prefs`), all wired to the real API contracts.
+
+The first language-specific pass — Persian — is also done: RTL layout and native font stack for exercise content (`DirectionalText`), a tap-to-type Persian keyboard respecting `keyboard_mode` (contextual vs. isolated/ZWNJ-separated), a vocabulary panel surfacing the lexeme index's gloss/romanization, inline "Arabic vs. Persian codepoint" correction hints as the learner types, and instant correct/accepted-with-correction/incorrect feedback driven by a verified TS port of `Qamooscheh.Persian`'s normalizer and comparators (never authoritative — the server re-grades every submission).
+
+Not yet built: Japanese-specific rendering (kana/kanji display, romaji toggle, IME-friendly input) — the same pattern as the Persian pass, layered on top of the generic core rather than baked into it. Also still open: Google sign-in (the API call exists, no UI wires it up yet) and flushing the offline submission queue on reconnect.
