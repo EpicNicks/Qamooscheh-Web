@@ -29,4 +29,6 @@ The first language-specific pass — Persian — is also done: RTL layout and na
 
 The offline submission queue now flushes itself: `useOfflineQueueFlush` (mounted once in `AppShell`) retries on every browser `online` event and on same-tab queue changes, merges returned card state, and surfaces a small "N pending sync" badge while sessions are queued.
 
-Not yet built: Japanese-specific rendering (kana/kanji display, romaji toggle, IME-friendly input) — the same pattern as the Persian pass, layered on top of the generic core rather than baked into it. Also still open: Google sign-in (the API call exists, no UI wires it up yet).
+Google sign-in is wired up (`GoogleSignInButton` on both Login and Register — one button covers both, since `AuthService.GoogleSignInAsync` creates a new account the first time a Google identity is seen). Hidden entirely when `VITE_GOOGLE_CLIENT_ID` is unset.
+
+Not yet built: Japanese-specific rendering (kana/kanji display, romaji toggle, IME-friendly input) — the same pattern as the Persian pass, layered on top of the generic core rather than baked into it.
