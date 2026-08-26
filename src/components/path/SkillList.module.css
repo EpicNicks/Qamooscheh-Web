@@ -1,0 +1,18 @@
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/*
+ * The rail is the whole visual claim being made here: these chapters are one
+ * story. Kept to a border rather than a card/box so the list stays quieter
+ * than the road above it.
+ */
+.arcGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  border-left: 3px solid var(--path-arc-rail-color);
+  padding-left: var(--space-3);
+}

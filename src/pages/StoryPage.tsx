@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useLessonEngine, type SubmitAnswerResult } from "../hooks/useLessonEngine";
+import { useNavigate, useParams } from "react-router-dom";
+import { useSkillWalkthrough, type WalkthroughAnswerResult } from "../hooks/useSkillWalkthrough";
 import { useBootstrap } from "../hooks/useBootstrap";
 import { usePrefs } from "../hooks/usePrefs";
 import { useLexemeIndex } from "../hooks/useCourseContent";
@@ -15,72 +15,82 @@ import { ErrorBanner } from "../components/common/ErrorBanner";
 import { Button } from "../components/common/Button";
 import styles from "./LessonPage.module.css";
 
-export function LessonPage() {
+/**
+ * Reading one chapter of a story (or a conversation, or a song). Thin over
+ * useSkillWalkthrough the same way LessonPage is over useLessonEngine, and
+ * sharing LessonPage's stylesheet the way CheckpointPage already does —
+ * these are the same screen in every respect except which engine feeds them.
+ */
+export function StoryPage() {
+  const { unitKey = "", skillKey = "" } = useParams();
   const navigate = useNavigate();
-  const engine = useLessonEngine();
+  const walkthrough = useSkillWalkthrough(unitKey, skillKey);
   const bootstrap = useBootstrap();
   const prefs = usePrefs();
   const lexemeIndex = useLexemeIndex(bootstrap.data?.course ?? null);
   const skip = useSkipConfirmation();
 
-  const [feedback, setFeedback] = useState<SubmitAnswerResult | null>(null);
+  const [feedback, setFeedback] = useState<WalkthroughAnswerResult | null>(null);
 
-  if (engine.status === "loading" || engine.status === "submitting") {
-    return <Spinner label={engine.status === "submitting" ? "Saving your progress…" : "Preparing your lesson…"} />;
+  if (walkthrough.status === "loading" || walkthrough.status === "submitting") {
+    return <Spinner label={walkthrough.status === "submitting" ? "Saving your progress…" : "Opening the story…"} />;
   }
 
-  if (engine.status === "error") {
-    return <ErrorBanner message="Couldn't load your next lesson." />;
+  if (walkthrough.status === "error") {
+    return <ErrorBanner message="Couldn't load this story." />;
   }
 
-  if (engine.status === "empty") {
+  if (walkthrough.status === "empty") {
     return (
       <div className={styles.done}>
-        <h1>Nothing due right now</h1>
-        <p>Come back later, or explore the path for a skill to practice.</p>
+        <h1>Nothing here yet</h1>
+        <p>This chapter has no content to read.</p>
         <Button onClick={() => navigate("/path")}>Back to path</Button>
       </div>
     );
   }
 
-  if (engine.status === "done") {
+  if (walkthrough.status === "done") {
     return (
       <div className={styles.done}>
-        <h1>Lesson complete!</h1>
-        {engine.result && <p>{engine.result.outcome === "AlreadyProcessed" ? "Already recorded." : "Great work."}</p>}
+        <h1>Chapter complete!</h1>
+        {walkthrough.result && (
+          <p>{walkthrough.result.outcome === "AlreadyProcessed" ? "Already recorded." : "Nicely read."}</p>
+        )}
         <Button onClick={() => navigate("/path")}>Back to path</Button>
       </div>
     );
   }
 
-  if (!engine.current) return null;
+  if (!walkthrough.current) return null;
 
   async function handleSubmit(text: string, opts?: { usedHint?: boolean }) {
-    const result = await engine.submitAnswer(text, opts);
+    const result = await walkthrough.submitAnswer(text, opts);
     setFeedback(result);
   }
 
   return (
     <div className={styles.wrap}>
       <div className={styles.topRow}>
-        <SessionProgressBar completed={engine.progress.completed} total={engine.progress.total} />
+        <SessionProgressBar completed={walkthrough.progress.completed} total={walkthrough.progress.total} />
         <Button variant="secondary" className={styles.skip} onClick={skip.requestSkip}>
           Skip
         </Button>
       </div>
+      {walkthrough.title && <h1 className={styles.chapterTitle}>{walkthrough.title}</h1>}
       {feedback && <AnswerFeedback correct={feedback.correct} note={feedback.note} />}
       <ExerciseRenderer
-        key={engine.current.key}
-        exercise={engine.current.exercise}
-        renderType={engine.current.renderType}
+        key={walkthrough.current.key}
+        exercise={walkthrough.current.exercise}
+        renderType={walkthrough.current.renderType}
         onSubmit={handleSubmit}
-        courseCode={engine.courseCode}
+        courseCode={walkthrough.courseCode}
         keyboardMode={prefs.data?.keyboardMode}
       />
       <VocabularyPanel
-        tags={engine.current.exercise.tags}
+        tags={walkthrough.current.exercise.tags}
         lexemeIndex={lexemeIndex.data}
-        courseCode={engine.courseCode}
+        courseCode={walkthrough.courseCode}
         scriptMode={prefs.data?.scriptMode ?? "native"}
       />
 

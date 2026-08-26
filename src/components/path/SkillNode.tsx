@@ -1,20 +1,34 @@
 import { useNavigate } from "react-router-dom";
 import type { PathSkill } from "../../domain/pathProgress";
+import { usePathTheme } from "../../theme/PathThemeContext";
 import styles from "./SkillNode.module.css";
 
-const CATEGORY_ICON: Record<PathSkill["category"], string> = {
-  standard: "●",
-  story: "📖",
-  conversation: "💬",
-  song: "🎵",
-};
+/**
+ * `"node"` is the 84px square card the road places absolutely; `"row"` is the
+ * same skill rendered as a full-width line for SkillList. One component with
+ * two layouts rather than two components, so the status styling (locked /
+ * unlocked / current) can't drift between them.
+ */
+export type SkillNodeLayout = "node" | "row";
 
-export function SkillNode({ skill }: { skill: PathSkill }) {
+export function SkillNode({ skill, layout = "node" }: { skill: PathSkill; layout?: SkillNodeLayout }) {
   const navigate = useNavigate();
+  const theme = usePathTheme();
   const locked = skill.status === "locked";
 
   function handleClick() {
     if (locked) return;
+
+    if (skill.category !== "standard") {
+      // Stories/conversations/songs are read straight through, in authored
+      // order — they never become "current" (only standard positions do), and
+      // GET /v1/checkpoint rejects a non-standard target, so routing them to
+      // checkpoint the way standard skills go would make every one of them
+      // dead on tap.
+      navigate(`/story/${skill.unitKey}/${skill.skillKey}`);
+      return;
+    }
+
     if (skill.status === "current") {
       navigate("/lesson");
     } else {
@@ -26,11 +40,11 @@ export function SkillNode({ skill }: { skill: PathSkill }) {
     }
   }
 
-  const classes = [styles.node, styles[skill.status]].join(" ");
+  const classes = [styles.node, styles[skill.status], layout === "row" && styles.row].filter(Boolean).join(" ");
 
   return (
     <button type="button" className={classes} disabled={locked} onClick={handleClick} title={skill.title}>
-      <span className={styles.icon}>{CATEGORY_ICON[skill.category]}</span>
+      <span className={styles.icon}>{theme.icons[skill.category]}</span>
       <span className={styles.title}>{skill.title}</span>
     </button>
   );

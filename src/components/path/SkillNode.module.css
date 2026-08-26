@@ -44,3 +44,23 @@
 .current .title {
   color: var(--color-text);
 }
+
+/*
+ * The list register: same card, same status colours, laid out as a full-width
+ * line instead of an 84px square. Only geometry is overridden — everything
+ * above still applies, which is the point of this being a modifier rather
+ * than a second component.
+ */
+.row {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-3);
+  text-align: left;
+}
+
+.row .title {
+  font-size: 0.95rem;
+  text-align: left;
+}

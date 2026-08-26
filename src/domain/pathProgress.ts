@@ -3,12 +3,15 @@
 // "GET /v1/progress"-shaped endpoint that returns a full unlocked/locked
 // list — bootstrap only reports the single current (unitKey, skillKey)
 // cursor (API_SPEC.md §2.1) — so the client walks the course manifest's own
-// unit/skill order (which mirrors unit.position/skill.position; content is
+// unit/position order (which mirrors unit.position/skill.position; content is
 // authored and published in that order) and classifies every skill the same
 // way the server's own gate does:
 //
-//   'standard' skill  -> unlocked iff (unit index, skill-among-standards index)
-//                        <= the cursor's, by that same comparison.
+//   'standard' skill  -> unlocked iff (unit index, position index) <= the
+//                        cursor's, by that same comparison. Status is decided
+//                        per POSITION, not per skill: side versions sharing a
+//                        position are alternates ("do either to advance"), so
+//                        they necessarily share a status too.
 //   story/conversation/song -> unlocked iff its unit's index <= the cursor
 //                        unit's index, independent of position within it.
 //
@@ -23,23 +26,41 @@ export interface PathSkillInput {
   skillKey: string;
   title: string;
   category: SkillCategory;
+  /** The narrative this skill is a chapter of, if any — only meaningful on story/conversation/song skills. */
+  arc?: string;
+}
+
+/** One point in a unit's standard sequence: 1 skill = no fork, 2+ = alternates. */
+export interface PathPositionInput {
+  skills: PathSkillInput[];
 }
 
 export interface PathUnitInput {
   unitKey: string;
   title: string;
-  skills: PathSkillInput[];
+  standardPositions: PathPositionInput[];
+  otherSkills: PathSkillInput[];
 }
 
 export interface PathSkill extends PathSkillInput {
   unitKey: string;
   status: SkillStatus;
+  /** Index within the unit's standard sequence; undefined for non-standard skills, which have no position in it. */
+  positionIndex?: number;
+}
+
+/** Status lives here rather than per-skill: every alternate at a position shares it. */
+export interface PathPosition {
+  positionIndex: number;
+  status: SkillStatus;
+  skills: PathSkill[];
 }
 
 export interface PathUnit {
   unitKey: string;
   title: string;
-  skills: PathSkill[];
+  standardPositions: PathPosition[];
+  otherSkills: PathSkill[];
 }
 
 export interface PositionKey {
@@ -51,35 +72,85 @@ export function computePathProgress(units: PathUnitInput[], position: PositionKe
   const currentUnitIndex = position ? units.findIndex((u) => u.unitKey === position.unitKey) : -1;
 
   return units.map((unit, unitIndex) => {
-    const standardSkillKeys = unit.skills.filter((s) => s.category === "standard").map((s) => s.skillKey);
-    const currentStandardIndex =
-      unitIndex === currentUnitIndex && position ? standardSkillKeys.indexOf(position.skillKey) : -1;
+    // The cursor names one skill key; what matters for the gate is which
+    // position that skill sits at, since an alternate advances the cursor
+    // exactly as its sibling would.
+    const currentPositionIndex =
+      unitIndex === currentUnitIndex && position
+        ? unit.standardPositions.findIndex((p) => p.skills.some((s) => s.skillKey === position.skillKey))
+        : -1;
 
-    const skills = unit.skills.map((skill): PathSkill => {
-      if (skill.category !== "standard") {
-        // story/conversation/song: gated only by unit position.
-        const status: SkillStatus = unitIndex <= currentUnitIndex ? "unlocked" : "locked";
-        return { ...skill, unitKey: unit.unitKey, status };
-      }
-
-      if (unitIndex < currentUnitIndex) return { ...skill, unitKey: unit.unitKey, status: "unlocked" };
-      if (unitIndex > currentUnitIndex) return { ...skill, unitKey: unit.unitKey, status: "locked" };
-
-      const standardIndex = standardSkillKeys.indexOf(skill.skillKey);
+    const standardPositions = unit.standardPositions.map((pos, posIndex): PathPosition => {
       let status: SkillStatus;
-      if (currentStandardIndex < 0) {
+      if (unitIndex < currentUnitIndex) {
+        status = "unlocked";
+      } else if (unitIndex > currentUnitIndex) {
+        status = "locked";
+      } else if (currentPositionIndex < 0) {
         // No cursor found in this unit (shouldn't happen once provisioned) — leave locked rather than guess.
         status = "locked";
-      } else if (standardIndex < currentStandardIndex) {
+      } else if (posIndex < currentPositionIndex) {
         status = "unlocked";
-      } else if (standardIndex === currentStandardIndex) {
+      } else if (posIndex === currentPositionIndex) {
         status = "current";
       } else {
         status = "locked";
       }
+
+      return {
+        positionIndex: posIndex,
+        status,
+        skills: pos.skills.map((s) => ({ ...s, unitKey: unit.unitKey, status, positionIndex: posIndex })),
+      };
+    });
+
+    const otherSkills = unit.otherSkills.map((skill): PathSkill => {
+      // story/conversation/song: gated only by unit position.
+      const status: SkillStatus = unitIndex <= currentUnitIndex ? "unlocked" : "locked";
       return { ...skill, unitKey: unit.unitKey, status };
     });
 
-    return { unitKey: unit.unitKey, title: unit.title, skills };
+    return { unitKey: unit.unitKey, title: unit.title, standardPositions, otherSkills };
   });
+}
+
+/** A run of skills sharing one `arc`, or a lone skill belonging to none. */
+export interface ArcGroup {
+  key: string;
+  arc: string | null;
+  skills: PathSkill[];
+}
+
+/**
+ * Buckets a unit's non-standard skills into arc groups, preserving content
+ * order. Skills sharing an `arc` collect into one group even if other skills
+ * sit between them in the authored order (the group takes the position of its
+ * first member); everything without an `arc` stays its own singleton group
+ * with `arc: null`.
+ *
+ * This is the whole of "arc ordering" on the client: chapter order is the
+ * order the skills already arrive in, which is why no ArcPosition field is
+ * authored anywhere (see SkillArtifact.arc).
+ */
+export function groupByArc(skills: PathSkill[]): ArcGroup[] {
+  const groups: ArcGroup[] = [];
+  const byArc = new Map<string, ArcGroup>();
+
+  for (const skill of skills) {
+    if (!skill.arc) {
+      groups.push({ key: `${skill.unitKey}/${skill.skillKey}`, arc: null, skills: [skill] });
+      continue;
+    }
+
+    const existing = byArc.get(skill.arc);
+    if (existing) {
+      existing.skills.push(skill);
+    } else {
+      const group: ArcGroup = { key: `arc:${skill.arc}`, arc: skill.arc, skills: [skill] };
+      byArc.set(skill.arc, group);
+      groups.push(group);
+    }
+  }
+
+  return groups;
 }

@@ -1,0 +1,14 @@
+/*
+ * Path-scoped semantic tokens, DERIVED from the global palette in
+ * src/index.css rather than forking it. A future culture-specific skin
+ * (Persian, Japanese, ...) ships its own module with the same custom property
+ * names and a different `className` on its PathTheme — nothing in SkillRoad,
+ * SkillList, or computeRoadLayout has to change for it.
+ */
+.theme {
+  --path-stroke-locked: var(--color-border);
+  --path-stroke-active: var(--color-primary);
+  --path-stroke-current: var(--color-current);
+  --path-stroke-width: 6px;
+  --path-arc-rail-color: var(--color-border);
+}

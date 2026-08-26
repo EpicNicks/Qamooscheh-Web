@@ -1,16 +1,19 @@
 import type { PathUnit } from "../../domain/pathProgress";
-import { SkillNode } from "./SkillNode";
+import { SkillRoad } from "./SkillRoad";
+import { SkillList } from "./SkillList";
 import styles from "./UnitSection.module.css";
 
+/**
+ * One unit, in its two registers: the standard skills as a winding branching
+ * road (the sequence the cursor actually walks), then everything else as a
+ * plain arc-grouped list underneath.
+ */
 export function UnitSection({ unit }: { unit: PathUnit }) {
   return (
     <section className={styles.section}>
       <h2 className={styles.title}>{unit.title}</h2>
-      <div className={styles.grid}>
-        {unit.skills.map((skill) => (
-          <SkillNode key={skill.skillKey} skill={skill} />
-        ))}
-      </div>
+      <SkillRoad positions={unit.standardPositions} />
+      <SkillList skills={unit.otherSkills} />
     </section>
   );
 }

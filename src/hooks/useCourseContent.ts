@@ -3,7 +3,7 @@
 // essentially forever within a session.
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { getCourseManifest, getLexemeIndex, getSkillArtifact, getUnitArtifact } from "../api/content";
-import { computePathProgress, type PathUnit, type PositionKey } from "../domain/pathProgress";
+import { computePathProgress, type PathSkillInput, type PathUnit, type PositionKey } from "../domain/pathProgress";
 import type { CourseRef, SkillRef } from "../types/api";
 import type { CourseManifest, ManifestRef, SkillArtifact, UnitArtifact } from "../types/content";
 
@@ -69,10 +69,15 @@ export function useAllUnitArtifacts(course: CourseRef | null | undefined, manife
 
 /**
  * The whole path/skill-tree, statuses computed against the current cursor.
- * Two fetch stages, both against the CDN: every unit artifact (for skill
+ * Two fetch stages, both against the CDN: every unit artifact (for position
  * ordering + refs), then every skill artifact those units point at (for
- * title/category — UnitArtifact.skills is only {id, path} pointers, per
- * types/content.ts).
+ * title/category/arc — a UnitArtifact's positions hold only {id, path}
+ * pointers, per types/content.ts).
+ *
+ * This is also the one place the artifact's shape is turned into
+ * pathProgress.ts's: standard skills keep their position grouping (so a fork
+ * survives into the road), everything else flattens into one content-ordered
+ * list (so groupByArc can nest chapters in the order they're authored).
  */
 export function useCoursePath(
   course: CourseRef | null | undefined,
@@ -89,7 +94,9 @@ export function useCoursePath(
   const unitsReady = manifestOrderedUnits.length === (manifestQuery.data?.units.length ?? -1);
 
   const allSkillRefs = unitsReady
-    ? manifestOrderedUnits.flatMap((unit) => unit.skills.map((ref) => ({ unitKey: unit.id, ref })))
+    ? manifestOrderedUnits.flatMap((unit) =>
+        unit.positions.flatMap((pos) => pos.skills.map((ref) => ({ unitKey: unit.id, ref }))),
+      )
     : [];
 
   const skillResults = useQueries({
@@ -111,14 +118,32 @@ export function useCoursePath(
 
   const path = skillsReady
     ? computePathProgress(
-        manifestOrderedUnits.map((unit) => ({
-          unitKey: unit.id,
-          title: unit.title,
-          skills: unit.skills.map((ref) => {
+        manifestOrderedUnits.map((unit) => {
+          const toInput = (ref: ManifestRef): PathSkillInput => {
             const skill = skillsByUnitAndKey.get(`${unit.id}/${ref.id}`);
-            return { skillKey: ref.id, title: skill?.title ?? ref.id, category: skill?.category ?? "standard" };
-          }),
-        })),
+            return {
+              skillKey: ref.id,
+              title: skill?.title ?? ref.id,
+              category: skill?.category ?? "standard",
+              arc: skill?.arc ?? undefined,
+            };
+          };
+
+          const inputs = unit.positions.map((pos) => pos.skills.map(toInput));
+
+          return {
+            unitKey: unit.id,
+            title: unit.title,
+            // Only standard skills sit in the sequence the cursor walks, so
+            // only they form positions. A position holding nothing standard
+            // contributes none, which keeps these indices comparable with the
+            // cursor the same way the old standard-only list did.
+            standardPositions: inputs
+              .map((skills) => ({ skills: skills.filter((s) => s.category === "standard") }))
+              .filter((pos) => pos.skills.length > 0),
+            otherSkills: inputs.flat().filter((s) => s.category !== "standard"),
+          };
+        }),
         position ?? null,
       )
     : [];
@@ -164,7 +189,9 @@ export function useSkillArtifactsForRefs(
   const skillRefsToFetch = refs
     .map((r) => {
       const unit = unitsByKey.get(r.unitKey);
-      const skillRef = unit?.skills.find((s) => s.id === r.skillKey);
+      // Which position a skill sits at is irrelevant here — this resolves
+      // named refs, so it just looks across every position in the unit.
+      const skillRef = unit?.positions.flatMap((p) => p.skills).find((s) => s.id === r.skillKey);
       return skillRef ? { key: `${r.unitKey}/${r.skillKey}`, unitKey: r.unitKey, ref: skillRef } : null;
     })
     .filter((x): x is { key: string; unitKey: string; ref: ManifestRef } => x != null);

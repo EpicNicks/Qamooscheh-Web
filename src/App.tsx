@@ -5,6 +5,7 @@ import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { PathPage } from "./pages/PathPage";
 import { LessonPage } from "./pages/LessonPage";
+import { StoryPage } from "./pages/StoryPage";
 import { CheckpointPage } from "./pages/CheckpointPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { SettingsPage } from "./pages/SettingsPage";
@@ -28,6 +29,7 @@ export default function App() {
         <Route index element={<Navigate to="/path" replace />} />
         <Route path="/path" element={<PathPage />} />
         <Route path="/lesson" element={<LessonPage />} />
+        <Route path="/story/:unitKey/:skillKey" element={<StoryPage />} />
         <Route path="/checkpoint/:unitKey/:skillKey" element={<CheckpointPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/settings" element={<SettingsPage />} />

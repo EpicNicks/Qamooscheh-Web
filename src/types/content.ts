@@ -21,11 +21,29 @@ export interface CourseManifest {
   lexemeIndexPath: string;
 }
 
-/** units/{unitKey}.json */
+/**
+ * One position in a unit's sequence. More than one `skills` entry means side
+ * versions — alternate skills authored at the same point in the sequence,
+ * where completing any one of them advances past it (the backend's
+ * `UnitPosition`, mirroring `UnitSource.Skills`' own grouping; `skill.position`
+ * has no UNIQUE constraint for exactly this reason).
+ */
+export interface UnitPosition {
+  skills: ManifestRef[];
+}
+
+/**
+ * units/{unitKey}.json
+ *
+ * `positions`, not a flat skill list: the publisher used to flatten side
+ * versions away here, which discarded which skills shared a position. It
+ * doesn't any more, because this client draws a branching path straight from
+ * this artifact.
+ */
 export interface UnitArtifact {
   id: string;
   title: string;
-  skills: ManifestRef[];
+  positions: UnitPosition[];
 }
 
 /** units/{unitKey}/skills/{skillKey}.json */
@@ -33,6 +51,13 @@ export interface SkillArtifact {
   id: string;
   title: string;
   category: SkillCategory;
+  /**
+   * The continuing narrative this skill is a chapter of (e.g. "ali-and-sara"),
+   * or null when it isn't part of one. Free-form authored string. There is no
+   * arc-position field — a chapter's place in its arc is the order it already
+   * appears in, by unit and then by position within that unit.
+   */
+  arc: string | null;
   exercises: ExerciseArtifact[];
 }
 
