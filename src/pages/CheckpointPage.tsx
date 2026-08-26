@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useCheckpoint } from "../hooks/useCheckpoint";
+import { usePrefs } from "../hooks/usePrefs";
 import { TypeInExercise } from "../components/lesson/TypeInExercise";
 import { Spinner } from "../components/common/Spinner";
 import { ErrorBanner } from "../components/common/ErrorBanner";
@@ -10,6 +11,7 @@ export function CheckpointPage() {
   const { unitKey = "", skillKey = "" } = useParams();
   const navigate = useNavigate();
   const checkpoint = useCheckpoint(unitKey, skillKey);
+  const prefs = usePrefs();
 
   if (checkpoint.isLoading) return <Spinner label="Preparing checkpoint…" />;
   if (checkpoint.isError) return <ErrorBanner message="Couldn't load this checkpoint." />;
@@ -46,7 +48,13 @@ export function CheckpointPage() {
       <p>
         Question {checkpoint.index + 1} of {checkpoint.instances.length}
       </p>
-      <TypeInExercise exercise={checkpoint.current.exercise} onSubmit={(text) => checkpoint.answerCurrent(text)} />
+      <TypeInExercise
+        key={checkpoint.current.key}
+        exercise={checkpoint.current.exercise}
+        onSubmit={(text) => checkpoint.answerCurrent(text)}
+        courseCode={checkpoint.courseCode}
+        keyboardMode={prefs.data?.keyboardMode}
+      />
     </div>
   );
 }

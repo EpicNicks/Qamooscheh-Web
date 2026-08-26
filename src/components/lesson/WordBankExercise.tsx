@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Button } from "../common/Button";
+import { DirectionalText } from "../common/DirectionalText";
 import type { ExerciseProps } from "./ExerciseRenderer";
 import styles from "./Exercise.module.css";
 
 /** Tap tiles in order to build the answer; tapping a chosen tile again removes it. */
-export function WordBankExercise({ exercise, onSubmit, disabled }: ExerciseProps) {
+export function WordBankExercise({ exercise, onSubmit, disabled, courseCode }: ExerciseProps) {
   const [chosen, setChosen] = useState<number[]>([]);
   const tiles = exercise.tiles ?? [];
 
@@ -24,29 +25,21 @@ export function WordBankExercise({ exercise, onSubmit, disabled }: ExerciseProps
       <p className={styles.prompt}>{exercise.prompt}</p>
       <div className={styles.answerRow}>
         {chosen.map((tileIndex, position) => (
-          <button
-            key={`${tileIndex}-${position}`}
-            type="button"
-            className={styles.tile}
-            onClick={() => toggle(tileIndex)}
-            disabled={disabled}
-          >
-            {tiles[tileIndex]}
-          </button>
+          <DirectionalText key={`${tileIndex}-${position}`} courseCode={courseCode}>
+            <button type="button" className={styles.tile} onClick={() => toggle(tileIndex)} disabled={disabled}>
+              {tiles[tileIndex]}
+            </button>
+          </DirectionalText>
         ))}
       </div>
       <div className={styles.tiles}>
         {tiles.map((tile, tileIndex) =>
           chosen.includes(tileIndex) ? null : (
-            <button
-              key={tileIndex}
-              type="button"
-              className={styles.tile}
-              onClick={() => toggle(tileIndex)}
-              disabled={disabled}
-            >
-              {tile}
-            </button>
+            <DirectionalText key={tileIndex} courseCode={courseCode}>
+              <button type="button" className={styles.tile} onClick={() => toggle(tileIndex)} disabled={disabled}>
+                {tile}
+              </button>
+            </DirectionalText>
           ),
         )}
       </div>

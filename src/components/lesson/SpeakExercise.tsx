@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Button } from "../common/Button";
+import { getLanguageInfo } from "../../domain/language";
 import type { ExerciseProps } from "./ExerciseRenderer";
 import styles from "./Exercise.module.css";
 
@@ -11,8 +12,9 @@ import styles from "./Exercise.module.css";
  * of blocking the lesson on unbuilt infrastructure. Replace the input with
  * real audio capture once that pipeline is decided.
  */
-export function SpeakExercise({ exercise, onSubmit, disabled }: ExerciseProps) {
+export function SpeakExercise({ exercise, onSubmit, disabled, courseCode }: ExerciseProps) {
   const [text, setText] = useState("");
+  const languageInfo = getLanguageInfo(courseCode);
 
   function submit() {
     onSubmit(text);
@@ -29,6 +31,8 @@ export function SpeakExercise({ exercise, onSubmit, disabled }: ExerciseProps) {
         onChange={(e) => setText(e.target.value)}
         disabled={disabled}
         autoFocus
+        dir={languageInfo?.direction}
+        style={languageInfo ? { fontFamily: languageInfo.nativeFontStack } : undefined}
       />
       <Button onClick={submit} disabled={disabled || text.trim().length === 0}>
         Check

@@ -2,7 +2,7 @@
 // caching — content is immutable per course version, so these cache
 // essentially forever within a session.
 import { useQueries, useQuery } from "@tanstack/react-query";
-import { getCourseManifest, getSkillArtifact, getUnitArtifact } from "../api/content";
+import { getCourseManifest, getLexemeIndex, getSkillArtifact, getUnitArtifact } from "../api/content";
 import { computePathProgress, type PathUnit, type PositionKey } from "../domain/pathProgress";
 import type { CourseRef, SkillRef } from "../types/api";
 import type { CourseManifest, ManifestRef, SkillArtifact, UnitArtifact } from "../types/content";
@@ -12,6 +12,21 @@ export function useCourseManifest(course: CourseRef | null | undefined) {
     queryKey: ["content", "manifest", course?.code, course?.version],
     queryFn: () => getCourseManifest(course!.code, course!.version, course!.manifestSha256),
     enabled: course != null,
+    staleTime: Infinity,
+  });
+}
+
+/**
+ * The flat tag -> gloss/romanization map (lexemes.json), fetched once per
+ * course version. What powers the "hover a word to see its meaning" feature
+ * Qamooscheh.Content's README calls out as this index's whole purpose.
+ */
+export function useLexemeIndex(course: CourseRef | null | undefined) {
+  const manifestQuery = useCourseManifest(course);
+  return useQuery({
+    queryKey: ["content", "lexemes", course?.code, course?.version],
+    queryFn: () => getLexemeIndex(course!.code, course!.version, manifestQuery.data!.lexemeIndexPath),
+    enabled: course != null && manifestQuery.data != null,
     staleTime: Infinity,
   });
 }

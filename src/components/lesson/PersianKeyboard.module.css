@@ -1,0 +1,43 @@
+.keyboard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  justify-content: center;
+}
+
+.key {
+  min-width: 36px;
+  height: 36px;
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: 1.1rem;
+  font-family: 'Vazirmatn', 'Noto Naskh Arabic', Tahoma, 'Segoe UI', sans-serif;
+  cursor: pointer;
+}
+
+.key:hover {
+  border-color: var(--color-primary);
+}
+
+.wide {
+  min-width: 90px;
+  font-family: inherit;
+  font-size: 0.8rem;
+}
+
+.zwnj {
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}

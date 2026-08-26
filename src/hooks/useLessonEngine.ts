@@ -22,7 +22,7 @@ import { submitSessions } from "../api/sessionSubmit";
 import { useAuth } from "../auth/useAuth";
 import { loadCardStates, mergeCardStates } from "../lib/cardStateStore";
 import { enqueue as enqueueOffline } from "../lib/offlineQueue";
-import { looksCorrect } from "../lib/textMatch";
+import { checkAnswer } from "../domain/answerFeedback";
 import { resolveExerciseType } from "../domain/exerciseResolution";
 import type { SubmittedItem, SubmittedSession, SubmittedSessionResponse } from "../types/api";
 import type { ExerciseArtifact } from "../types/content";
@@ -46,6 +46,8 @@ export type LessonStatus = "loading" | "empty" | "ready" | "submitting" | "done"
 export interface SubmitAnswerResult {
   correct: boolean;
   requeued: boolean;
+  /** A short correction hint (e.g. "Close — a small typo.") when the answer was accepted imperfectly or rejected close — see domain/answerFeedback.ts. */
+  note: string | null;
 }
 
 export function useLessonEngine() {
@@ -117,9 +119,10 @@ export function useLessonEngine() {
   const current = queue && queue.length > 0 ? queue[0] : null;
 
   async function submitAnswer(submittedText: string, opts?: { usedHint?: boolean }): Promise<SubmitAnswerResult> {
-    if (!current || !queue) return { correct: false, requeued: false };
+    if (!current || !queue) return { correct: false, requeued: false, note: null };
 
-    const correct = looksCorrect(submittedText, current.exercise.answer);
+    const feedback = checkAnswer(course?.code, current.exercise, submittedText);
+    const correct = feedback.verdict !== "incorrect";
     const latencyMs = Math.round(performance.now() - shownAt.current);
     const attempt = current.attempt + 1;
 
@@ -154,7 +157,7 @@ export function useLessonEngine() {
       await finishLesson([...items, ...newItems]);
     }
 
-    return { correct, requeued };
+    return { correct, requeued, note: feedback.note };
   }
 
   async function finishLesson(finalItems: SubmittedItem[]) {
@@ -199,6 +202,7 @@ export function useLessonEngine() {
 
   return {
     status: derivedStatus,
+    courseCode: course?.code ?? null,
     current,
     progress: { completed: totalCount - (queue?.length ?? totalCount), total: totalCount },
     submitAnswer,

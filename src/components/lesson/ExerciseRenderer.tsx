@@ -1,4 +1,4 @@
-import type { ExerciseType } from "../../domain/enums";
+import type { ExerciseType, KeyboardMode } from "../../domain/enums";
 import type { ExerciseArtifact } from "../../types/content";
 import { WordBankExercise } from "./WordBankExercise";
 import { TypeInExercise } from "./TypeInExercise";
@@ -9,6 +9,10 @@ export interface ExerciseProps {
   exercise: ExerciseArtifact;
   onSubmit: (submittedText: string, opts?: { usedHint?: boolean }) => void;
   disabled?: boolean;
+  /** Drives RTL layout/font for native-script content (domain/language.ts) — null when the course's language isn't known/supported yet. */
+  courseCode?: string | null;
+  /** user_prefs.keyboard_mode — only consulted by TypeInExercise, when it renders a language-specific virtual keyboard. */
+  keyboardMode?: KeyboardMode;
 }
 
 /**
@@ -22,15 +26,25 @@ export function ExerciseRenderer({
   renderType,
   onSubmit,
   disabled,
+  courseCode,
+  keyboardMode,
 }: ExerciseProps & { renderType: ExerciseType }) {
   switch (renderType) {
     case "word_bank":
-      return <WordBankExercise exercise={exercise} onSubmit={onSubmit} disabled={disabled} />;
+      return <WordBankExercise exercise={exercise} onSubmit={onSubmit} disabled={disabled} courseCode={courseCode} />;
     case "type_in":
-      return <TypeInExercise exercise={exercise} onSubmit={onSubmit} disabled={disabled} />;
+      return (
+        <TypeInExercise
+          exercise={exercise}
+          onSubmit={onSubmit}
+          disabled={disabled}
+          courseCode={courseCode}
+          keyboardMode={keyboardMode}
+        />
+      );
     case "match":
-      return <MatchExercise exercise={exercise} onSubmit={onSubmit} disabled={disabled} />;
+      return <MatchExercise exercise={exercise} onSubmit={onSubmit} disabled={disabled} courseCode={courseCode} />;
     case "speak":
-      return <SpeakExercise exercise={exercise} onSubmit={onSubmit} disabled={disabled} />;
+      return <SpeakExercise exercise={exercise} onSubmit={onSubmit} disabled={disabled} courseCode={courseCode} />;
   }
 }
