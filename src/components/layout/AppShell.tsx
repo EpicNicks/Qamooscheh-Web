@@ -7,6 +7,7 @@ const NAV_ITEMS = [
   { to: "/leagues", label: "Leagues" },
   { to: "/friends", label: "Friends" },
   { to: "/profile", label: "Profile" },
+  { to: "/settings", label: "Settings" },
 ];
 
 export function AppShell() {

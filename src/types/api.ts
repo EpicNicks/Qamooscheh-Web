@@ -6,6 +6,9 @@ import type {
   ExerciseScriptMode,
   ExerciseType,
   FriendshipStatus,
+  KeyboardMode,
+  Register,
+  ScriptMode,
 } from "../domain/enums";
 
 // ---------------------------------------------------------------------------
@@ -222,6 +225,24 @@ export interface ProfileResponse {
   fullName: string | null;
   country: string | null;
 }
+
+// ---------------------------------------------------------------------------
+// v1/prefs (Prefs/PrefsContracts.cs). Scoped server-side to the caller's
+// currently-pinned course (user_prefs' PK is (user_id, course_code)) — the
+// client never names a course here, the same way it never names one for
+// /v1/profile.
+// ---------------------------------------------------------------------------
+
+export interface UpdatePrefsRequest {
+  scriptMode: ScriptMode;
+  register: Register;
+  autoplayAudio: boolean;
+  keyboardMode: KeyboardMode;
+  desiredRetention: number;
+  dailyGoalMinutes: number;
+}
+
+export type PrefsResponse = UpdatePrefsRequest;
 
 // ---------------------------------------------------------------------------
 // Shared error shape — every controller returns `{ error: string }` (and
