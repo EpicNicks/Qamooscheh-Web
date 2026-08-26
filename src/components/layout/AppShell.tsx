@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../../auth/useAuth";
+import { useOfflineQueueFlush } from "../../hooks/useOfflineQueueFlush";
 import styles from "./AppShell.module.css";
 
 const NAV_ITEMS = [
@@ -12,6 +13,7 @@ const NAV_ITEMS = [
 
 export function AppShell() {
   const { logout } = useAuth();
+  const { pendingCount, isFlushing } = useOfflineQueueFlush();
 
   return (
     <div className={styles.shell}>
@@ -28,6 +30,11 @@ export function AppShell() {
             </NavLink>
           ))}
         </nav>
+        {pendingCount > 0 && (
+          <span className={styles.syncBadge} title="Lessons saved offline, waiting to sync">
+            {isFlushing ? "Syncing…" : `${pendingCount} pending sync`}
+          </span>
+        )}
         <button type="button" className={styles.signOut} onClick={() => void logout()}>
           Sign out
         </button>

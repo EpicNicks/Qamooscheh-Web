@@ -37,6 +37,16 @@
   border-bottom-color: var(--color-primary);
 }
 
+.syncBadge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-current);
+  background: color-mix(in srgb, var(--color-current) 12%, transparent);
+  padding: var(--space-1) var(--space-2);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
 .signOut {
   background: none;
   border: none;
