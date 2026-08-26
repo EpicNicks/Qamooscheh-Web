@@ -1,0 +1,46 @@
+.node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  width: 84px;
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  border: 2px solid var(--color-border);
+  background: var(--color-surface);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.icon {
+  font-size: 1.4rem;
+}
+
+.title {
+  font-size: 0.75rem;
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+.locked {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.unlocked {
+  border-color: var(--color-primary);
+}
+
+.unlocked .title {
+  color: var(--color-text);
+}
+
+.current {
+  border-color: var(--color-current);
+  background: color-mix(in srgb, var(--color-current) 12%, var(--color-surface));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-current) 25%, transparent);
+}
+
+.current .title {
+  color: var(--color-text);
+}
