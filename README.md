@@ -7,10 +7,13 @@ A Duolingo-style web client for the [Qamooscheh](../../Qamooscheh) backend (ASP.
 ```
 npm install
 cp .env.example .env.local   # point at your local Qamooscheh.Api + artifacts server
+npm run serve:artifacts -- <path-to-Qamooscheh-repo>/artifacts   # in its own terminal, stays running
 npm run dev
 ```
 
-`Qamooscheh.Api` must be running (`dotnet run` from the backend repo, default `http://localhost:5239`), and the backend's `artifacts/` folder needs to be served as static files somewhere the browser can fetch it directly — the API is never on the content read path (`API_SPEC.md` §1), so this client fetches course JSON straight from that origin.
+`Qamooscheh.Api` must be running (`dotnet run` from the backend repo, default `http://localhost:5239`), and the backend's `artifacts/` folder needs to be served as static files somewhere the browser can fetch it directly — the API is never on the content read path (`API_SPEC.md` §1), so this client fetches course JSON straight from that origin. `scripts/serve-artifacts.mjs` is a minimal stand-in for `docker/nginx/artifacts.conf` (the backend's production CDN config): same URL shape (no path prefix — a request for `/course/fa/v2/manifest.json` resolves straight to `<artifacts>/course/fa/v2/manifest.json`) and CORS enabled, since it's a different origin from the Vite dev server. `VITE_CONTENT_BASE_URL` should be that server's plain origin (`http://localhost:8080`, no `/artifacts` suffix) — `api/content.ts` appends `/course/{code}/v{version}` itself.
+
+The artifacts directory has to actually contain a published course before any of this works — run the backend's `Qamooscheh.Publisher publish` (not just `build`) against your local Postgres at least once; `build` alone only writes files, `publish` also inserts the `course_version` row `GET /v1/bootstrap` needs. See the backend's own `tools/Qamooscheh.Publisher/README.md`.
 
 ## Layout
 
