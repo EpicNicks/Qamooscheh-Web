@@ -2,6 +2,7 @@ import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../../auth/useAuth";
 import { useOfflineQueueFlush } from "../../hooks/useOfflineQueueFlush";
 import { LanguageBadge } from "./LanguageBadge";
+import { Sidebar } from "./Sidebar";
 import styles from "./AppShell.module.css";
 
 // Account-level pages only — course-content browsing (the journey, each
@@ -42,9 +43,14 @@ export function AppShell() {
           Sign out
         </button>
       </header>
-      <main className={styles.main}>
-        <Outlet />
-      </main>
+      <div className={styles.body}>
+        <Sidebar />
+        <main className={styles.main}>
+          <div className={styles.mainInner}>
+            <Outlet />
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

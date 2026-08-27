@@ -55,13 +55,26 @@
   font-weight: 600;
 }
 
+/* Sidebar + main content, below the header. Sidebar sits flush at the true
+   left edge (a flex sibling here, not indented inside .main) — .main then
+   centers its own content within whatever space is left over, so the page
+   reads as "sidebar rail on the left, content centered next to it" rather
+   than the sidebar being one more thing inside a centered column. */
+.body {
+  flex: 1;
+  display: flex;
+  align-items: stretch;
+}
+
 .main {
   flex: 1;
-  /* Wider than a single-column screen needs, so CourseLayout's sidebar +
-     content don't feel cramped — most pages here still read as one column,
-     just not artificially narrowed to 720px's worth. */
-  max-width: 880px;
-  width: 100%;
-  margin: 0 auto;
+  display: flex;
+  justify-content: center;
   padding: var(--space-4);
+  min-width: 0;
+}
+
+.mainInner {
+  max-width: 720px;
+  width: 100%;
 }
