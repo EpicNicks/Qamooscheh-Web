@@ -57,7 +57,10 @@
 
 .main {
   flex: 1;
-  max-width: 720px;
+  /* Wider than a single-column screen needs, so CourseLayout's sidebar +
+     content don't feel cramped — most pages here still read as one column,
+     just not artificially narrowed to 720px's worth. */
+  max-width: 880px;
   width: 100%;
   margin: 0 auto;
   padding: var(--space-4);

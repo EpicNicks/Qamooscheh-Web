@@ -1,11 +1,13 @@
 import { useBootstrap } from "../hooks/useBootstrap";
 import { useCoursePath } from "../hooks/useCourseContent";
-import { UnitSection } from "../components/path/UnitSection";
+import { SkillRoad } from "../components/path/SkillRoad";
 import { PathThemeProvider } from "../theme/PathThemeProvider";
 import { Spinner } from "../components/common/Spinner";
 import { ErrorBanner } from "../components/common/ErrorBanner";
 import { errorMessage } from "../lib/errors";
+import styles from "./CourseSection.module.css";
 
+/** The learning journey: standard skills only, as the winding branching road. Story/conversation/song content lives in its own per-category page (CategoryPage), reached via the sidebar. */
 export function PathPage() {
   const bootstrap = useBootstrap();
   const { path, isLoading, isError } = useCoursePath(bootstrap.data?.course ?? null, bootstrap.data?.position ?? null);
@@ -19,7 +21,10 @@ export function PathPage() {
   return (
     <PathThemeProvider>
       {path.map((unit) => (
-        <UnitSection key={unit.unitKey} unit={unit} />
+        <section key={unit.unitKey} className={styles.section}>
+          <h2 className={styles.title}>{unit.title}</h2>
+          <SkillRoad positions={unit.standardPositions} />
+        </section>
       ))}
     </PathThemeProvider>
   );

@@ -18,6 +18,16 @@ interface LanguageInfo {
   direction: WritingDirection;
   /** Font stack for that language's native script — no external font loading, just broad-coverage system fonts. */
   nativeFontStack: string;
+  /** Short code for the badge fallback (LanguageBadge) — not an ISO list, just what's shown in all caps. */
+  flagCode: string;
+  /**
+   * The country's flag colors, top to bottom, for LanguageBadge's gradient
+   * fallback. Deliberately not real flag emoji/images: font-based flag
+   * rendering is inconsistent across platforms (historically absent on
+   * Windows, spotty on some Linux emoji fonts) — this draws the same colors
+   * every time, everywhere, with CSS.
+   */
+  flagColors: readonly string[];
 }
 
 const COURSE_CODE_TO_LANGUAGE: Record<string, LanguageInfo> = {
@@ -26,12 +36,16 @@ const COURSE_CODE_TO_LANGUAGE: Record<string, LanguageInfo> = {
     displayName: "Persian",
     direction: "rtl",
     nativeFontStack: "'Vazirmatn', 'Noto Naskh Arabic', Tahoma, 'Segoe UI', sans-serif",
+    flagCode: "FA",
+    flagColors: ["#239F40", "#FFFFFF", "#DA0000"],
   },
   ja: {
     language: "ja",
     displayName: "Japanese",
     direction: "ltr",
     nativeFontStack: "'Noto Sans JP', 'Yu Gothic', 'Hiragino Sans', 'Meiryo', sans-serif",
+    flagCode: "JA",
+    flagColors: ["#FFFFFF", "#BC002D"],
   },
 };
 

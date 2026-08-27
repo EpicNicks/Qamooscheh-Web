@@ -1,10 +1,12 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../../auth/useAuth";
 import { useOfflineQueueFlush } from "../../hooks/useOfflineQueueFlush";
+import { LanguageBadge } from "./LanguageBadge";
 import styles from "./AppShell.module.css";
 
+// Account-level pages only — course-content browsing (the journey, each
+// category) lives in the sidebar (Sidebar.tsx), not here.
 const NAV_ITEMS = [
-  { to: "/path", label: "Learn" },
   { to: "/leagues", label: "Leagues" },
   { to: "/friends", label: "Friends" },
   { to: "/profile", label: "Profile" },
@@ -35,6 +37,7 @@ export function AppShell() {
             {isFlushing ? "Syncing…" : `${pendingCount} pending sync`}
           </span>
         )}
+        <LanguageBadge />
         <button type="button" className={styles.signOut} onClick={() => void logout()}>
           Sign out
         </button>
