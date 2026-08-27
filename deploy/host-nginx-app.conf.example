@@ -4,16 +4,14 @@
 # your host nginx's sites-enabled/conf.d — this file isn't loaded by
 # anything itself.
 #
-# Qamooscheh's own README references an equivalent deploy/host-nginx.conf
-# for api.<domain>/cdn.<domain>/dash.<domain> in that repo; as of this
-# writing that file doesn't actually exist there, so you'll need to write
-# those vhosts yourself too — this one is written to sit alongside them,
-# proxying to WEB_PORT (.env.docker) the same way those would proxy to
+# Sits alongside Qamooscheh's own deploy/host-nginx.conf (api.<domain>/
+# cdn.<domain>/dash.<domain>) — same domain convention, same
+# proxy_set_header shape, just proxying to WEB_PORT instead of
 # API_PORT/ARTIFACTS_PORT/DASHBOARD_PORT.
 
 server {
     listen 443 ssl http2;
-    server_name app.qamooscheh.example;
+    server_name app.farsi.example;
 
     # ssl_certificate / ssl_certificate_key -- e.g. certbot-managed, same as
     # whatever the backend's vhosts use.
@@ -29,6 +27,6 @@ server {
 
 server {
     listen 80;
-    server_name app.qamooscheh.example;
+    server_name app.farsi.example;
     return 301 https://$host$request_uri;
 }

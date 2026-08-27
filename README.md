@@ -28,7 +28,7 @@ docker compose --env-file .env.docker up -d --build
 
 Unlike the backend, there's no runtime config step here: Vite bakes every `VITE_*` value into the built bundle at Docker *build* time (`Dockerfile`'s build args, sourced from `.env.docker`). Changing the API or CDN origin later means `docker compose --env-file .env.docker up -d --build` again, not just a restart — the right tradeoff for one server with one environment, not something worth an extra runtime-injection mechanism for.
 
-`deploy/host-nginx-app.conf.example` is a reference vhost for whatever host nginx terminates TLS — `Qamooscheh`'s own README references an equivalent `deploy/host-nginx.conf` for `api.<domain>`/`cdn.<domain>`/`dash.<domain>`, but that file doesn't actually exist in that repo as of this writing, so you'll need to write those vhosts yourself too.
+`deploy/host-nginx-app.conf.example` is a reference vhost for whatever host nginx terminates TLS — sits alongside `Qamooscheh`'s own `deploy/host-nginx.conf`, which has the `api.<domain>`/`cdn.<domain>`/`dash.<domain>` equivalents. Same domain placeholder convention (`farsi.example`, matching that repo's `.env.example`) in both.
 
 ## Layout
 
