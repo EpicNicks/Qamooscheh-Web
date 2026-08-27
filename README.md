@@ -15,6 +15,21 @@ npm run dev
 
 The artifacts directory has to actually contain a published course before any of this works — run the backend's `Qamooscheh.Publisher publish` (not just `build`) against your local Postgres at least once; `build` alone only writes files, `publish` also inserts the `course_version` row `GET /v1/bootstrap` needs. See the backend's own `tools/Qamooscheh.Publisher/README.md`.
 
+## Deploy
+
+Meant to run alongside `Qamooscheh`'s own `docker compose` stack on the same host — same conventions (bound to `127.0.0.1` only, a host nginx is the sole public entry point, `WEB_PORT` continues that repo's `API_PORT`/`ARTIFACTS_PORT` numbering).
+
+```
+cp .env.docker.example .env.docker   # fill in the real API/CDN origins — see that file
+docker compose --env-file .env.docker up -d --build
+```
+
+`.env.docker` is deliberately not named `.env` — docker-compose auto-loads a plain `.env`, and Vite's dev server *also* auto-loads a plain `.env` (in every mode, not just dev), so a docker-only `.env` sitting at the repo root would leak production URLs into local `npm run dev` runs. Always pass `--env-file .env.docker` explicitly.
+
+Unlike the backend, there's no runtime config step here: Vite bakes every `VITE_*` value into the built bundle at Docker *build* time (`Dockerfile`'s build args, sourced from `.env.docker`). Changing the API or CDN origin later means `docker compose --env-file .env.docker up -d --build` again, not just a restart — the right tradeoff for one server with one environment, not something worth an extra runtime-injection mechanism for.
+
+`deploy/host-nginx-app.conf.example` is a reference vhost for whatever host nginx terminates TLS — `Qamooscheh`'s own README references an equivalent `deploy/host-nginx.conf` for `api.<domain>`/`cdn.<domain>`/`dash.<domain>`, but that file doesn't actually exist in that repo as of this writing, so you'll need to write those vhosts yourself too.
+
 ## Layout
 
 - `src/api/` — one module per backend controller, all going through `httpClient.ts` (bearer-token injection, 401-refresh-and-retry) except `content.ts`, which talks to the CDN artifact origin instead.

@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# docker-compose secrets/config for production deploys (see README's Deploy
+# section) — the .example template stays committed, the real file never does.
+.env.docker
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
