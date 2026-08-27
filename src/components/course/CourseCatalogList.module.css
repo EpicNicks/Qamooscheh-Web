@@ -1,0 +1,120 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-height: 0;
+  flex: 1;
+}
+
+.search {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: 1rem;
+}
+
+.search:focus-visible {
+  outline: 2px solid var(--color-current);
+  outline-offset: 1px;
+}
+
+.list {
+  flex: 1;
+  /* A floor rather than 0: this sits in a flex column with a search box and a
+     fact panel, and on a short viewport `flex: 1; min-height: 0` lets the list
+     — the actual content — be the thing squeezed to nothing. Two rows always
+     stay visible and the list scrolls within them. */
+  min-height: 96px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-2);
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 2px solid transparent;
+  cursor: pointer;
+}
+
+/* The keyboard/hover highlight. Focus never actually leaves the search input
+   (aria-activedescendant), so this class is the only thing marking position —
+   it has to read as strongly as a focus ring would. */
+.active {
+  background: var(--color-surface);
+  border-color: var(--color-current);
+}
+
+.selected {
+  background: var(--color-success-bg);
+}
+
+.disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.nativeName {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.latinName {
+  color: var(--color-text-muted);
+}
+
+.tag {
+  margin-left: auto;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.check {
+  margin-left: auto;
+  font-weight: 800;
+  color: var(--color-primary);
+}
+
+.empty {
+  margin: 0;
+  padding: var(--space-3);
+  color: var(--color-text-muted);
+}
+
+/* Fixed height: the panel is always mounted so the list above it doesn't
+   resize every time the highlight lands on a course with no facts authored. */
+.factPanel {
+  min-height: 3.2rem;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.factLabel {
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.actions:empty {
+  display: none;
+}

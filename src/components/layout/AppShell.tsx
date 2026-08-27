@@ -1,7 +1,7 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../../auth/useAuth";
 import { useOfflineQueueFlush } from "../../hooks/useOfflineQueueFlush";
-import { LanguageBadge } from "./LanguageBadge";
+import { CourseSwitcher } from "./CourseSwitcher";
 import { Sidebar } from "./Sidebar";
 import styles from "./AppShell.module.css";
 
@@ -38,7 +38,7 @@ export function AppShell() {
             {isFlushing ? "Syncing…" : `${pendingCount} pending sync`}
           </span>
         )}
-        <LanguageBadge />
+        <CourseSwitcher />
         <button type="button" className={styles.signOut} onClick={() => void logout()}>
           Sign out
         </button>

@@ -22,7 +22,10 @@ export function RegisterPage() {
     setIsSubmitting(true);
     try {
       await register(email, password);
-      navigate("/path", { replace: true });
+      // Not /path: a brand-new account is enrolled in nothing (registration
+      // stopped implicitly provisioning a default course), so /path would only
+      // bounce through RequireOnboarded to get here anyway.
+      navigate("/onboarding", { replace: true });
     } catch (err) {
       setError(errorMessage(err, "Couldn't create an account — that email may already be registered."));
     } finally {

@@ -62,10 +62,25 @@ export interface GraderRef {
   manifestSha256: string;
 }
 
+/**
+ * Also what `POST /v1/courses/{code}/enroll` and `PUT /v1/courses/active`
+ * hand back, so either response drops straight into the `["bootstrap"]` cache
+ * slot (see BootstrapContracts.cs).
+ *
+ * `course` is nullable and null is a NORMAL answer: registration no longer
+ * implicitly provisions anyone into a default course, so a brand-new account
+ * bootstraps to `course: null` with an empty `enrolledCourseCodes` — which is
+ * exactly what `RequireOnboarded` gates on.
+ *
+ * `enrolledCourseCodes` is oldest enrollment first and INCLUDES the active
+ * course, so a switcher can render one row per entry and mark one current
+ * without re-inserting `course.code` itself.
+ */
 export interface BootstrapResponse {
-  course: CourseRef;
+  course: CourseRef | null;
   position: PositionRef | null;
   graders: GraderRef[];
+  enrolledCourseCodes: string[];
 }
 
 // ---------------------------------------------------------------------------
@@ -243,6 +258,56 @@ export interface UpdatePrefsRequest {
 }
 
 export type PrefsResponse = UpdatePrefsRequest;
+
+// ---------------------------------------------------------------------------
+// v1/courses (Courses/CourseCatalogContracts.cs). Enroll and switch-active
+// both answer with a BootstrapResponse, not a course-shaped body of their own.
+// ---------------------------------------------------------------------------
+
+export interface CourseCatalogEntry {
+  code: string;
+  nativeName: string;
+  latinName: string;
+  /**
+   * Short facts about the language, shown ONLY while browsing (the "+ add a
+   * language" modal and onboarding) — never in the routine course switcher,
+   * which is a navigation control. The backend ships them on every row and
+   * leaves that placement rule to the client, which is why
+   * `CourseCatalogList` takes a `showFacts` prop rather than guessing from
+   * where it happens to be mounted. Possibly empty.
+   */
+  cultureFacts: string[];
+}
+
+/** No `language` field by design — the client renders a flag from the course CODE (domain/language.ts). */
+export interface CourseCatalogResponse {
+  courses: CourseCatalogEntry[];
+}
+
+/** PUT /v1/courses/active's body — a body rather than a path segment: this is a state change on the CALLER. */
+export interface SwitchActiveCourseRequest {
+  courseCode: string;
+}
+
+// ---------------------------------------------------------------------------
+// v1/activity (Activity/ActivityContracts.cs). The one endpoint that takes an
+// explicit course code — "how many days have I been active in Japanese" is a
+// legitimate cross-course read, unlike session-plan/checkpoint/prefs, which
+// all resolve the active course server-side.
+// ---------------------------------------------------------------------------
+
+export interface ActivityDay {
+  /** A `DateOnly` on the wire — "2026-08-26", the user's own streak-day bucket, not an instant. */
+  localDay: string;
+  reviews: number;
+  xp: number;
+}
+
+export interface ActivityResponse {
+  courseCode: string;
+  /** Newest day first. Deliberately not the streak — that stays one shared number across every enrolled language. */
+  days: ActivityDay[];
+}
 
 // ---------------------------------------------------------------------------
 // Shared error shape — every controller returns `{ error: string }` (and

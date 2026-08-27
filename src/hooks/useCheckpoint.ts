@@ -126,7 +126,7 @@ export function useCheckpoint(targetUnitKey: string, targetSkillKey: string) {
   return {
     isLoading: bootstrap.isLoading || plan.isLoading || skillsLoading,
     isError: bootstrap.isError || plan.isError || skillsError,
-    courseCode: bootstrap.data?.course.code ?? null,
+    courseCode: bootstrap.data?.course?.code ?? null,
     instances,
     current,
     index,

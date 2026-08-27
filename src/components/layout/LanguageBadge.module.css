@@ -1,3 +1,9 @@
+/* The flag chip, kept under its original filename after LanguageBadge.tsx was
+   replaced by CourseSwitcher: it is now the SHARED visual for every place a
+   course code is drawn as a flag — the switcher trigger, each row in its panel,
+   the "+", and every row of the catalog list. Keeping one class rather than
+   copying it per component is what makes the "+" read as "another one of
+   these" instead of as unrelated chrome. */
 .badge {
   display: inline-flex;
   align-items: center;

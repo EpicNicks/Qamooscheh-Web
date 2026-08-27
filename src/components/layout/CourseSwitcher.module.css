@@ -1,0 +1,96 @@
+/* The positioning context the panel anchors to — deliberately local rather
+   than a portal: this is a header control, and it should move with the header. */
+.wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.trigger {
+  cursor: pointer;
+  /* .badge (LanguageBadge.module.css) supplies the size, radius, border and
+     text treatment; a <button> just needs its own chrome cleared. */
+  background-color: transparent;
+  font-family: inherit;
+}
+
+.panel {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  right: 0;
+  z-index: 50;
+  min-width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 18%);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-2);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.row:hover:not(:disabled),
+.row:focus-visible {
+  background: var(--color-surface);
+}
+
+.row:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.rowActive {
+  background: var(--color-surface);
+}
+
+/* The "+" has no flag to draw, so it borrows .badge's shape and fills it with
+   the app's own accent instead of a gradient. */
+.addBadge {
+  background: var(--color-primary);
+  /* .badge's 0.7rem is sized for a two-letter code; a lone "+" needs more to
+     read as a control rather than as a speck. */
+  font-size: 1rem;
+}
+
+.names {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.nativeName {
+  font-weight: 700;
+}
+
+.latinName {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.check {
+  margin-left: auto;
+  font-weight: 800;
+  color: var(--color-primary);
+}
+
+.error {
+  margin: var(--space-1) 0 0;
+  padding: 0 var(--space-2);
+  font-size: 0.8rem;
+  color: var(--color-danger);
+}
