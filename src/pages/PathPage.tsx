@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useBootstrap } from "../hooks/useBootstrap";
 import { useCoursePath } from "../hooks/useCourseContent";
 import { SkillRoad } from "../components/path/SkillRoad";
@@ -11,6 +12,17 @@ import styles from "./CourseSection.module.css";
 export function PathPage() {
   const bootstrap = useBootstrap();
   const { path, isLoading, isError } = useCoursePath(bootstrap.data?.course ?? null, bootstrap.data?.position ?? null);
+
+  // Genuinely synchronizing with an external system (the browser's scroll
+  // position), not deriving render output — a real effect, not a render-time
+  // adjustment. `scrollIntoView({block: "center"})` already does exactly the
+  // "center it, unless that would scroll past the very first element" logic
+  // on its own: a browser can't scroll past 0, so centering a node close to
+  // the top just clamps to showing from the top instead, for free.
+  useEffect(() => {
+    if (isLoading || isError || path.length === 0) return;
+    document.querySelector("[data-current-node]")?.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [isLoading, isError, path]);
 
   if (bootstrap.isLoading || isLoading) return <Spinner label="Loading your course…" />;
   if (bootstrap.isError) return <ErrorBanner message={errorMessage(bootstrap.error, "Couldn't load your course.")} />;

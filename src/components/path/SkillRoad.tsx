@@ -80,6 +80,9 @@ export function SkillRoad({ positions }: { positions: PathPosition[] }) {
             key={`${skill.unitKey}/${skill.skillKey}`}
             className={styles.nodeWrap}
             style={{ left: nodeLeft(pct(node.x)), top: `${node.y}px` }}
+            // Marks the one node PathPage scrolls to on load — there's at
+            // most one "current" standard skill across the whole journey.
+            data-current-node={skill.status === "current" ? "" : undefined}
           >
             <SkillNode skill={skill} />
           </div>

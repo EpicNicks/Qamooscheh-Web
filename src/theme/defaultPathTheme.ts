@@ -38,7 +38,7 @@ export const defaultPathTheme: PathTheme = {
   id: "default",
   className: styles.theme,
   layout: {
-    rowHeight: 120,
+    rowHeight: 190,
     amplitude: 90,
     branchSpread: 110,
     logicalWidth: 320,
