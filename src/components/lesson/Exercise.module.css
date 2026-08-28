@@ -47,10 +47,37 @@
   color: var(--color-text);
 }
 
+/* Positioning context for the floating Persian candidate picker — sized to
+   the input itself (inline-block), not a full-width block, so it doesn't
+   change the input's own layout. */
+.inputWrap {
+  position: relative;
+  display: inline-block;
+}
+
+/* An invisible twin of the input (same class, same font metrics) used only
+   to measure where the last character sits on screen — see TypeInExercise's
+   layout effect. Never shown, never interactive. */
+.mirror {
+  position: absolute;
+  top: 0;
+  left: 0;
+  visibility: hidden;
+  white-space: pre;
+  pointer-events: none;
+}
+
 .actions {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+/* The advance ("Continue") button replaces the hint+Check pair entirely
+   rather than sitting alongside them — space-between with a single child
+   would otherwise pin it to the left instead of where Check normally sits. */
+.actions:has(> button:only-child) {
+  justify-content: flex-end;
 }
 
 .hint {

@@ -12,7 +12,7 @@ import styles from "./Exercise.module.css";
  * of blocking the lesson on unbuilt infrastructure. Replace the input with
  * real audio capture once that pipeline is decided.
  */
-export function SpeakExercise({ exercise, onSubmit, disabled, courseCode }: ExerciseProps) {
+export function SpeakExercise({ exercise, onSubmit, disabled, courseCode, advance }: ExerciseProps) {
   const [text, setText] = useState("");
   const languageInfo = getLanguageInfo(courseCode);
 
@@ -34,9 +34,13 @@ export function SpeakExercise({ exercise, onSubmit, disabled, courseCode }: Exer
         dir={languageInfo?.direction}
         style={languageInfo ? { fontFamily: languageInfo.nativeFontStack } : undefined}
       />
-      <Button onClick={submit} disabled={disabled || text.trim().length === 0}>
-        Check
-      </Button>
+      {advance ? (
+        <Button onClick={advance.onAdvance}>{advance.label}</Button>
+      ) : (
+        <Button onClick={submit} disabled={disabled || text.trim().length === 0}>
+          Submit
+        </Button>
+      )}
     </div>
   );
 }

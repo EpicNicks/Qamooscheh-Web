@@ -11,13 +11,22 @@
 // the other local stores (cardStateStore.ts, offlineQueue.ts, storage.ts) and
 // keyed per-user the same way they are, so two accounts sharing a browser
 // don't inherit each other's dismissals.
+/** Which virtual keyboard a learner sees for a given language — a UI choice, not an FSRS/grading concern, so it lives here rather than in usePrefs. */
+export interface KeyboardInputMethod {
+  fa: "layout" | "phonetic";
+  ja: "phonetic" | "kana";
+}
+
 export interface LocalAppPrefs {
   /** True once the learner has ticked "Don't ask me again" on the skip confirmation. */
   suppressSkipWarning: boolean;
+  /** Per-language virtual keyboard mode (see components/lesson/keyboard/). fa defaults to the standard ISIRI layout, ja defaults to phonetic (romaji IME) — matching what most learners already expect from each language. */
+  keyboardInputMethod: KeyboardInputMethod;
 }
 
 const DEFAULTS: LocalAppPrefs = {
   suppressSkipWarning: false,
+  keyboardInputMethod: { fa: "layout", ja: "phonetic" },
 };
 
 function storageKey(userId: string): string {

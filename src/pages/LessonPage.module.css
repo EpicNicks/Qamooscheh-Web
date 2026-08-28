@@ -39,3 +39,14 @@
   font-size: 1.1rem;
   color: var(--color-text-muted);
 }
+
+.doneActions {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.practiceNote {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}

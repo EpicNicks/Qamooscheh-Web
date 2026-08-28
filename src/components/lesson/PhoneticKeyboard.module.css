@@ -1,0 +1,11 @@
+/* Shared by the Persian and Japanese phonetic keyboards — both are plain
+   Latin QWERTY grids, so there's nothing language-specific to style here. */
+.latinKey {
+  font-family: var(--font-sans);
+  text-transform: uppercase;
+}
+
+.zwnj {
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}

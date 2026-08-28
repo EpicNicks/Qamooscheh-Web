@@ -5,7 +5,7 @@ import type { ExerciseProps } from "./ExerciseRenderer";
 import styles from "./Exercise.module.css";
 
 /** Tap tiles in order to build the answer; tapping a chosen tile again removes it. */
-export function WordBankExercise({ exercise, onSubmit, disabled, courseCode }: ExerciseProps) {
+export function WordBankExercise({ exercise, onSubmit, disabled, courseCode, advance }: ExerciseProps) {
   const [chosen, setChosen] = useState<number[]>([]);
   const tiles = exercise.tiles ?? [];
 
@@ -43,9 +43,13 @@ export function WordBankExercise({ exercise, onSubmit, disabled, courseCode }: E
           ),
         )}
       </div>
-      <Button onClick={submit} disabled={disabled || chosen.length === 0}>
-        Check
-      </Button>
+      {advance ? (
+        <Button onClick={advance.onAdvance}>{advance.label}</Button>
+      ) : (
+        <Button onClick={submit} disabled={disabled || chosen.length === 0}>
+          Submit
+        </Button>
+      )}
     </div>
   );
 }

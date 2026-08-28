@@ -1,0 +1,8 @@
+.kanaKey {
+  font-family: 'Noto Sans JP', 'Yu Gothic', 'Hiragino Sans', 'Meiryo', sans-serif;
+}
+
+.shiftActive {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}

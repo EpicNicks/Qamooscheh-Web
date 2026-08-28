@@ -22,14 +22,17 @@ import { submitSessions } from "../api/sessionSubmit";
 import { useAuth } from "../auth/useAuth";
 import { loadCardStates, mergeCardStates } from "../lib/cardStateStore";
 import { enqueue as enqueueOffline } from "../lib/offlineQueue";
-import { checkAnswer } from "../domain/answerFeedback";
+import { checkAnswer, type AnswerVerdict } from "../domain/answerFeedback";
 import { resolveExerciseType } from "../domain/exerciseResolution";
-import type { SubmittedItem, SubmittedSession, SubmittedSessionResponse } from "../types/api";
+import type { SkillRef, SubmittedItem, SubmittedSession, SubmittedSessionResponse } from "../types/api";
 import type { ExerciseArtifact } from "../types/content";
 import type { ExerciseType } from "../domain/enums";
 
 const RETRY_DEPTH = 3;
-const MAX_RETRIES = 3;
+// attempt < MAX_RETRIES gates the requeue in submitAnswer below — 2 means a
+// wrong answer is requeued exactly once (attempt 1 requeues, attempt 2 does
+// not), i.e. the exercise is asked at most twice total.
+const MAX_RETRIES = 2;
 
 export interface LessonExerciseInstance {
   key: string;
@@ -48,6 +51,9 @@ export interface SubmitAnswerResult {
   requeued: boolean;
   /** A short correction hint (e.g. "Close — a small typo.") when the answer was accepted imperfectly or rejected close — see domain/answerFeedback.ts. */
   note: string | null;
+  /** The underlying verdict and 1-indexed attempt number, for domain/xp.ts's cosmetic per-answer XP tiering. */
+  verdict: AnswerVerdict;
+  attempt: number;
 }
 
 export function useLessonEngine() {
@@ -72,16 +78,23 @@ export function useLessonEngine() {
 
   const dueTags = useMemo(() => new Set([...(plan.data?.reviewTags ?? []), ...(plan.data?.newTags ?? [])]), [plan.data]);
 
-  const initialQueue = useMemo<LessonExerciseInstance[]>(() => {
-    if (!skillsReady || !plan.data || !userId) return [];
+  /**
+   * `dueTagsFilter: null` builds every exercise in these skills regardless of
+   * FSRS due-ness — used by startPractice() below, so a learner is never
+   * flat-out locked out of redoing a lesson just because nothing is
+   * currently due for it (see finishLesson's practice-mode branch: no
+   * credit, but the practice itself is always available).
+   */
+  function buildInstances(skillRefs: readonly SkillRef[], dueTagsFilter: Set<string> | null): LessonExerciseInstance[] {
+    if (!userId) return [];
     const localCards = loadCardStates(userId);
     const instances: LessonExerciseInstance[] = [];
 
-    for (const ref of plan.data.skills) {
+    for (const ref of skillRefs) {
       const artifact = skillArtifacts.get(`${ref.unitKey}/${ref.skillKey}`);
       if (!artifact) continue;
       artifact.exercises.forEach((exercise, ordinal) => {
-        if (!exercise.tags.some((tag) => dueTags.has(tag))) return;
+        if (dueTagsFilter && !exercise.tags.some((tag) => dueTagsFilter.has(tag))) return;
         const primaryCardState = localCards[exercise.tags[0]] ?? null;
         instances.push({
           key: `${ref.unitKey}/${ref.skillKey}/${ordinal}`,
@@ -95,14 +108,29 @@ export function useLessonEngine() {
       });
     }
     return instances;
+  }
+
+  const initialQueue = useMemo<LessonExerciseInstance[]>(() => {
+    if (!skillsReady || !plan.data || !userId) return [];
+    return buildInstances(plan.data.skills, dueTags);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [skillsReady, plan.data, userId]);
+  }, [skillsReady, plan.data, userId, dueTags]);
 
   const [queue, setQueue] = useState<LessonExerciseInstance[] | null>(null);
   const [totalCount, setTotalCount] = useState(0);
   const [items, setItems] = useState<SubmittedItem[]>([]);
   const [status, setStatus] = useState<LessonStatus>("loading");
   const [result, setResult] = useState<SubmittedSessionResponse | null>(null);
+  // First-attempt correctness only — a later successful retry doesn't add to
+  // this, so the end-of-lesson fraction reflects "got it right the first
+  // time" rather than "eventually got it", independent of the requeue depth.
+  const [firstTryCorrect, setFirstTryCorrect] = useState(0);
+  // True for a session started via startPractice() rather than seeded from
+  // the real due queue — finishLesson skips POST /v1/sessions/submit
+  // entirely for these, so redoing a lesson never earns FSRS credit twice
+  // (or grades a review that was never actually due) but is never blocked
+  // either.
+  const [isPracticeMode, setIsPracticeMode] = useState(false);
   const shownAt = useRef<number>(performance.now());
 
   // Seed local state once content resolves — a ref-guarded effect would be
@@ -118,13 +146,29 @@ export function useLessonEngine() {
 
   const current = queue && queue.length > 0 ? queue[0] : null;
 
+  /** Redo this lesson even though nothing's due for it — every exercise, no due-tag filter, no FSRS credit on completion (see finishLesson). Wired to the "Nothing due right now" screen's "Practice anyway" button so a learner is never simply locked out. */
+  function startPractice() {
+    if (!plan.data) return;
+    const instances = buildInstances(plan.data.skills, null);
+    setIsPracticeMode(true);
+    setItems([]);
+    setFirstTryCorrect(0);
+    setResult(null);
+    setStatus("ready");
+    setQueue(instances);
+    setTotalCount(instances.length);
+    shownAt.current = performance.now();
+  }
+
   async function submitAnswer(submittedText: string, opts?: { usedHint?: boolean }): Promise<SubmitAnswerResult> {
-    if (!current || !queue) return { correct: false, requeued: false, note: null };
+    if (!current || !queue) return { correct: false, requeued: false, note: null, verdict: "incorrect", attempt: 1 };
 
     const feedback = checkAnswer(course?.code, current.exercise, submittedText);
     const correct = feedback.verdict !== "incorrect";
     const latencyMs = Math.round(performance.now() - shownAt.current);
     const attempt = current.attempt + 1;
+
+    if (current.attempt === 0 && correct) setFirstTryCorrect((n) => n + 1);
 
     const newItems = current.exercise.tags.map(
       (lexemeTag): SubmittedItem => ({
@@ -157,12 +201,19 @@ export function useLessonEngine() {
       await finishLesson([...items, ...newItems]);
     }
 
-    return { correct, requeued, note: feedback.note };
+    return { correct, requeued, note: feedback.note, verdict: feedback.verdict, attempt };
   }
 
   async function finishLesson(finalItems: SubmittedItem[]) {
     if (!plan.data || !current) return;
     setStatus("submitting");
+
+    if (isPracticeMode) {
+      // Local-only recap — no POST /v1/sessions/submit, no card-state merge,
+      // no bootstrap/plan refresh: nothing due changed, so nothing to credit.
+      setStatus("done");
+      return;
+    }
 
     const primaryRef = plan.data.skills[0];
     const session: SubmittedSession = {
@@ -205,7 +256,10 @@ export function useLessonEngine() {
     courseCode: course?.code ?? null,
     current,
     progress: { completed: totalCount - (queue?.length ?? totalCount), total: totalCount },
+    score: { correct: firstTryCorrect, total: totalCount },
+    isPracticeMode,
     submitAnswer,
+    startPractice,
     result,
   };
 }

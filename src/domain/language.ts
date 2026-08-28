@@ -61,3 +61,25 @@ export function isPersian(courseCode: string | null | undefined): boolean {
 export function getWritingDirection(courseCode: string | null | undefined): WritingDirection {
   return getLanguageInfo(courseCode)?.direction ?? "ltr";
 }
+
+export type KeyboardKind = "persian-layout" | "persian-phonetic" | "japanese-phonetic" | "japanese-kana";
+
+/**
+ * Which on-screen keyboard (if any) TypeInExercise should show — null when
+ * the exercise isn't in the native script (nothing to type in a script-
+ * specific way) or the course's language isn't one of these two yet.
+ * `method` is the learner's local, per-language input-method preference
+ * (hooks/useKeyboardInputMethod.ts) — a client-only UI choice, distinct from
+ * the server-synced keyboard_mode (contextual/isolated ZWNJ spacing).
+ */
+export function getKeyboardKind(
+  courseCode: string | null | undefined,
+  scriptMode: "native" | "romanized",
+  method: { fa: "layout" | "phonetic"; ja: "phonetic" | "kana" },
+): KeyboardKind | null {
+  if (scriptMode !== "native") return null;
+  const language = getLanguageInfo(courseCode)?.language;
+  if (language === "fa") return method.fa === "phonetic" ? "persian-phonetic" : "persian-layout";
+  if (language === "ja") return method.ja === "kana" ? "japanese-kana" : "japanese-phonetic";
+  return null;
+}

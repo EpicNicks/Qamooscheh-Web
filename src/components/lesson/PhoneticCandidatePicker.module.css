@@ -1,0 +1,34 @@
+/* Vertical, like a real IME's conversion candidate list — ArrowUp/ArrowDown
+   (hooks/usePersianPhoneticInput.ts's handlePickerNavigation) moves through
+   it top-to-bottom, matching how it reads. */
+.picker {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  width: fit-content;
+  z-index: 10;
+}
+
+.candidate {
+  min-width: 36px;
+  height: 32px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--color-text);
+  font-family: 'Vazirmatn', 'Noto Naskh Arabic', Tahoma, 'Segoe UI', sans-serif;
+  font-size: 1.05rem;
+  cursor: pointer;
+}
+
+.active {
+  background: var(--color-current);
+  border-color: var(--color-current);
+  color: var(--color-primary-contrast);
+}

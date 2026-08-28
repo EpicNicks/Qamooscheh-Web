@@ -1,0 +1,80 @@
+/* Base key look + press/hold/release animation states, shared by every
+   on-screen keyboard (Persian layout/phonetic, Japanese phonetic/kana).
+   Each keyboard's own CSS module handles row/grid layout and composes these
+   classes in via VirtualKey's `className` prop. */
+
+/* Generic container, used as-is by the Latin-QWERTY phonetic keyboards
+   (Persian and Japanese both just render this shape over different keys) —
+   PersianKeyboard.module.css keeps its own copy since its layout predates
+   this file and differs (RTL, per-key font). */
+.keyboard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  justify-content: center;
+}
+
+.key {
+  min-width: 36px;
+  height: 40px;
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: 1.1rem;
+  cursor: pointer;
+  user-select: none;
+  touch-action: none;
+  transition: background 0.1s ease, border-color 0.1s ease;
+}
+
+.key:hover:not(:disabled) {
+  border-color: var(--color-primary);
+}
+
+.key:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.wide {
+  min-width: 90px;
+  font-size: 0.8rem;
+}
+
+/* Pressed/held — on for the whole duration the key (physical or pointer) is down. */
+.pressed {
+  background: var(--color-current);
+  border-color: var(--color-current);
+  color: var(--color-primary-contrast);
+  transform: scale(0.94);
+}
+
+/* A quick bounce-back flash fired on release, cleared via onAnimationEnd. */
+.released {
+  animation: release 0.22s ease-out;
+}
+
+@keyframes release {
+  0% {
+    transform: scale(0.94);
+    background: var(--color-current);
+    border-color: var(--color-current);
+  }
+  60% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+  }
+}

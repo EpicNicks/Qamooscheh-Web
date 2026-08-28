@@ -14,27 +14,8 @@
   justify-content: center;
 }
 
-.key {
-  min-width: 36px;
-  height: 36px;
-  padding: 0 var(--space-1);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--color-border);
-  background: var(--color-bg);
-  color: var(--color-text);
-  font-size: 1.1rem;
+.persianKey {
   font-family: 'Vazirmatn', 'Noto Naskh Arabic', Tahoma, 'Segoe UI', sans-serif;
-  cursor: pointer;
-}
-
-.key:hover {
-  border-color: var(--color-primary);
-}
-
-.wide {
-  min-width: 90px;
-  font-family: inherit;
-  font-size: 0.8rem;
 }
 
 .zwnj {

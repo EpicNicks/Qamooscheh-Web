@@ -13,6 +13,15 @@ export interface ExerciseProps {
   courseCode?: string | null;
   /** user_prefs.keyboard_mode — only consulted by TypeInExercise, when it renders a language-specific virtual keyboard. */
   keyboardMode?: KeyboardMode;
+  /**
+   * Set once this exercise has been answered and is waiting on the learner
+   * to explicitly confirm before the lesson moves on — every exercise
+   * type's own submit control becomes this instead (not a second button
+   * alongside it), so there's exactly one "next step" affordance on screen
+   * at a time. The exercise is expected to already be rendered `disabled`
+   * whenever this is set.
+   */
+  advance?: { label: string; onAdvance: () => void };
 }
 
 /**
@@ -28,10 +37,11 @@ export function ExerciseRenderer({
   disabled,
   courseCode,
   keyboardMode,
+  advance,
 }: ExerciseProps & { renderType: ExerciseType }) {
   switch (renderType) {
     case "word_bank":
-      return <WordBankExercise exercise={exercise} onSubmit={onSubmit} disabled={disabled} courseCode={courseCode} />;
+      return <WordBankExercise exercise={exercise} onSubmit={onSubmit} disabled={disabled} courseCode={courseCode} advance={advance} />;
     case "type_in":
       return (
         <TypeInExercise
@@ -40,11 +50,12 @@ export function ExerciseRenderer({
           disabled={disabled}
           courseCode={courseCode}
           keyboardMode={keyboardMode}
+          advance={advance}
         />
       );
     case "match":
-      return <MatchExercise exercise={exercise} onSubmit={onSubmit} disabled={disabled} courseCode={courseCode} />;
+      return <MatchExercise exercise={exercise} onSubmit={onSubmit} disabled={disabled} courseCode={courseCode} advance={advance} />;
     case "speak":
-      return <SpeakExercise exercise={exercise} onSubmit={onSubmit} disabled={disabled} courseCode={courseCode} />;
+      return <SpeakExercise exercise={exercise} onSubmit={onSubmit} disabled={disabled} courseCode={courseCode} advance={advance} />;
   }
 }
