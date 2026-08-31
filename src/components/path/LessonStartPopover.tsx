@@ -8,16 +8,18 @@ interface LessonStartPopoverProps {
   onStart: () => void;
   /** Present only when there's a position ahead to test into — see domain/pathProgress.ts's findNextStandardTarget. Omitted (no Skip button at all) for the very last lesson in the course. */
   onSkip?: () => void;
+  onReviewVocabulary: () => void;
   onClose: () => void;
 }
 
 /**
  * A small popover hovering over the tapped lesson node, Duolingo-style,
  * offering Start alongside Skip (test out of this lesson — see
- * PathPage's use of findNextStandardTarget) instead of jumping straight
- * into /lesson the moment the node is tapped.
+ * PathPage's use of findNextStandardTarget) and Review vocabulary (browse
+ * every lexeme in the course ahead of doing the lessons that teach them)
+ * instead of jumping straight into /lesson the moment the node is tapped.
  */
-export function LessonStartPopover({ anchorRect, onStart, onSkip, onClose }: LessonStartPopoverProps) {
+export function LessonStartPopover({ anchorRect, onStart, onSkip, onReviewVocabulary, onClose }: LessonStartPopoverProps) {
   const popoverRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -52,6 +54,9 @@ export function LessonStartPopover({ anchorRect, onStart, onSkip, onClose }: Les
           Test out
         </Button>
       )}
+      <Button variant="secondary" onClick={onReviewVocabulary}>
+        Review vocabulary
+      </Button>
     </div>
   );
 }

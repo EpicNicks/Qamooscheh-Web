@@ -72,6 +72,7 @@ export function SkillNode({ skill, layout = "node", nextSkipTarget = null }: Ski
           onSkip={
             nextSkipTarget ? () => navigate(`/checkpoint/${nextSkipTarget.unitKey}/${nextSkipTarget.skillKey}`) : undefined
           }
+          onReviewVocabulary={() => navigate("/vocabulary")}
           onClose={() => setPopoverAnchor(null)}
         />
       )}

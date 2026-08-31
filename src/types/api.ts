@@ -310,6 +310,29 @@ export interface ActivityResponse {
 }
 
 // ---------------------------------------------------------------------------
+// v1/vocab (Vocab/VocabContracts.cs). Not course-scoped — every tag the
+// caller has ever starred, in any course; the client already holds the CDN
+// lexemes.json for whichever course is on screen and intersects locally,
+// the same client-joins-locally idiom session-plan/checkpoint already use.
+// ---------------------------------------------------------------------------
+
+export interface StarredVocabResponse {
+  tags: string[];
+}
+
+/** PUT /v1/vocab/starred's body — absolute state, not a toggle (a retried toggle over a flaky connection would silently flip the wrong way). */
+export interface SetStarredRequest {
+  tag: string;
+  starred: boolean;
+}
+
+/** PUT /v1/vocab/starred/batch's body — a diff to reconcile in one call; star wins for a tag in both lists. */
+export interface BatchSetStarredRequest {
+  star: string[];
+  unstar: string[];
+}
+
+// ---------------------------------------------------------------------------
 // Shared error shape — every controller returns `{ error: string }` (and
 // checkpoint submit's SessionRejectedException case adds `reason`).
 // ---------------------------------------------------------------------------

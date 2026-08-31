@@ -7,6 +7,7 @@ import { RegisterPage } from "./pages/RegisterPage";
 import { OnboardingFlow } from "./pages/onboarding/OnboardingFlow";
 import { PathPage } from "./pages/PathPage";
 import { CategoryPage } from "./pages/CategoryPage";
+import { VocabularyReviewPage } from "./pages/VocabularyReviewPage";
 import { LessonPage } from "./pages/LessonPage";
 import { StoryPage } from "./pages/StoryPage";
 import { PracticePage } from "./pages/PracticePage";
@@ -55,6 +56,7 @@ export default function App() {
         <Route index element={<Navigate to="/path" replace />} />
         <Route path="/path" element={<PathPage />} />
         <Route path="/library/:category" element={<CategoryPage />} />
+        <Route path="/vocabulary" element={<VocabularyReviewPage />} />
         <Route path="/lesson" element={<LessonPage />} />
         <Route path="/story/:unitKey/:skillKey" element={<StoryPage />} />
         <Route path="/practice/:unitKey/:skillKey" element={<PracticePage />} />
