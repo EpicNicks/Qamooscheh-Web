@@ -32,11 +32,15 @@ export function SkillNode({ skill, layout = "node" }: { skill: PathSkill; layout
     if (skill.status === "current") {
       navigate("/lesson");
     } else {
-      // An unlocked-but-not-current skill: offer it as a checkpoint target
-      // rather than a lesson — the server only ever plans a lesson for the
-      // learner's own cursor (API_SPEC.md §2.2), and re-practicing a past
-      // skill directly isn't a modeled flow yet.
-      navigate(`/checkpoint/${skill.unitKey}/${skill.skillKey}`);
+      // An unlocked-but-not-current standard skill is BEHIND the learner's
+      // cursor (see pathProgress.ts) — already passed, being revisited. The
+      // server only ever plans a lesson for the learner's own cursor
+      // (API_SPEC.md §2.2), so /lesson can't serve it; checkpoint is the
+      // wrong direction too, since GET /v1/checkpoint only accepts targets
+      // strictly ahead of the cursor and 400s on anything at or behind it.
+      // useSkillWalkthrough already loads one named skill from the CDN and
+      // submits it outside the cursor sequence, so route there instead.
+      navigate(`/practice/${skill.unitKey}/${skill.skillKey}`);
     }
   }
 

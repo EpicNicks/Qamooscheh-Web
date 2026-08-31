@@ -9,6 +9,7 @@ import { PathPage } from "./pages/PathPage";
 import { CategoryPage } from "./pages/CategoryPage";
 import { LessonPage } from "./pages/LessonPage";
 import { StoryPage } from "./pages/StoryPage";
+import { PracticePage } from "./pages/PracticePage";
 import { CheckpointPage } from "./pages/CheckpointPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { SettingsPage } from "./pages/SettingsPage";
@@ -56,6 +57,7 @@ export default function App() {
         <Route path="/library/:category" element={<CategoryPage />} />
         <Route path="/lesson" element={<LessonPage />} />
         <Route path="/story/:unitKey/:skillKey" element={<StoryPage />} />
+        <Route path="/practice/:unitKey/:skillKey" element={<PracticePage />} />
         <Route path="/checkpoint/:unitKey/:skillKey" element={<CheckpointPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/settings" element={<SettingsPage />} />
