@@ -51,3 +51,19 @@ export const SINGLES: Record<string, readonly string[]> = {
 export function resolveTrigger(sound: string): readonly string[] | null {
   return DIGRAPHS[sound] ?? SINGLES[sound] ?? null;
 }
+
+/**
+ * Every Latin letter the phonetic keyboard actually does something with:
+ * either it inserts a letter on its own (a SINGLES key) or it can still lead
+ * somewhere via a digraph (a DIGRAPH_STARTERS key, "c" included even though
+ * a lone "c" has no standalone reading of its own — it's mid-"ch" until the
+ * next key says otherwise). Anything not in this set (c/e/i/o/u/x among the
+ * 26 letters) produces no visible result and is intentionally not accepted:
+ * the on-screen keyboard greys those keys out rather than making them look
+ * pressable and silently doing nothing.
+ */
+export const VALID_PHONETIC_LETTERS: ReadonlySet<string> = new Set([...Object.keys(SINGLES), ...DIGRAPH_STARTERS]);
+
+export function hasPhoneticValue(letter: string): boolean {
+  return VALID_PHONETIC_LETTERS.has(letter.toLowerCase());
+}

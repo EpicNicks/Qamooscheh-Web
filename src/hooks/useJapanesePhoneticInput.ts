@@ -4,7 +4,7 @@
 // the native <input>). Simpler than the Persian hook: romaji composition
 // never needs a disambiguation picker, just a (delete N trailing chars,
 // insert this text) edit applied to whatever text the caller is holding.
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import {
   feedRomajiChar,
   finalizeRomaji,
@@ -26,13 +26,22 @@ export interface JapanesePhoneticInput {
    * cancel it without also deleting an already-committed character.
    */
   peekBuffer: () => string;
+  /**
+   * Reactive twin of peekBuffer() — a consonant (or cluster, e.g. "ky")
+   * still awaiting the vowel that resolves it into kana has nothing visible
+   * in the answer text yet, so the UI shows this instead: the raw Latin the
+   * learner just typed, while the input is still being decided.
+   */
+  buffer: string;
 }
 
 export function useJapanesePhoneticInput(onEdit: (deleteCount: number, insertText: string) => void): JapanesePhoneticInput {
   const stateRef = useRef<JapanesePhoneticState>(initialJapanesePhoneticState);
+  const [buffer, setBuffer] = useState("");
 
   function apply(step: { state: JapanesePhoneticState; deleteCount: number; insertText: string }) {
     stateRef.current = step.state;
+    setBuffer(step.state.buffer);
     if (step.deleteCount > 0 || step.insertText) onEdit(step.deleteCount, step.insertText);
   }
 
@@ -41,7 +50,9 @@ export function useJapanesePhoneticInput(onEdit: (deleteCount: number, insertTex
     finalize: () => apply(finalizeRomaji(stateRef.current)),
     reset: () => {
       stateRef.current = initialJapanesePhoneticState;
+      setBuffer("");
     },
     peekBuffer: () => stateRef.current.buffer,
+    buffer,
   };
 }

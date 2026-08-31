@@ -1,6 +1,7 @@
 import { VirtualKey } from "./keyboard/VirtualKey";
 import { usePhysicalKeyState } from "./keyboard/usePhysicalKeyState";
 import { QWERTY_ROWS, physicalCodeForLetter } from "./keyboard/latinRows";
+import { hasPhoneticValue } from "../../domain/persian/phoneticMap";
 import keyboardStyles from "./keyboard/Keyboard.module.css";
 import styles from "./PhoneticKeyboard.module.css";
 
@@ -25,7 +26,10 @@ interface PersianPhoneticKeyboardProps {
  * A Latin QWERTY grid — tapping (or physically typing) a letter feeds
  * domain/persian/phoneticEngine.ts one character at a time via the shared
  * engine. An ambiguous sound (s, z, t, h, gh/q) inserts its default letter
- * immediately and floats a correction picker over the input.
+ * immediately and floats a correction picker over the input. Letters with
+ * no Persian phonetic mapping (c/e/i/o/u/x — see phoneticMap.ts's
+ * VALID_PHONETIC_LETTERS) are greyed out and inert rather than removed, so
+ * the grid still teaches where every physical key sits.
  */
 export function PersianPhoneticKeyboard({ onPressLetter, onZwnj, onSpace, onBackspace, disabled }: PersianPhoneticKeyboardProps) {
   const physicalDown = usePhysicalKeyState();
@@ -34,16 +38,19 @@ export function PersianPhoneticKeyboard({ onPressLetter, onZwnj, onSpace, onBack
     <div className={keyboardStyles.keyboard}>
       {QWERTY_ROWS.map((row, rowIndex) => (
         <div className={keyboardStyles.row} key={rowIndex}>
-          {row.map((letter) => (
-            <VirtualKey
-              key={letter}
-              label={letter}
-              className={styles.latinKey}
-              physicalDown={physicalDown.has(physicalCodeForLetter(letter))}
-              disabled={disabled}
-              onActivate={() => onPressLetter(letter)}
-            />
-          ))}
+          {row.map((letter) => {
+            const valid = hasPhoneticValue(letter);
+            return (
+              <VirtualKey
+                key={letter}
+                label={letter}
+                className={styles.latinKey}
+                physicalDown={valid && physicalDown.has(physicalCodeForLetter(letter))}
+                disabled={disabled || !valid}
+                onActivate={() => onPressLetter(letter)}
+              />
+            );
+          })}
         </div>
       ))}
       <div className={keyboardStyles.row}>

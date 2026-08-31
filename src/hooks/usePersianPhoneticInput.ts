@@ -60,7 +60,7 @@ export function usePersianPhoneticInput(onEdit: (deleteCount: number, insertText
   }
 
   function finalize() {
-    apply(finalizeWord(stateRef.current));
+    apply(finalizeWord());
   }
 
   function reset() {
@@ -70,7 +70,7 @@ export function usePersianPhoneticInput(onEdit: (deleteCount: number, insertText
 
   function hasPending() {
     const state = stateRef.current;
-    return (state.bufferedPrefix !== "" && !hasVisibleInsertion(state.bufferedPrefix)) || state.pendingWordFinalE;
+    return state.bufferedPrefix !== "" && !hasVisibleInsertion(state.bufferedPrefix);
   }
 
   return { candidates, activeIndex, setActiveIndex, feedChar, selectCandidate, finalize, reset, hasPending };

@@ -17,19 +17,21 @@
 // `a` maps to ا like any other single letter (an ordinary two-way ambiguous
 // entry in phoneticMap.ts's SINGLES table, toggling to آ via the same
 // candidate picker every other ambiguous sound uses — no special-casing
-// needed here). `e` is the one genuinely special vowel: it never commits
-// immediately, staying pending (finalizeWord) until the word ends, resolving
-// to ه — or is silently dropped if another letter follows instead, since
-// Persian orthography otherwise omits short vowels as written letters.
+// needed here). There used to be a special-cased `e`, silently pending until
+// the word ended and then resolving to ه (or dropped) — removed because it
+// let a keystroke be "accepted" with nothing shown for it, which reads as
+// the keyboard swallowing input rather than composing it. A learner who
+// wants ه types `h` instead, same as every other letter: immediate and
+// visible. `e` is simply not a mapped sound (see phoneticMap.ts's
+// VALID_PHONETIC_LETTERS) and the UI never accepts it.
 import { DIGRAPH_STARTERS, resolveTrigger } from "./phoneticMap";
 
 export interface PersianPhoneticState {
   /** A single Latin char that might still extend into a digraph (its own single-letter reading, if any, has already been eagerly inserted). "" when idle. */
   bufferedPrefix: string;
-  pendingWordFinalE: boolean;
 }
 
-export const initialPersianPhoneticState: PersianPhoneticState = { bufferedPrefix: "", pendingWordFinalE: false };
+export const initialPersianPhoneticState: PersianPhoneticState = { bufferedPrefix: "" };
 
 export interface PersianPhoneticStep {
   state: PersianPhoneticState;
@@ -64,14 +66,10 @@ export function feedLatinChar(state: PersianPhoneticState, rawChar: string): Per
     return feedLatinChar(initialPersianPhoneticState, char);
   }
 
-  if (char === "e") {
-    return { state: { bufferedPrefix: "", pendingWordFinalE: true }, deleteCount: 0, insertText: "", candidates: null };
-  }
-
   if (DIGRAPH_STARTERS.has(char)) {
     const single = resolveTrigger(char);
     return {
-      state: { bufferedPrefix: char, pendingWordFinalE: false },
+      state: { bufferedPrefix: char },
       deleteCount: 0,
       insertText: single?.[0] ?? "",
       candidates: single && single.length > 1 ? single : null,
@@ -87,12 +85,7 @@ export function feedLatinChar(state: PersianPhoneticState, rawChar: string): Per
   };
 }
 
-/** Call on space/blur/submit — nothing left to flush except a still-pending word-final e (ه), since every digraph-starter's eager guess is already in the text. */
-export function finalizeWord(state: PersianPhoneticState): PersianPhoneticStep {
-  return {
-    state: initialPersianPhoneticState,
-    deleteCount: 0,
-    insertText: state.pendingWordFinalE ? "ه" : "",
-    candidates: null,
-  };
+/** Call on space/blur/submit — a no-op edit: every digraph-starter's eager guess is already in the text, so there's nothing left to flush. Kept as a step (rather than dropped) so callers don't need to special-case "was there a pending vowel" any more. */
+export function finalizeWord(): PersianPhoneticStep {
+  return { state: initialPersianPhoneticState, deleteCount: 0, insertText: "", candidates: null };
 }
