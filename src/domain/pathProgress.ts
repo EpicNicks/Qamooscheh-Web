@@ -114,6 +114,37 @@ export function computePathProgress(units: PathUnitInput[], position: PositionKe
   });
 }
 
+/**
+ * The (unitKey, skillKey) of the standard position immediately after the
+ * learner's current one — crossing into the next unit if the current
+ * position is the last one in its unit. This is the target for "test out of
+ * this lesson": GET /v1/checkpoint rejects anything that isn't strictly
+ * ahead of the cursor, and the position right after "current" is the
+ * closest one that qualifies (checkpoint-passing it skips the whole current
+ * rank, alternates included, exactly like completing it normally would).
+ * Multiple skills can share a position (a fork); the first is used as the
+ * concrete checkpoint target, since completing any alternate advances the
+ * cursor identically. Returns null when there's no current position, or it's
+ * the very last standard position in the course (nothing left to test into).
+ */
+export function findNextStandardTarget(path: PathUnit[]): PositionKey | null {
+  for (let unitIndex = 0; unitIndex < path.length; unitIndex++) {
+    const unit = path[unitIndex];
+    const currentPosIndex = unit.standardPositions.findIndex((p) => p.status === "current");
+    if (currentPosIndex < 0) continue;
+
+    const nextInUnit = unit.standardPositions[currentPosIndex + 1];
+    if (nextInUnit) return { unitKey: unit.unitKey, skillKey: nextInUnit.skills[0].skillKey };
+
+    for (let nextUnitIndex = unitIndex + 1; nextUnitIndex < path.length; nextUnitIndex++) {
+      const nextPosition = path[nextUnitIndex].standardPositions[0];
+      if (nextPosition) return { unitKey: path[nextUnitIndex].unitKey, skillKey: nextPosition.skills[0].skillKey };
+    }
+    return null; // the current position was the last one in the whole course
+  }
+  return null;
+}
+
 /** A run of skills sharing one `arc`, or a lone skill belonging to none. */
 export interface ArcGroup {
   key: string;

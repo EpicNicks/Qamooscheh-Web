@@ -1,6 +1,8 @@
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import type { PathSkill } from "../../domain/pathProgress";
+import type { PathSkill, PositionKey } from "../../domain/pathProgress";
 import { usePathTheme } from "../../theme/PathThemeContext";
+import { LessonStartPopover } from "./LessonStartPopover";
 import styles from "./SkillNode.module.css";
 
 /**
@@ -11,10 +13,19 @@ import styles from "./SkillNode.module.css";
  */
 export type SkillNodeLayout = "node" | "row";
 
-export function SkillNode({ skill, layout = "node" }: { skill: PathSkill; layout?: SkillNodeLayout }) {
+interface SkillNodeProps {
+  skill: PathSkill;
+  layout?: SkillNodeLayout;
+  /** The checkpoint target for "test out of this lesson" — only ever relevant to the one node that's actually "current" (see PathPage). Absent/null for SkillList, which never renders a "current" standard skill. */
+  nextSkipTarget?: PositionKey | null;
+}
+
+export function SkillNode({ skill, layout = "node", nextSkipTarget = null }: SkillNodeProps) {
   const navigate = useNavigate();
   const theme = usePathTheme();
   const locked = skill.status === "locked";
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [popoverAnchor, setPopoverAnchor] = useState<DOMRect | null>(null);
 
   function handleClick() {
     if (locked) return;
@@ -30,7 +41,9 @@ export function SkillNode({ skill, layout = "node" }: { skill: PathSkill; layout
     }
 
     if (skill.status === "current") {
-      navigate("/lesson");
+      // Duolingo-style: tapping the next lesson offers a choice rather than
+      // starting it outright — see LessonStartPopover.
+      setPopoverAnchor(buttonRef.current?.getBoundingClientRect() ?? null);
     } else {
       // An unlocked-but-not-current standard skill is BEHIND the learner's
       // cursor (see pathProgress.ts) — already passed, being revisited. The
@@ -47,9 +60,21 @@ export function SkillNode({ skill, layout = "node" }: { skill: PathSkill; layout
   const classes = [styles.node, styles[skill.status], layout === "row" && styles.row].filter(Boolean).join(" ");
 
   return (
-    <button type="button" className={classes} disabled={locked} onClick={handleClick} title={skill.title}>
-      <span className={styles.icon}>{theme.icons[skill.category]}</span>
-      <span className={styles.title}>{skill.title}</span>
-    </button>
+    <>
+      <button ref={buttonRef} type="button" className={classes} disabled={locked} onClick={handleClick} title={skill.title}>
+        <span className={styles.icon}>{theme.icons[skill.category]}</span>
+        <span className={styles.title}>{skill.title}</span>
+      </button>
+      {popoverAnchor && (
+        <LessonStartPopover
+          anchorRect={popoverAnchor}
+          onStart={() => navigate("/lesson")}
+          onSkip={
+            nextSkipTarget ? () => navigate(`/checkpoint/${nextSkipTarget.unitKey}/${nextSkipTarget.skillKey}`) : undefined
+          }
+          onClose={() => setPopoverAnchor(null)}
+        />
+      )}
+    </>
   );
 }

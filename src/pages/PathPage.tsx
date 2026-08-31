@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useBootstrap } from "../hooks/useBootstrap";
 import { useCoursePath } from "../hooks/useCourseContent";
+import { findNextStandardTarget } from "../domain/pathProgress";
 import { SkillRoad } from "../components/path/SkillRoad";
 import { PathThemeProvider } from "../theme/PathThemeProvider";
 import { Spinner } from "../components/common/Spinner";
@@ -12,6 +13,10 @@ import styles from "./CourseSection.module.css";
 export function PathPage() {
   const bootstrap = useBootstrap();
   const { path, isLoading, isError } = useCoursePath(bootstrap.data?.course ?? null, bootstrap.data?.position ?? null);
+  // At most one position across the whole journey is ever "current" — computed
+  // once here and handed to every unit's road, rather than each SkillNode
+  // re-deriving it, since only the one node that's actually current ever uses it.
+  const nextSkipTarget = findNextStandardTarget(path);
 
   // Genuinely synchronizing with an external system (the browser's scroll
   // position), not deriving render output — a real effect, not a render-time
@@ -35,7 +40,7 @@ export function PathPage() {
       {path.map((unit) => (
         <section key={unit.unitKey} className={styles.section}>
           <h2 className={styles.title}>{unit.title}</h2>
-          <SkillRoad positions={unit.standardPositions} />
+          <SkillRoad positions={unit.standardPositions} nextSkipTarget={nextSkipTarget} />
         </section>
       ))}
     </PathThemeProvider>

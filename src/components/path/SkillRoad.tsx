@@ -1,5 +1,5 @@
 import { computeRoadLayout } from "../../domain/roadLayout";
-import type { PathPosition } from "../../domain/pathProgress";
+import type { PathPosition, PositionKey } from "../../domain/pathProgress";
 import { usePathTheme } from "../../theme/PathThemeContext";
 import { SkillNode } from "./SkillNode";
 import styles from "./SkillRoad.module.css";
@@ -34,7 +34,7 @@ function nodeLeft(pct: number): string {
  * — the SVG through its viewBox, the nodes through percentage `left` values —
  * and stay aligned at any container width without measuring anything.
  */
-export function SkillRoad({ positions }: { positions: PathPosition[] }) {
+export function SkillRoad({ positions, nextSkipTarget }: { positions: PathPosition[]; nextSkipTarget: PositionKey | null }) {
   const theme = usePathTheme();
   const { logicalWidth } = theme.layout;
   const Motif = theme.motif;
@@ -84,7 +84,7 @@ export function SkillRoad({ positions }: { positions: PathPosition[] }) {
             // most one "current" standard skill across the whole journey.
             data-current-node={skill.status === "current" ? "" : undefined}
           >
-            <SkillNode skill={skill} />
+            <SkillNode skill={skill} nextSkipTarget={nextSkipTarget} />
           </div>
         );
       })}
