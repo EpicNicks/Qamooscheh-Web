@@ -15,7 +15,7 @@ export function SkipLessonModal({
   onConfirm,
 }: {
   onCancel: () => void;
-  /** `dontAskAgain` is the checkbox state at the moment Skip was pressed — the caller decides what to persist. */
+  /** `dontAskAgain` is the checkbox state at the moment Close was pressed — the caller decides what to persist. */
   onConfirm: (dontAskAgain: boolean) => void;
 }) {
   const [dontAskAgain, setDontAskAgain] = useState(false);
@@ -64,7 +64,7 @@ export function SkipLessonModal({
         onClick={(event) => event.stopPropagation()}
       >
         <h2 id="skip-lesson-title" className={styles.title}>
-          Skip this lesson?
+          Leave this lesson?
         </h2>
         <p className={styles.body}>
           Your answers so far won't be saved, and nothing you've done here will count toward your progress.
@@ -84,7 +84,7 @@ export function SkipLessonModal({
             Keep going
           </Button>
           <Button variant="danger" onClick={() => onConfirm(dontAskAgain)}>
-            Skip
+            Leave
           </Button>
         </div>
       </div>

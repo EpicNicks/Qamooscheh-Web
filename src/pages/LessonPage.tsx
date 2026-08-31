@@ -1,16 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLessonEngine, type SubmitAnswerResult, type LessonExerciseInstance } from "../hooks/useLessonEngine";
-import { useBootstrap } from "../hooks/useBootstrap";
 import { usePrefs } from "../hooks/usePrefs";
-import { useLexemeIndex } from "../hooks/useCourseContent";
 import { useSkipConfirmation } from "../hooks/useSkipConfirmation";
 import { xpForAnswer } from "../domain/xp";
 import { ExerciseRenderer } from "../components/lesson/ExerciseRenderer";
 import { SessionProgressBar } from "../components/lesson/SessionProgressBar";
 import { AnswerFeedback } from "../components/lesson/AnswerFeedback";
-import { VocabularyPanel } from "../components/lesson/VocabularyPanel";
 import { SkipLessonModal } from "../components/lesson/SkipLessonModal";
+import { CloseLessonButton } from "../components/lesson/CloseLessonButton";
 import { LessonResults } from "../components/lesson/LessonResults";
 import { Spinner } from "../components/common/Spinner";
 import { ErrorBanner } from "../components/common/ErrorBanner";
@@ -20,9 +18,7 @@ import styles from "./LessonPage.module.css";
 export function LessonPage() {
   const navigate = useNavigate();
   const engine = useLessonEngine();
-  const bootstrap = useBootstrap();
   const prefs = usePrefs();
-  const lexemeIndex = useLexemeIndex(bootstrap.data?.course ?? null);
   const skip = useSkipConfirmation();
 
   const [feedback, setFeedback] = useState<SubmitAnswerResult | null>(null);
@@ -88,9 +84,7 @@ export function LessonPage() {
       <div className={styles.wrap}>
         <div className={styles.topRow}>
           <SessionProgressBar completed={engine.progress.completed} total={engine.progress.total} />
-          <Button variant="secondary" className={styles.skip} onClick={skip.requestSkip}>
-            Skip
-          </Button>
+          <CloseLessonButton isConfirming={skip.isConfirming} onClick={skip.requestSkip} />
         </div>
         <AnswerFeedback
           key={submissionCount}
@@ -107,12 +101,6 @@ export function LessonPage() {
           courseCode={engine.courseCode}
           keyboardMode={prefs.data?.keyboardMode}
           advance={{ label: "Continue", onAdvance: () => setAnsweredExercise(null) }}
-        />
-        <VocabularyPanel
-          tags={answeredExercise.exercise.tags}
-          lexemeIndex={lexemeIndex.data}
-          courseCode={engine.courseCode}
-          scriptMode={prefs.data?.scriptMode ?? "native"}
         />
         {skip.isConfirming && <SkipLessonModal onCancel={skip.cancelSkip} onConfirm={skip.confirmSkip} />}
       </div>
@@ -172,13 +160,6 @@ export function LessonPage() {
         courseCode={engine.courseCode}
         keyboardMode={prefs.data?.keyboardMode}
       />
-      <VocabularyPanel
-        tags={engine.current.exercise.tags}
-        lexemeIndex={lexemeIndex.data}
-        courseCode={engine.courseCode}
-        scriptMode={prefs.data?.scriptMode ?? "native"}
-      />
-
       {skip.isConfirming && <SkipLessonModal onCancel={skip.cancelSkip} onConfirm={skip.confirmSkip} />}
     </div>
   );

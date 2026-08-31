@@ -1,15 +1,13 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useSkillWalkthrough, type WalkthroughAnswerResult } from "../hooks/useSkillWalkthrough";
-import { useBootstrap } from "../hooks/useBootstrap";
 import { usePrefs } from "../hooks/usePrefs";
-import { useLexemeIndex } from "../hooks/useCourseContent";
 import { useSkipConfirmation } from "../hooks/useSkipConfirmation";
 import { ExerciseRenderer } from "../components/lesson/ExerciseRenderer";
 import { SessionProgressBar } from "../components/lesson/SessionProgressBar";
 import { AnswerFeedback } from "../components/lesson/AnswerFeedback";
-import { VocabularyPanel } from "../components/lesson/VocabularyPanel";
 import { SkipLessonModal } from "../components/lesson/SkipLessonModal";
+import { CloseLessonButton } from "../components/lesson/CloseLessonButton";
 import { Spinner } from "../components/common/Spinner";
 import { ErrorBanner } from "../components/common/ErrorBanner";
 import { Button } from "../components/common/Button";
@@ -25,9 +23,7 @@ export function StoryPage() {
   const { unitKey = "", skillKey = "" } = useParams();
   const navigate = useNavigate();
   const walkthrough = useSkillWalkthrough(unitKey, skillKey);
-  const bootstrap = useBootstrap();
   const prefs = usePrefs();
-  const lexemeIndex = useLexemeIndex(bootstrap.data?.course ?? null);
   const skip = useSkipConfirmation();
 
   const [feedback, setFeedback] = useState<WalkthroughAnswerResult | null>(null);
@@ -73,9 +69,7 @@ export function StoryPage() {
     <div className={styles.wrap}>
       <div className={styles.topRow}>
         <SessionProgressBar completed={walkthrough.progress.completed} total={walkthrough.progress.total} />
-        <Button variant="secondary" className={styles.skip} onClick={skip.requestSkip}>
-          Skip
-        </Button>
+        <CloseLessonButton isConfirming={skip.isConfirming} onClick={skip.requestSkip} />
       </div>
       {walkthrough.title && <h1 className={styles.chapterTitle}>{walkthrough.title}</h1>}
       {feedback && <AnswerFeedback correct={feedback.correct} note={feedback.note} />}
@@ -87,13 +81,6 @@ export function StoryPage() {
         courseCode={walkthrough.courseCode}
         keyboardMode={prefs.data?.keyboardMode}
       />
-      <VocabularyPanel
-        tags={walkthrough.current.exercise.tags}
-        lexemeIndex={lexemeIndex.data}
-        courseCode={walkthrough.courseCode}
-        scriptMode={prefs.data?.scriptMode ?? "native"}
-      />
-
       {skip.isConfirming && <SkipLessonModal onCancel={skip.cancelSkip} onConfirm={skip.confirmSkip} />}
     </div>
   );
