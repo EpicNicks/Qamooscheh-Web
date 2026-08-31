@@ -56,7 +56,13 @@ export default function App() {
         <Route index element={<Navigate to="/path" replace />} />
         <Route path="/path" element={<PathPage />} />
         <Route path="/library/:category" element={<CategoryPage />} />
+        {/* Three entry points, one page: with no params the page defaults to
+            whole-course scope, :unitKey defaults it to that unit, and both
+            params default it to that one lesson — VocabularyReviewPage's own
+            tabs let the learner move between scopes from any of them. */}
         <Route path="/vocabulary" element={<VocabularyReviewPage />} />
+        <Route path="/vocabulary/:unitKey" element={<VocabularyReviewPage />} />
+        <Route path="/vocabulary/:unitKey/:skillKey" element={<VocabularyReviewPage />} />
         <Route path="/lesson" element={<LessonPage />} />
         <Route path="/story/:unitKey/:skillKey" element={<StoryPage />} />
         <Route path="/practice/:unitKey/:skillKey" element={<PracticePage />} />

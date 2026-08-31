@@ -40,10 +40,17 @@ export function SkillNode({ skill, layout = "node", nextSkipTarget = null }: Ski
       return;
     }
 
+    // Duolingo-style: tapping a standard skill (current OR a past one being
+    // revisited) offers a choice rather than jumping straight in — see
+    // LessonStartPopover. This is also the only way to reach "Review
+    // vocabulary" from a skill that isn't current, since a completed skill's
+    // node otherwise has no popover at all.
+    setPopoverAnchor(buttonRef.current?.getBoundingClientRect() ?? null);
+  }
+
+  function primaryAction() {
     if (skill.status === "current") {
-      // Duolingo-style: tapping the next lesson offers a choice rather than
-      // starting it outright — see LessonStartPopover.
-      setPopoverAnchor(buttonRef.current?.getBoundingClientRect() ?? null);
+      navigate("/lesson");
     } else {
       // An unlocked-but-not-current standard skill is BEHIND the learner's
       // cursor (see pathProgress.ts) — already passed, being revisited. The
@@ -68,11 +75,14 @@ export function SkillNode({ skill, layout = "node", nextSkipTarget = null }: Ski
       {popoverAnchor && (
         <LessonStartPopover
           anchorRect={popoverAnchor}
-          onStart={() => navigate("/lesson")}
+          primaryLabel={skill.status === "current" ? "Start lesson" : "Practice"}
+          onPrimary={primaryAction}
           onSkip={
-            nextSkipTarget ? () => navigate(`/checkpoint/${nextSkipTarget.unitKey}/${nextSkipTarget.skillKey}`) : undefined
+            skill.status === "current" && nextSkipTarget
+              ? () => navigate(`/checkpoint/${nextSkipTarget.unitKey}/${nextSkipTarget.skillKey}`)
+              : undefined
           }
-          onReviewVocabulary={() => navigate("/vocabulary")}
+          onReviewVocabulary={() => navigate(`/vocabulary/${skill.unitKey}/${skill.skillKey}`)}
           onClose={() => setPopoverAnchor(null)}
         />
       )}

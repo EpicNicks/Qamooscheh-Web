@@ -4,6 +4,7 @@
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { getCourseManifest, getLexemeIndex, getSkillArtifact, getUnitArtifact } from "../api/content";
 import { computePathProgress, type PathSkillInput, type PathUnit, type PositionKey } from "../domain/pathProgress";
+import type { UnitVocab } from "../domain/courseVocabulary";
 import type { CourseRef, SkillRef } from "../types/api";
 import type { CourseManifest, ManifestRef, SkillArtifact, UnitArtifact } from "../types/content";
 
@@ -150,6 +151,79 @@ export function useCoursePath(
 
   return {
     path,
+    isLoading: manifestQuery.isLoading || unitsLoading || skillResults.some((r) => r.isLoading),
+    isError: manifestQuery.isError || unitsError || skillResults.some((r) => r.isError),
+  };
+}
+
+/**
+ * Every unit's vocabulary, grouped by lesson (domain/courseVocabulary.ts's
+ * UnitVocab) — the same two-stage CDN fetch useCoursePath does (every unit
+ * artifact, then every skill artifact those point at), sharing its
+ * react-query cache entries (identical query keys) rather than duplicating
+ * the network calls, but keeping vocabulary as its own concern rather than
+ * threading tags through PathUnit/PathSkill, which know nothing about them.
+ *
+ * Every skill in a unit contributes its lessons' tags here, standard or not
+ * — a story/conversation/song's vocabulary is still vocabulary — unlike
+ * useCoursePath, which only cares about a skill's category for gating.
+ */
+export function useCourseVocabulary(
+  course: CourseRef | null | undefined,
+): { units: UnitVocab[]; isLoading: boolean; isError: boolean } {
+  const manifestQuery = useCourseManifest(course);
+  const { units, isLoading: unitsLoading, isError: unitsError } = useAllUnitArtifacts(course, manifestQuery.data);
+
+  const manifestOrderedUnits =
+    manifestQuery.data?.units
+      .map((ref) => units.find((u) => u.id === ref.id))
+      .filter((u): u is UnitArtifact => u != null) ?? [];
+
+  const unitsReady = manifestOrderedUnits.length === (manifestQuery.data?.units.length ?? -1);
+
+  const allSkillRefs = unitsReady
+    ? manifestOrderedUnits.flatMap((unit) =>
+        unit.positions.flatMap((pos) => pos.skills.map((ref) => ({ unitKey: unit.id, ref }))),
+      )
+    : [];
+
+  const skillResults = useQueries({
+    queries: allSkillRefs.map(({ ref }) => ({
+      queryKey: ["content", "skill", course?.code, course?.version, ref.id],
+      queryFn: () => getSkillArtifact(course!.code, course!.version, ref.path),
+      enabled: course != null && unitsReady,
+      staleTime: Infinity,
+    })),
+  });
+
+  const skillsByUnitAndKey = new Map<string, SkillArtifact>();
+  allSkillRefs.forEach(({ unitKey, ref }, i) => {
+    const data = skillResults[i]?.data;
+    if (data) skillsByUnitAndKey.set(`${unitKey}/${ref.id}`, data);
+  });
+
+  const skillsReady = allSkillRefs.length > 0 && skillResults.every((r) => r.data != null);
+
+  const vocabUnits: UnitVocab[] = skillsReady
+    ? manifestOrderedUnits.map((unit) => ({
+        unitKey: unit.id,
+        title: unit.title,
+        lessons: unit.positions.flatMap((pos) =>
+          pos.skills.map((ref): { unitKey: string; skillKey: string; title: string; tags: string[] } => {
+            const skill = skillsByUnitAndKey.get(`${unit.id}/${ref.id}`);
+            return {
+              unitKey: unit.id,
+              skillKey: ref.id,
+              title: skill?.title ?? ref.id,
+              tags: [...new Set(skill?.exercises.flatMap((e) => e.tags) ?? [])],
+            };
+          }),
+        ),
+      }))
+    : [];
+
+  return {
+    units: vocabUnits,
     isLoading: manifestQuery.isLoading || unitsLoading || skillResults.some((r) => r.isLoading),
     isError: manifestQuery.isError || unitsError || skillResults.some((r) => r.isError),
   };
