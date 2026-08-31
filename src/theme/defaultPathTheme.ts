@@ -30,16 +30,15 @@ export interface PathTheme {
 
 /**
  * Tuned to SkillNode's 84px card inside a 320-unit logical width:
- * `amplitude` and `branchSpread` are both small enough that no node's centre
- * comes within 42 logical units of either edge, so computeRoadLayout's clamp
- * never actually has to fire for this theme.
+ * `branchSpread` is small enough that no node's centre comes within 42
+ * logical units of either edge, so computeRoadLayout's clamp never actually
+ * has to fire for this theme.
  */
 export const defaultPathTheme: PathTheme = {
   id: "default",
   className: styles.theme,
   layout: {
     rowHeight: 190,
-    amplitude: 90,
     branchSpread: 110,
     logicalWidth: 320,
   },

@@ -8,7 +8,7 @@ import { ErrorBanner } from "../components/common/ErrorBanner";
 import { errorMessage } from "../lib/errors";
 import styles from "./CourseSection.module.css";
 
-/** The learning journey: standard skills only, as the winding branching road. Story/conversation/song content lives in its own per-category page (CategoryPage), reached via the sidebar. */
+/** The learning journey: standard skills only, as the straight branching road. Story/conversation/song content lives in its own per-category page (CategoryPage), reached via the sidebar. */
 export function PathPage() {
   const bootstrap = useBootstrap();
   const { path, isLoading, isError } = useCoursePath(bootstrap.data?.course ?? null, bootstrap.data?.position ?? null);

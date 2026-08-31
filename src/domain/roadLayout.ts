@@ -1,4 +1,4 @@
-// Pure geometry for the winding, branching standard-skill road that
+// Pure geometry for the straight, branching standard-skill road that
 // components/path/SkillRoad.tsx draws. Kept out of the component (and free of
 // React) for the same reason pathProgress.ts is: it's arithmetic with an
 // obvious right answer, and it's far easier to reason about as a function
@@ -15,8 +15,6 @@
 export interface RoadLayoutConfig {
   /** Vertical distance between consecutive positions, in px. */
   rowHeight: number;
-  /** How far a singleton position swings off centre, in logical units. */
-  amplitude: number;
   /** Distance between adjacent alternates at a branching position, in logical units. */
   branchSpread: number;
   /** The coordinate space x is computed in; SkillRoad renders it as `viewBox="0 0 logicalWidth H"`. */
@@ -45,63 +43,52 @@ export interface RoadLayout {
   totalHeight: number;
 }
 
-/**
- * A repeating zigzag rather than a pure sine or a strict alternation: an
- * every-other-row left/right flip reads as a metronome, while this pattern's
- * uneven run of offsets reads as a road someone laid out.
- */
-const WAVE = [0, 1, 0.6, 0, -1, -0.6];
-
-/** Half a node's width in logical units, so a swing can't push one off the edge. */
+/** Half a node's width in logical units, so a fork's spread can't push one off the edge. */
 const NODE_HALF_WIDTH = 42;
-
-function wave(positionIndex: number): number {
-  return WAVE[positionIndex % WAVE.length];
-}
 
 /**
  * @param positionSkillCounts how many skills sit at each position, in order —
  *   `[1, 2, 1]` is "one skill, then a two-way fork, then one skill".
  */
 export function computeRoadLayout(positionSkillCounts: number[], config: RoadLayoutConfig): RoadLayout {
-  const { rowHeight, amplitude, branchSpread, logicalWidth } = config;
+  const { rowHeight, branchSpread, logicalWidth } = config;
   const centre = logicalWidth / 2;
   const topPadding = rowHeight / 2;
 
   // Clamped so no node can overhang the viewBox at either edge however a
-  // theme has tuned amplitude/branchSpread.
+  // theme has tuned branchSpread.
   const minX = NODE_HALF_WIDTH;
   const maxX = logicalWidth - NODE_HALF_WIDTH;
   const clamp = (x: number) => Math.min(maxX, Math.max(minX, x));
 
+  // Every position is centred on the same vertical axis: a singleton sits
+  // dead on `centre`, and a fork spreads its alternates symmetrically around
+  // it. That keeps same-level nodes in the same column (straight connectors)
+  // instead of the road zigzagging left/right row to row.
   const nodesByPosition: RoadNode[][] = positionSkillCounts.map((count, positionIndex) => {
     const y = topPadding + positionIndex * rowHeight;
 
     if (count <= 1) {
-      return [{ positionIndex, skillIndex: 0, x: clamp(centre + amplitude * wave(positionIndex)), y }];
+      return [{ positionIndex, skillIndex: 0, x: centre, y }];
     }
 
-    // A branch damps the wave (×0.4) before spreading its alternates
-    // symmetrically around that point, so a fork stays legible as one
-    // position rather than reading as two unrelated nodes.
-    const branchCentre = centre + wave(positionIndex) * amplitude * 0.4;
     return Array.from({ length: count }, (_, skillIndex) => ({
       positionIndex,
       skillIndex,
-      x: clamp(branchCentre + (skillIndex - (count - 1) / 2) * branchSpread),
+      x: clamp(centre + (skillIndex - (count - 1) / 2) * branchSpread),
       y,
     }));
   });
 
-  // One curve per (skill at position i) × (skill at position i+1) pair. That
-  // single rule covers every case the content model allows: 1→1, 1→N (fanning
-  // out into a fork), N→1 (merging back), and N→M.
+  // One straight segment per (skill at position i) × (skill at position i+1)
+  // pair. That single rule covers every case the content model allows: 1→1,
+  // 1→N (fanning out into a fork), N→1 (merging back), and N→M.
   const edges: RoadEdge[] = [];
   for (let i = 0; i < nodesByPosition.length - 1; i++) {
     for (const from of nodesByPosition[i]) {
       for (const to of nodesByPosition[i + 1]) {
         edges.push({
-          d: `M ${from.x},${from.y} C ${from.x},${from.y + rowHeight / 2} ${to.x},${to.y - rowHeight / 2} ${to.x},${to.y}`,
+          d: `M ${from.x},${from.y} L ${to.x},${to.y}`,
           fromPositionIndex: from.positionIndex,
           toPositionIndex: to.positionIndex,
         });

@@ -25,9 +25,9 @@ function nodeLeft(pct: number): string {
 }
 
 /**
- * The winding, branching road of a unit's standard skills.
+ * The straight, branching road of a unit's standard skills.
  *
- * Two layers over one geometry: an `<svg>` of connector curves painted
+ * Two layers over one geometry: an `<svg>` of connector lines painted
  * underneath, and one absolutely-positioned wrapper per skill holding an
  * otherwise-unmodified <SkillNode>. Both are driven by the same
  * computeRoadLayout output and the same logical width, so they scale together
