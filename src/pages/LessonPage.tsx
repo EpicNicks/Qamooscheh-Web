@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLessonEngine, type SubmitAnswerResult, type LessonExerciseInstance } from "../hooks/useLessonEngine";
 import { usePrefs } from "../hooks/usePrefs";
 import { useSkipConfirmation } from "../hooks/useSkipConfirmation";
+import { useAnswerConfirmation } from "../hooks/useAnswerConfirmation";
 import { xpForAnswer } from "../domain/xp";
 import { ExerciseRenderer } from "../components/lesson/ExerciseRenderer";
 import { SessionProgressBar } from "../components/lesson/SessionProgressBar";
@@ -24,34 +25,8 @@ export function LessonPage() {
   const skip = useSkipConfirmation();
   const [topRowEl, setTopRowEl] = useState<HTMLDivElement | null>(null);
   const [exerciseEl, setExerciseEl] = useState<HTMLDivElement | null>(null);
-
-  const [feedback, setFeedback] = useState<SubmitAnswerResult | null>(null);
   const [lastUsedHint, setLastUsedHint] = useState(false);
-  // Bumped on every submission so AnswerFeedback remounts and its
-  // shake/XP-pop animations replay instead of only firing once.
-  const [submissionCount, setSubmissionCount] = useState(0);
-  // The exercise that was just answered, snapshotted at submit time — the
-  // engine's queue has already advanced past it by then (submitAnswer both
-  // records the attempt and moves the cursor in one call), but the learner
-  // still needs to see IT plus the feedback until they explicitly continue,
-  // not whatever comes next.
-  const [answeredExercise, setAnsweredExercise] = useState<LessonExerciseInstance | null>(null);
-
-  // While awaiting confirmation, Enter presses the Continue button — the
-  // exercise itself is disabled (unfocusable) at this point, so this has to
-  // be a window-level listener rather than relying on some element's own
-  // onKeyDown to still be reachable.
-  useEffect(() => {
-    if (!(answeredExercise && feedback) || skip.isConfirming) return;
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Enter") {
-        event.preventDefault();
-        setAnsweredExercise(null);
-      }
-    }
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [answeredExercise, feedback, skip.isConfirming]);
+  const confirmation = useAnswerConfirmation<LessonExerciseInstance, SubmitAnswerResult>(skip.isConfirming);
 
   if (engine.status === "loading") {
     return <Spinner label="Preparing your lesson…" />;
@@ -83,7 +58,8 @@ export function LessonPage() {
   // the session submission the instant the last exercise was answered, but
   // the learner still needs to confirm it before landing on the results
   // screen — the engine finishing in the background doesn't get to skip that.
-  if (answeredExercise && feedback) {
+  if (confirmation.answeredItem && confirmation.feedback) {
+    const { answeredItem, feedback } = confirmation;
     return (
       <div className={styles.wrap}>
         <div className={styles.topRow}>
@@ -92,21 +68,21 @@ export function LessonPage() {
           <CloseLessonButton isConfirming={skip.isConfirming} onClick={skip.requestSkip} />
         </div>
         <AnswerFeedback
-          key={submissionCount}
+          key={confirmation.submissionCount}
           correct={feedback.correct}
           note={feedback.note}
           xp={xpForAnswer(feedback.verdict, feedback.attempt, lastUsedHint)}
         />
         <ExerciseRenderer
-          key={answeredExercise.key}
-          exercise={answeredExercise.exercise}
-          renderType={answeredExercise.renderType}
+          key={answeredItem.key}
+          exercise={answeredItem.exercise}
+          renderType={answeredItem.renderType}
           onSubmit={() => {}}
           disabled
           courseCode={engine.courseCode}
           keyboardMode={prefs.data?.keyboardMode}
           autoplayAudio={prefs.data?.autoplayAudio}
-          advance={{ label: "Continue", onAdvance: () => setAnsweredExercise(null) }}
+          advance={{ label: "Continue", onAdvance: confirmation.confirm }}
         />
         {skip.isConfirming && <SkipLessonModal onCancel={skip.cancelSkip} onConfirm={skip.confirmSkip} />}
       </div>
@@ -138,11 +114,10 @@ export function LessonPage() {
 
   async function handleSubmit(text: string, opts?: { usedHint?: boolean }) {
     const answered = engine.current; // snapshot before submitAnswer advances the queue
+    if (!answered) return;
     const result = await engine.submitAnswer(text, opts);
-    setFeedback(result);
     setLastUsedHint(opts?.usedHint ?? false);
-    setSubmissionCount((n) => n + 1);
-    setAnsweredExercise(answered);
+    confirmation.record(answered, result);
   }
 
   return (

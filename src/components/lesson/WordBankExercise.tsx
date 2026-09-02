@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "../common/Button";
 import { DirectionalText } from "../common/DirectionalText";
 import { ExercisePrompt } from "./ExercisePrompt";
@@ -20,6 +20,25 @@ export function WordBankExercise({ exercise, onSubmit, disabled, courseCode, aut
     onSubmit(chosen.map((i) => tiles[i]).join(" "));
     setChosen([]);
   }
+
+  // Enter submits, the same as TypeInExercise's own window-level handling —
+  // tapping tiles never focuses a text input, so there's nothing for a
+  // native "Enter activates the focused control" behavior to land on
+  // otherwise. Skipped while `advance` is set: at that point the exercise
+  // is the disabled post-answer review, and useAnswerConfirmation's own
+  // page-level Enter handling (wired to the Continue button) already owns
+  // the key then.
+  useEffect(() => {
+    if (disabled || advance) return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        if (chosen.length > 0) submit();
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  });
 
   return (
     <div className={styles.wrap}>

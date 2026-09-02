@@ -1,8 +1,8 @@
-import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useSkillWalkthrough, type WalkthroughAnswerResult } from "../hooks/useSkillWalkthrough";
+import { useSkillWalkthrough, type WalkthroughExerciseInstance, type WalkthroughAnswerResult } from "../hooks/useSkillWalkthrough";
 import { usePrefs } from "../hooks/usePrefs";
 import { useSkipConfirmation } from "../hooks/useSkipConfirmation";
+import { useAnswerConfirmation } from "../hooks/useAnswerConfirmation";
 import { ExerciseRenderer } from "../components/lesson/ExerciseRenderer";
 import { SessionProgressBar } from "../components/lesson/SessionProgressBar";
 import { AnswerFeedback } from "../components/lesson/AnswerFeedback";
@@ -26,11 +26,10 @@ export function StoryPage() {
   const walkthrough = useSkillWalkthrough(unitKey, skillKey);
   const prefs = usePrefs();
   const skip = useSkipConfirmation();
+  const confirmation = useAnswerConfirmation<WalkthroughExerciseInstance, WalkthroughAnswerResult>(skip.isConfirming);
 
-  const [feedback, setFeedback] = useState<WalkthroughAnswerResult | null>(null);
-
-  if (walkthrough.status === "loading" || walkthrough.status === "submitting") {
-    return <Spinner label={walkthrough.status === "submitting" ? "Saving your progress…" : "Opening the story…"} />;
+  if (walkthrough.status === "loading") {
+    return <Spinner label="Opening the story…" />;
   }
 
   if (walkthrough.status === "error") {
@@ -45,6 +44,41 @@ export function StoryPage() {
         <Button onClick={() => navigate("/path")}>Back to path</Button>
       </div>
     );
+  }
+
+  // Checked BEFORE "submitting"/"done" — see LessonPage's identical check
+  // for why: submitAnswer() already kicked off the session submission the
+  // instant the last exercise was answered, but the learner still needs to
+  // confirm it before landing on the completion screen.
+  if (confirmation.answeredItem && confirmation.feedback) {
+    const { answeredItem, feedback } = confirmation;
+    return (
+      <div className={styles.wrap}>
+        <div className={styles.topRow}>
+          <SessionProgressBar completed={walkthrough.progress.completed} total={walkthrough.progress.total} />
+          <LanguageSettingsButton courseCode={walkthrough.courseCode} />
+          <CloseLessonButton isConfirming={skip.isConfirming} onClick={skip.requestSkip} />
+        </div>
+        {walkthrough.title && <h1 className={styles.chapterTitle}>{walkthrough.title}</h1>}
+        <AnswerFeedback key={confirmation.submissionCount} correct={feedback.correct} note={feedback.note} />
+        <ExerciseRenderer
+          key={answeredItem.key}
+          exercise={answeredItem.exercise}
+          renderType={answeredItem.renderType}
+          onSubmit={() => {}}
+          disabled
+          courseCode={walkthrough.courseCode}
+          keyboardMode={prefs.data?.keyboardMode}
+          autoplayAudio={prefs.data?.autoplayAudio}
+          advance={{ label: "Continue", onAdvance: confirmation.confirm }}
+        />
+        {skip.isConfirming && <SkipLessonModal onCancel={skip.cancelSkip} onConfirm={skip.confirmSkip} />}
+      </div>
+    );
+  }
+
+  if (walkthrough.status === "submitting") {
+    return <Spinner label="Saving your progress…" />;
   }
 
   if (walkthrough.status === "done") {
@@ -62,8 +96,10 @@ export function StoryPage() {
   if (!walkthrough.current) return null;
 
   async function handleSubmit(text: string, opts?: { usedHint?: boolean }) {
+    const answered = walkthrough.current; // snapshot before submitAnswer advances the queue
+    if (!answered) return;
     const result = await walkthrough.submitAnswer(text, opts);
-    setFeedback(result);
+    confirmation.record(answered, result);
   }
 
   return (
@@ -74,12 +110,12 @@ export function StoryPage() {
         <CloseLessonButton isConfirming={skip.isConfirming} onClick={skip.requestSkip} />
       </div>
       {walkthrough.title && <h1 className={styles.chapterTitle}>{walkthrough.title}</h1>}
-      {feedback && <AnswerFeedback correct={feedback.correct} note={feedback.note} />}
       <ExerciseRenderer
         key={walkthrough.current.key}
         exercise={walkthrough.current.exercise}
         renderType={walkthrough.current.renderType}
         onSubmit={handleSubmit}
+        disabled={skip.isConfirming}
         courseCode={walkthrough.courseCode}
         keyboardMode={prefs.data?.keyboardMode}
         autoplayAudio={prefs.data?.autoplayAudio}
