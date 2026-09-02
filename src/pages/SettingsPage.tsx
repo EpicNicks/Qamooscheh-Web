@@ -1,9 +1,12 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { usePrefs, useUpdatePrefs } from "../hooks/usePrefs";
+import { useTutorialCompletion } from "../hooks/useTutorialCompletion";
 import { Button } from "../components/common/Button";
 import { Spinner } from "../components/common/Spinner";
 import { ErrorBanner } from "../components/common/ErrorBanner";
 import { errorMessage } from "../lib/errors";
+import { OnboardingTutorialStep } from "./onboarding/OnboardingTutorialStep";
 import type { KeyboardMode, Register, ScriptMode } from "../domain/enums";
 import type { UpdatePrefsRequest } from "../types/api";
 import styles from "./SettingsPage.module.css";
@@ -18,7 +21,9 @@ import styles from "./SettingsPage.module.css";
 export function SettingsPage() {
   const prefsQuery = usePrefs();
   const updatePrefs = useUpdatePrefs();
+  const tutorial = useTutorialCompletion();
   const [form, setForm] = useState<UpdatePrefsRequest | null>(null);
+  const [replayingTutorial, setReplayingTutorial] = useState(false);
 
   if (prefsQuery.isLoading) return <Spinner label="Loading settings…" />;
   if (prefsQuery.isError) return <ErrorBanner message={errorMessage(prefsQuery.error, "Couldn't load your settings.")} />;
@@ -110,6 +115,25 @@ export function SettingsPage() {
         {updatePrefs.isPending ? "Saving…" : "Save"}
       </Button>
       {updatePrefs.isSuccess && <p className={styles.saved}>Saved.</p>}
+
+      <Button type="button" variant="secondary" onClick={() => setReplayingTutorial(true)}>
+        {tutorial.completed ? "Replay tutorial" : "Take the tutorial"}
+      </Button>
+
+      {replayingTutorial &&
+        createPortal(
+          <div className={styles.tutorialOverlay}>
+            <div className={styles.tutorialCard}>
+              <OnboardingTutorialStep
+                onDone={() => {
+                  tutorial.markComplete();
+                  setReplayingTutorial(false);
+                }}
+              />
+            </div>
+          </div>,
+          document.body,
+        )}
     </form>
   );
 }

@@ -1,0 +1,58 @@
+.spotlight {
+  position: fixed;
+  z-index: 100;
+  border-radius: var(--radius-md);
+  /* The whole "dim everything except this box" effect — one giant shadow
+     radius rather than a full-screen backdrop element + an SVG/clip-path
+     cutout. Nothing here has pointer-events, so it never blocks the real
+     controls it's pointing at. */
+  box-shadow: 0 0 0 9999px rgb(0 0 0 / 65%);
+  pointer-events: none;
+  transition:
+    top 0.2s ease,
+    left 0.2s ease,
+    width 0.2s ease,
+    height 0.2s ease;
+}
+
+.dialog {
+  position: fixed;
+  z-index: 101;
+  width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 30%);
+}
+
+.title {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.description {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.skip {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+}
