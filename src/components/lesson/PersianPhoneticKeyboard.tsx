@@ -26,10 +26,11 @@ interface PersianPhoneticKeyboardProps {
  * A Latin QWERTY grid — tapping (or physically typing) a letter feeds
  * domain/persian/phoneticEngine.ts one character at a time via the shared
  * engine. An ambiguous sound (s, z, t, h, gh/q) inserts its default letter
- * immediately and floats a correction picker over the input. Letters with
- * no Persian phonetic mapping (c/e/i/o/u/x — see phoneticMap.ts's
- * VALID_PHONETIC_LETTERS) are greyed out and inert rather than removed, so
- * the grid still teaches where every physical key sits.
+ * immediately and floats a correction picker over the input. "c" — the one
+ * letter with no Persian phonetic mapping on its own (see phoneticMap.ts's
+ * VALID_PHONETIC_LETTERS; it only ever leads somewhere via "ch") — is greyed
+ * out and inert rather than removed, so the grid still teaches where every
+ * physical key sits.
  */
 export function PersianPhoneticKeyboard({ onPressLetter, onZwnj, onSpace, onBackspace, disabled }: PersianPhoneticKeyboardProps) {
   const physicalDown = usePhysicalKeyState();

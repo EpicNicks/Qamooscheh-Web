@@ -25,6 +25,14 @@ export const SINGLES: Record<string, readonly string[]> = {
   // away in the candidate picker — the toggle IS the picker, same as every
   // other ambiguous letter, not a separate mechanism.
   a: ["ا", "آ"],
+  // Same candidates as "a" — a short "e" and a short "a" land on the same
+  // ambiguous pair in practice (ا default, آ the long-vowel alternate one
+  // tap away), so this is an alias onto "a"'s own list rather than a
+  // second, independently-maintained one that could drift from it.
+  e: ["ا", "آ"],
+  i: ["ی"],
+  o: ["و"],
+  u: ["و"],
   b: ["ب"],
   p: ["پ"],
   t: ["ت", "ط"],
@@ -42,6 +50,7 @@ export const SINGLES: Record<string, readonly string[]> = {
   n: ["ن"],
   v: ["و"],
   w: ["و"],
+  x: ["خ"],
   y: ["ی"],
   q: ["ق", "غ"],
   "'": ["ع", "ء"],
@@ -57,10 +66,10 @@ export function resolveTrigger(sound: string): readonly string[] | null {
  * either it inserts a letter on its own (a SINGLES key) or it can still lead
  * somewhere via a digraph (a DIGRAPH_STARTERS key, "c" included even though
  * a lone "c" has no standalone reading of its own — it's mid-"ch" until the
- * next key says otherwise). Anything not in this set (c/e/i/o/u/x among the
- * 26 letters) produces no visible result and is intentionally not accepted:
- * the on-screen keyboard greys those keys out rather than making them look
- * pressable and silently doing nothing.
+ * next key says otherwise). "c" is the only letter of the 26 outside this
+ * set now; pressing it alone produces no visible result and is intentionally
+ * not accepted: the on-screen keyboard greys it out rather than making it
+ * look pressable and silently doing nothing.
  */
 export const VALID_PHONETIC_LETTERS: ReadonlySet<string> = new Set([...Object.keys(SINGLES), ...DIGRAPH_STARTERS]);
 

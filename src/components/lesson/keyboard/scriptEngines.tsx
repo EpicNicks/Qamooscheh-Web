@@ -164,9 +164,10 @@ function usePersianPhoneticEngine(params: {
 
   return {
     pressLetter(letter) {
-      // Letters with no Persian phonetic mapping (c/e/i/o/u/x) are never
-      // accepted — matches the on-screen keyboard greying those keys out,
-      // so typing one physically can't silently do nothing either.
+      // Letters with no Persian phonetic mapping ("c" alone, mid-digraph
+      // with nothing else typed yet) are never accepted — matches the
+      // on-screen keyboard greying that key out, so typing it physically
+      // can't silently do nothing either.
       if (hasPhoneticValue(letter)) persianPhonetic.feedChar(letter);
     },
     backspace() {
