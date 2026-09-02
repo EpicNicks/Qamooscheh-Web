@@ -20,6 +20,7 @@ const LETTER_KEY = /^[a-zA-Z']$/;
 export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keyboardMode, autoplayAudio, advance }: ExerciseProps) {
   const [text, setText] = useState("");
   const [usedHint, setUsedHint] = useState(false);
+  const [hintShown, setHintShown] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   // Mirrors `text` synchronously (state updates are batched/async, but
   // submit() needs the just-finalized value immediately — see submit()) —
@@ -84,6 +85,7 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
     onSubmit(textRef.current, { usedHint });
     updateText(() => "");
     setUsedHint(false);
+    setHintShown(false);
   }
 
   /**
@@ -173,6 +175,8 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
         <p className={styles.note}>{arabicVariantHits[0].label} — try {arabicVariantHits[0].suggested}</p>
       )}
 
+      {hintShown && exercise.hint && <p className={styles.note}>{exercise.hint}</p>}
+
       {engine.keyboardNode}
 
       <div className={styles.actions}>
@@ -180,9 +184,19 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
           <Button onClick={advance.onAdvance}>{advance.label}</Button>
         ) : (
           <>
-            <button type="button" className={styles.hint} onClick={() => setUsedHint(true)} disabled={disabled}>
-              Use a hint
-            </button>
+            {exercise.hint && (
+              <button
+                type="button"
+                className={styles.hint}
+                onClick={() => {
+                  setUsedHint(true);
+                  setHintShown(true);
+                }}
+                disabled={disabled || hintShown}
+              >
+                Use a hint
+              </button>
+            )}
             <Button onClick={submit} disabled={disabled || text.trim().length === 0}>
               Submit
             </Button>

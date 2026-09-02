@@ -1,3 +1,9 @@
+.wrongWrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
 .correct,
 .incorrect {
   display: flex;
@@ -25,6 +31,21 @@
 .note {
   color: inherit;
   opacity: 0.85;
+}
+
+.reveal {
+  background: none;
+  border: none;
+  color: inherit;
+  opacity: 0.85;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: inherit;
+  margin-left: auto;
+}
+
+.reveal:hover {
+  opacity: 1;
 }
 
 .shake {

@@ -73,6 +73,8 @@ export interface ExerciseArtifact {
   tiles: string[] | null;
   answer: string[];
   tags: string[];
+  /** Authored hint text, or null when this exercise doesn't have one — not every artifact on the CDN carries this field yet, so callers should treat a missing property the same as null. */
+  hint?: string | null;
 }
 
 /** One entry in lexemes.json, keyed by lexeme tag. */

@@ -65,7 +65,13 @@ export function PracticePage() {
           <CloseLessonButton isConfirming={skip.isConfirming} onClick={skip.requestSkip} />
         </div>
         {walkthrough.title && <h1 className={styles.chapterTitle}>{walkthrough.title}</h1>}
-        <AnswerFeedback key={confirmation.submissionCount} correct={feedback.correct} note={feedback.note} />
+        <AnswerFeedback
+          key={confirmation.submissionCount}
+          correct={feedback.correct}
+          note={feedback.note}
+          answer={answeredItem.exercise.answer}
+          reportContext={{ exerciseTags: answeredItem.exercise.tags, prompt: answeredItem.exercise.prompt }}
+        />
         <ExerciseRenderer
           key={answeredItem.key}
           exercise={answeredItem.exercise}

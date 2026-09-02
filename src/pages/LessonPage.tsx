@@ -72,6 +72,8 @@ export function LessonPage() {
           correct={feedback.correct}
           note={feedback.note}
           xp={xpForAnswer(feedback.verdict, feedback.attempt, lastUsedHint)}
+          answer={answeredItem.exercise.answer}
+          reportContext={{ exerciseTags: answeredItem.exercise.tags, prompt: answeredItem.exercise.prompt }}
         />
         <ExerciseRenderer
           key={answeredItem.key}
