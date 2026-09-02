@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Button } from "../common/Button";
 import { DirectionalText } from "../common/DirectionalText";
+import { ExercisePrompt } from "./ExercisePrompt";
 import type { ExerciseProps } from "./ExerciseRenderer";
 import styles from "./Exercise.module.css";
 
 /** Tap tiles in order to build the answer; tapping a chosen tile again removes it. */
-export function WordBankExercise({ exercise, onSubmit, disabled, courseCode, advance }: ExerciseProps) {
+export function WordBankExercise({ exercise, onSubmit, disabled, courseCode, autoplayAudio, advance }: ExerciseProps) {
   const [chosen, setChosen] = useState<number[]>([]);
   const tiles = exercise.tiles ?? [];
 
@@ -22,7 +23,7 @@ export function WordBankExercise({ exercise, onSubmit, disabled, courseCode, adv
 
   return (
     <div className={styles.wrap}>
-      <p className={styles.prompt}>{exercise.prompt}</p>
+      <ExercisePrompt text={exercise.prompt} courseCode={courseCode} autoplayAudio={autoplayAudio} />
       <div className={styles.answerRow}>
         {chosen.map((tileIndex, position) => (
           <DirectionalText key={`${tileIndex}-${position}`} courseCode={courseCode}>

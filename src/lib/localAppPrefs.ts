@@ -22,11 +22,21 @@ export interface LocalAppPrefs {
   suppressSkipWarning: boolean;
   /** Per-language virtual keyboard mode (see components/lesson/keyboard/). fa defaults to the standard ISIRI layout, ja defaults to phonetic (romaji IME) — matching what most learners already expect from each language. */
   keyboardInputMethod: KeyboardInputMethod;
+  /**
+   * Japanese-only: show furigana readings over kanji. Local rather than a
+   * synced user_prefs column, same reasoning as keyboardInputMethod — a
+   * per-device rendering choice, not an account-level study setting like
+   * scriptMode. Defaults on: furigana is a reading aid a beginner wants by
+   * default and can turn off once kanji stop needing it, not something to
+   * opt into.
+   */
+  showFurigana: boolean;
 }
 
 const DEFAULTS: LocalAppPrefs = {
   suppressSkipWarning: false,
   keyboardInputMethod: { fa: "layout", ja: "phonetic" },
+  showFurigana: true,
 };
 
 function storageKey(userId: string): string {

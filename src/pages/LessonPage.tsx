@@ -9,6 +9,7 @@ import { SessionProgressBar } from "../components/lesson/SessionProgressBar";
 import { AnswerFeedback } from "../components/lesson/AnswerFeedback";
 import { SkipLessonModal } from "../components/lesson/SkipLessonModal";
 import { CloseLessonButton } from "../components/lesson/CloseLessonButton";
+import { LanguageSettingsButton } from "../components/lesson/languageSettings/LanguageSettingsButton";
 import { LessonResults } from "../components/lesson/LessonResults";
 import { Spinner } from "../components/common/Spinner";
 import { ErrorBanner } from "../components/common/ErrorBanner";
@@ -84,6 +85,7 @@ export function LessonPage() {
       <div className={styles.wrap}>
         <div className={styles.topRow}>
           <SessionProgressBar completed={engine.progress.completed} total={engine.progress.total} />
+          <LanguageSettingsButton courseCode={engine.courseCode} />
           <CloseLessonButton isConfirming={skip.isConfirming} onClick={skip.requestSkip} />
         </div>
         <AnswerFeedback
@@ -100,6 +102,7 @@ export function LessonPage() {
           disabled
           courseCode={engine.courseCode}
           keyboardMode={prefs.data?.keyboardMode}
+          autoplayAudio={prefs.data?.autoplayAudio}
           advance={{ label: "Continue", onAdvance: () => setAnsweredExercise(null) }}
         />
         {skip.isConfirming && <SkipLessonModal onCancel={skip.cancelSkip} onConfirm={skip.confirmSkip} />}
@@ -143,9 +146,8 @@ export function LessonPage() {
     <div className={styles.wrap}>
       <div className={styles.topRow}>
         <SessionProgressBar completed={engine.progress.completed} total={engine.progress.total} />
-        <Button variant="secondary" className={styles.skip} onClick={skip.requestSkip}>
-          Skip
-        </Button>
+        <LanguageSettingsButton courseCode={engine.courseCode} />
+        <CloseLessonButton isConfirming={skip.isConfirming} onClick={skip.requestSkip} />
       </div>
       <ExerciseRenderer
         key={engine.current.key}
@@ -159,6 +161,7 @@ export function LessonPage() {
         disabled={skip.isConfirming}
         courseCode={engine.courseCode}
         keyboardMode={prefs.data?.keyboardMode}
+        autoplayAudio={prefs.data?.autoplayAudio}
       />
       {skip.isConfirming && <SkipLessonModal onCancel={skip.cancelSkip} onConfirm={skip.confirmSkip} />}
     </div>

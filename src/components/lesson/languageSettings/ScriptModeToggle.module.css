@@ -1,0 +1,39 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.heading {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+
+.toggle {
+  display: inline-flex;
+  border-radius: 999px;
+  background: var(--color-border);
+  padding: 2px;
+  gap: 2px;
+}
+
+.option {
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  padding: var(--space-2) var(--space-4);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.active {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.example {
+  font-size: 1.05rem;
+  font-weight: 700;
+}

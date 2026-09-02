@@ -8,6 +8,7 @@ import { SessionProgressBar } from "../components/lesson/SessionProgressBar";
 import { AnswerFeedback } from "../components/lesson/AnswerFeedback";
 import { SkipLessonModal } from "../components/lesson/SkipLessonModal";
 import { CloseLessonButton } from "../components/lesson/CloseLessonButton";
+import { LanguageSettingsButton } from "../components/lesson/languageSettings/LanguageSettingsButton";
 import { Spinner } from "../components/common/Spinner";
 import { ErrorBanner } from "../components/common/ErrorBanner";
 import { Button } from "../components/common/Button";
@@ -72,6 +73,7 @@ export function PracticePage() {
     <div className={styles.wrap}>
       <div className={styles.topRow}>
         <SessionProgressBar completed={walkthrough.progress.completed} total={walkthrough.progress.total} />
+        <LanguageSettingsButton courseCode={walkthrough.courseCode} />
         <CloseLessonButton isConfirming={skip.isConfirming} onClick={skip.requestSkip} />
       </div>
       {walkthrough.title && <h1 className={styles.chapterTitle}>{walkthrough.title}</h1>}
@@ -83,6 +85,7 @@ export function PracticePage() {
         onSubmit={handleSubmit}
         courseCode={walkthrough.courseCode}
         keyboardMode={prefs.data?.keyboardMode}
+        autoplayAudio={prefs.data?.autoplayAudio}
       />
       {skip.isConfirming && <SkipLessonModal onCancel={skip.cancelSkip} onConfirm={skip.confirmSkip} />}
     </div>

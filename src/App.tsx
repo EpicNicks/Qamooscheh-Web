@@ -14,6 +14,7 @@ import { PracticePage } from "./pages/PracticePage";
 import { CheckpointPage } from "./pages/CheckpointPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { SettingsPage } from "./pages/SettingsPage";
+import { HelpPage } from "./pages/HelpPage";
 import { FriendsPage } from "./pages/FriendsPage";
 import { LeaguesPage } from "./pages/LeaguesPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
@@ -69,6 +70,7 @@ export default function App() {
         <Route path="/checkpoint/:unitKey/:skillKey" element={<CheckpointPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/help" element={<HelpPage />} />
         <Route path="/friends" element={<FriendsPage />} />
         <Route path="/leagues" element={<LeaguesPage />} />
       </Route>

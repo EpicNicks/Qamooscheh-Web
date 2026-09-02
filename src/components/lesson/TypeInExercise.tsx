@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "../common/Button";
 import { useScriptEngine, ZWNJ, type ScriptEngine, type ScriptKeyboardHandlers } from "./keyboard/scriptEngines";
+import { ExercisePrompt } from "./ExercisePrompt";
 import { getLanguageInfo, getKeyboardKind, isPersian } from "../../domain/language";
 import { detectArabicVariants } from "../../domain/persian/normalize";
 import { useKeyboardInputMethod } from "../../hooks/useKeyboardInputMethod";
@@ -16,7 +17,7 @@ const LETTER_KEY = /^[a-zA-Z']$/;
  * this component asks for — see keyboard/scriptEngines.tsx. Adding a new
  * keyboard kind means writing one engine there; nothing here changes.
  */
-export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keyboardMode, advance }: ExerciseProps) {
+export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keyboardMode, autoplayAudio, advance }: ExerciseProps) {
   const [text, setText] = useState("");
   const [usedHint, setUsedHint] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -151,7 +152,7 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
 
   return (
     <div className={styles.wrap}>
-      <p className={styles.prompt}>{exercise.prompt}</p>
+      <ExercisePrompt text={exercise.prompt} courseCode={courseCode} autoplayAudio={autoplayAudio} />
       <div className={styles.inputWrap} ref={inputWrapRef}>
         <input
           ref={inputRef}

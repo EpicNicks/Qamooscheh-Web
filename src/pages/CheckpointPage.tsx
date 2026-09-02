@@ -2,6 +2,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useCheckpoint } from "../hooks/useCheckpoint";
 import { usePrefs } from "../hooks/usePrefs";
 import { TypeInExercise } from "../components/lesson/TypeInExercise";
+import { LanguageSettingsButton } from "../components/lesson/languageSettings/LanguageSettingsButton";
 import { Spinner } from "../components/common/Spinner";
 import { ErrorBanner } from "../components/common/ErrorBanner";
 import { Button } from "../components/common/Button";
@@ -45,15 +46,19 @@ export function CheckpointPage() {
 
   return (
     <div className={styles.wrap}>
-      <p>
-        Question {checkpoint.index + 1} of {checkpoint.instances.length}
-      </p>
+      <div className={styles.topRow}>
+        <p>
+          Question {checkpoint.index + 1} of {checkpoint.instances.length}
+        </p>
+        <LanguageSettingsButton courseCode={checkpoint.courseCode} />
+      </div>
       <TypeInExercise
         key={checkpoint.current.key}
         exercise={checkpoint.current.exercise}
         onSubmit={(text) => checkpoint.answerCurrent(text)}
         courseCode={checkpoint.courseCode}
         keyboardMode={prefs.data?.keyboardMode}
+        autoplayAudio={prefs.data?.autoplayAudio}
       />
     </div>
   );

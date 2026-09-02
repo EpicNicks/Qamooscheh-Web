@@ -13,6 +13,8 @@ export interface ExerciseProps {
   courseCode?: string | null;
   /** user_prefs.keyboard_mode — only consulted by TypeInExercise, when it renders a language-specific virtual keyboard. */
   keyboardMode?: KeyboardMode;
+  /** user_prefs.autoplay_audio — plays the prompt aloud once, the moment it's shown (see ExercisePrompt). */
+  autoplayAudio?: boolean;
   /**
    * Set once this exercise has been answered and is waiting on the learner
    * to explicitly confirm before the lesson moves on — every exercise
@@ -37,11 +39,21 @@ export function ExerciseRenderer({
   disabled,
   courseCode,
   keyboardMode,
+  autoplayAudio,
   advance,
 }: ExerciseProps & { renderType: ExerciseType }) {
   switch (renderType) {
     case "word_bank":
-      return <WordBankExercise exercise={exercise} onSubmit={onSubmit} disabled={disabled} courseCode={courseCode} advance={advance} />;
+      return (
+        <WordBankExercise
+          exercise={exercise}
+          onSubmit={onSubmit}
+          disabled={disabled}
+          courseCode={courseCode}
+          autoplayAudio={autoplayAudio}
+          advance={advance}
+        />
+      );
     case "type_in":
       return (
         <TypeInExercise
@@ -50,12 +62,31 @@ export function ExerciseRenderer({
           disabled={disabled}
           courseCode={courseCode}
           keyboardMode={keyboardMode}
+          autoplayAudio={autoplayAudio}
           advance={advance}
         />
       );
     case "match":
-      return <MatchExercise exercise={exercise} onSubmit={onSubmit} disabled={disabled} courseCode={courseCode} advance={advance} />;
+      return (
+        <MatchExercise
+          exercise={exercise}
+          onSubmit={onSubmit}
+          disabled={disabled}
+          courseCode={courseCode}
+          autoplayAudio={autoplayAudio}
+          advance={advance}
+        />
+      );
     case "speak":
-      return <SpeakExercise exercise={exercise} onSubmit={onSubmit} disabled={disabled} courseCode={courseCode} advance={advance} />;
+      return (
+        <SpeakExercise
+          exercise={exercise}
+          onSubmit={onSubmit}
+          disabled={disabled}
+          courseCode={courseCode}
+          autoplayAudio={autoplayAudio}
+          advance={advance}
+        />
+      );
   }
 }

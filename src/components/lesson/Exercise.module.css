@@ -9,6 +9,16 @@
   font-weight: 700;
 }
 
+.promptRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.promptRow .prompt {
+  flex: 1;
+}
+
 .tiles {
   display: flex;
   flex-wrap: wrap;

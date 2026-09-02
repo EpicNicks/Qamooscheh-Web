@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Button } from "../common/Button";
+import { ExercisePrompt } from "./ExercisePrompt";
 import { getLanguageInfo } from "../../domain/language";
 import type { ExerciseProps } from "./ExerciseRenderer";
 import styles from "./Exercise.module.css";
@@ -12,7 +13,7 @@ import styles from "./Exercise.module.css";
  * of blocking the lesson on unbuilt infrastructure. Replace the input with
  * real audio capture once that pipeline is decided.
  */
-export function SpeakExercise({ exercise, onSubmit, disabled, courseCode, advance }: ExerciseProps) {
+export function SpeakExercise({ exercise, onSubmit, disabled, courseCode, autoplayAudio, advance }: ExerciseProps) {
   const [text, setText] = useState("");
   const languageInfo = getLanguageInfo(courseCode);
 
@@ -23,7 +24,7 @@ export function SpeakExercise({ exercise, onSubmit, disabled, courseCode, advanc
 
   return (
     <div className={styles.wrap}>
-      <p className={styles.prompt}>{exercise.prompt}</p>
+      <ExercisePrompt text={exercise.prompt} courseCode={courseCode} autoplayAudio={autoplayAudio} />
       <p className={styles.note}>Speech capture isn't wired up yet — type what you'd say.</p>
       <input
         className={styles.input}

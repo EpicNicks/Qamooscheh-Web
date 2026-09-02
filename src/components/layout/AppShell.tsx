@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { to: "/friends", label: "Friends" },
   { to: "/profile", label: "Profile" },
   { to: "/settings", label: "Settings" },
+  { to: "/help", label: "Help" },
 ];
 
 // Lesson/story/practice/checkpoint are full-screen, focused exercise

@@ -18,6 +18,12 @@ interface LanguageInfo {
   direction: WritingDirection;
   /** Font stack for that language's native script — no external font loading, just broad-coverage system fonts. */
   nativeFontStack: string;
+  /** BCP-47 tag for the Web Speech API (domain/tts.ts) — picks a language-appropriate voice/pronunciation, not just a font. */
+  speechLang: string;
+  /** The language's own endonym, in its own script — e.g. "فارسی", "日本語". Doubles as the worked example on the script-mode toggle (components/lesson/languageSettings/), since it's a word every learner already recognizes by the time they'd look for that setting. */
+  nativeName: string;
+  /** That same endonym, romanized — e.g. "Farsi", "Nihongo". The toggle's other worked example. */
+  romanizedName: string;
   /** Short code for the badge fallback (LanguageBadge) — not an ISO list, just what's shown in all caps. */
   flagCode: string;
   /**
@@ -36,6 +42,9 @@ const COURSE_CODE_TO_LANGUAGE: Record<string, LanguageInfo> = {
     displayName: "Persian",
     direction: "rtl",
     nativeFontStack: "'Vazirmatn', 'Noto Naskh Arabic', Tahoma, 'Segoe UI', sans-serif",
+    speechLang: "fa-IR",
+    nativeName: "فارسی",
+    romanizedName: "Farsi",
     flagCode: "FA",
     flagColors: ["#239F40", "#FFFFFF", "#DA0000"],
   },
@@ -44,6 +53,9 @@ const COURSE_CODE_TO_LANGUAGE: Record<string, LanguageInfo> = {
     displayName: "Japanese",
     direction: "ltr",
     nativeFontStack: "'Noto Sans JP', 'Yu Gothic', 'Hiragino Sans', 'Meiryo', sans-serif",
+    speechLang: "ja-JP",
+    nativeName: "日本語",
+    romanizedName: "Nihongo",
     flagCode: "JA",
     flagColors: ["#FFFFFF", "#BC002D"],
   },
