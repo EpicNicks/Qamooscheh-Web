@@ -4,7 +4,7 @@ import { useBootstrap } from "../hooks/useBootstrap";
 import { useLexemeIndex, useCourseVocabulary } from "../hooks/useCourseContent";
 import { useStarredLexemes } from "../hooks/useStarredLexemes";
 import { lessonVocab, unitVocabTags, courseVocabTags } from "../domain/courseVocabulary";
-import { KeyboardModeToggle } from "../components/lesson/keyboard/KeyboardModeToggle";
+import { SegmentedToggle } from "../components/common/SegmentedToggle";
 import { VocabTermCard } from "../components/vocabulary/VocabTermCard";
 import { Spinner } from "../components/common/Spinner";
 import { ErrorBanner } from "../components/common/ErrorBanner";
@@ -63,7 +63,7 @@ export function VocabularyReviewPage() {
         </Button>
       </div>
 
-      <KeyboardModeToggle
+      <SegmentedToggle
         options={[
           ...(lesson ? [{ value: "lesson" as const, label: lesson.title }] : []),
           ...(unitTitle ? [{ value: "unit" as const, label: unitTitle }] : []),

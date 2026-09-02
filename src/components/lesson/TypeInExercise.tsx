@@ -89,7 +89,7 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
   /**
    * Handles every keystroke for this exercise at the WINDOW level rather
    * than the `<input>`'s own onKeyDown — the input must never lose focus in
-   * the first place (see VirtualKey's/KeyboardModeToggle's mousedown
+   * the first place (see VirtualKey's/SegmentedToggle's mousedown
    * preventDefault), but as a second layer, typing still has to work even
    * if focus ends up somewhere else anyway: every handler above
    * (pressLetter, pressSpace, backspace, ...) already appends/edits via

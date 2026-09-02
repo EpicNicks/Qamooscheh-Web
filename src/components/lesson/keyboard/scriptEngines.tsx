@@ -6,7 +6,7 @@
 // adding it to useScriptEngines' returned map — nothing in TypeInExercise
 // itself needs to change.
 import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { KeyboardModeToggle } from "./KeyboardModeToggle";
+import { SegmentedToggle } from "../../common/SegmentedToggle";
 import { PersianKeyboard } from "../PersianKeyboard";
 import { PersianPhoneticKeyboard } from "../PersianPhoneticKeyboard";
 import { JapanesePhoneticKeyboard } from "../JapanesePhoneticKeyboard";
@@ -106,7 +106,7 @@ function usePersianLayoutEngine(params: {
     supportsZwnj: true,
     keyboardNode: (
       <>
-        <KeyboardModeToggle
+        <SegmentedToggle
           options={[
             { value: "layout", label: "Layout" },
             { value: "phonetic", label: "Phonetic" },
@@ -191,7 +191,7 @@ function usePersianPhoneticEngine(params: {
     },
     keyboardNode: (
       <>
-        <KeyboardModeToggle
+        <SegmentedToggle
           options={[
             { value: "layout", label: "Layout" },
             { value: "phonetic", label: "Phonetic" },
@@ -256,7 +256,7 @@ function useJapanesePhoneticEngine(params: { updateText: UpdateText; disabled: b
     supportsZwnj: false,
     keyboardNode: (
       <>
-        <KeyboardModeToggle
+        <SegmentedToggle
           options={[
             { value: "phonetic", label: "Phonetic" },
             { value: "kana", label: "Kana layout" },
@@ -305,7 +305,7 @@ function useJapaneseKanaEngine(params: {
     supportsZwnj: false,
     keyboardNode: (
       <>
-        <KeyboardModeToggle
+        <SegmentedToggle
           options={[
             { value: "phonetic", label: "Phonetic" },
             { value: "kana", label: "Kana layout" },
