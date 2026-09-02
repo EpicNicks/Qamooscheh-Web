@@ -3,21 +3,21 @@
   display: inline-flex;
 }
 
+/*
+ * Flush against the button (no gap in `bottom`) and carrying the visual
+ * gap as its own bottom PADDING instead — a real gap here would be dead
+ * space outside both the button and the tooltip, so moving the pointer
+ * from one to the other crosses a strip that's hovering neither, closing
+ * the tooltip before the pointer ever reaches the link inside it. Padding
+ * keeps that strip part of this same hoverable box.
+ */
 .toast {
   position: absolute;
   z-index: 20;
-  bottom: calc(100% + var(--space-2));
+  bottom: 100%;
   left: 50%;
   transform: translateX(-50%);
-  width: 220px;
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-sm);
-  background: var(--color-text);
-  color: var(--color-bg);
-  font-size: 0.8rem;
-  line-height: 1.4;
-  text-align: center;
-  box-shadow: 0 8px 24px rgb(0 0 0 / 18%);
+  padding-bottom: var(--space-2);
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.15s ease;
@@ -29,6 +29,20 @@
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
+}
+
+/* The actual visible bubble — separate from .toast so the padding-bottom above stays invisible instead of pushing the background/shadow down with it. */
+.toastContent {
+  display: block;
+  width: 220px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--color-text);
+  color: var(--color-bg);
+  font-size: 0.8rem;
+  line-height: 1.4;
+  text-align: center;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 18%);
 }
 
 .link {

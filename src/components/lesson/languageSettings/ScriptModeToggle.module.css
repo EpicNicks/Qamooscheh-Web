@@ -6,34 +6,75 @@
 }
 
 .heading {
-  font-size: 1.1rem;
+  margin: 0;
+  font-size: 0.8rem;
   font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   color: var(--color-text-muted);
 }
 
-.toggle {
+.toggleOuter {
   display: inline-flex;
+  padding: 3px;
   border-radius: 999px;
   background: var(--color-border);
-  padding: 2px;
-  gap: 2px;
+}
+
+/* No padding/gap of its own — that's what lets the pill's "50% wide,
+   translateX(100%) for the second slot" math land exactly on the boundary
+   regardless of .toggleOuter's own padding around the whole thing. */
+.toggleInner {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  width: 100%;
+}
+
+.pill {
+  position: absolute;
+  inset: 0;
+  width: 50%;
+  border-radius: 999px;
+  background: var(--color-bg);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 15%);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pillRomanized {
+  transform: translateX(100%);
 }
 
 .option {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
   border: none;
   background: transparent;
   color: var(--color-text-muted);
   padding: var(--space-2) var(--space-4);
   border-radius: 999px;
   cursor: pointer;
+  transition: color 0.2s ease;
 }
 
-.active {
-  background: var(--color-bg);
+.option[aria-selected="true"] {
   color: var(--color-text);
 }
 
 .example {
   font-size: 1.05rem;
   font-weight: 700;
+}
+
+.subtitle {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: inherit;
+  opacity: 0.7;
 }

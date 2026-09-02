@@ -5,7 +5,10 @@
   width: 36px;
   height: 36px;
   border-radius: 999px;
-  border: none;
+  /* Solid regardless of state (see .button:disabled below) — a background
+     tint alone read as barely-there, especially disabled, where opacity was
+     the only signal a button was even here. */
+  border: 2px solid var(--color-primary);
   background: var(--color-surface);
   color: var(--color-primary);
   cursor: pointer;
@@ -17,7 +20,8 @@
 }
 
 .button:disabled {
-  opacity: 0.4;
+  border-color: var(--color-border);
+  color: var(--color-text-muted);
   cursor: default;
 }
 

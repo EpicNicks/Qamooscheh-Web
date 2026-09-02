@@ -11,12 +11,17 @@ interface ScriptModeToggleProps {
 
 /**
  * A visual, self-demonstrating version of the native/romanized choice
- * Settings' plain <select> also offers (user_prefs.scriptMode) — each
- * option shows the language's own name rendered the way THAT option would
- * render it, so the choice reads at a glance rather than depending on the
- * words "native"/"romanized" meaning anything to someone who hasn't learned
- * the script yet. "both" (Settings-only) isn't offered here; picking either
+ * Settings' plain <select> also offers (user_prefs.scriptMode). Each option
+ * shows the language's own name rendered the way THAT option would render
+ * it (e.g. "فارسی" vs "Farsi"), with a small "Native"/"Latin" subtitle
+ * naming the script itself — the example reads at a glance even before the
+ * label does. "both" (Settings-only) isn't offered here; picking either
  * option here writes straight to "native" or "romanized".
+ *
+ * The sliding pill behind the selected option is a plain CSS transform
+ * transition, not a JS-measured position: .toggleInner has no padding of
+ * its own, so "50% wide, translateX(100%) for the second option" lands
+ * exactly on the boundary regardless of the outer padding around it.
  *
  * `language` doubles as its own courseCode for getLanguageInfo/
  * DirectionalText — code and language coincide for fa/ja today (see
@@ -27,30 +32,27 @@ export function ScriptModeToggle({ language, value, onChange }: ScriptModeToggle
 
   return (
     <div className={styles.wrap}>
-      <DirectionalText courseCode={language} className={styles.heading}>
-        {info.nativeName}
-      </DirectionalText>
-      <div className={styles.toggle} role="tablist">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={value === "native"}
-          className={value === "native" ? `${styles.option} ${styles.active}` : styles.option}
-          onClick={() => onChange("native")}
-        >
-          <DirectionalText courseCode={language} className={styles.example}>
-            {info.nativeName}
-          </DirectionalText>
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={value === "romanized"}
-          className={value === "romanized" ? `${styles.option} ${styles.active}` : styles.option}
-          onClick={() => onChange("romanized")}
-        >
-          <span className={styles.example}>{info.romanizedName}</span>
-        </button>
+      <p className={styles.heading}>Text Mode</p>
+      <div className={styles.toggleOuter}>
+        <div className={styles.toggleInner} role="tablist">
+          <div className={value === "romanized" ? `${styles.pill} ${styles.pillRomanized}` : styles.pill} aria-hidden="true" />
+          <button type="button" role="tab" aria-selected={value === "native"} className={styles.option} onClick={() => onChange("native")}>
+            <DirectionalText courseCode={language} className={styles.example}>
+              {info.nativeName}
+            </DirectionalText>
+            <span className={styles.subtitle}>Native</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={value === "romanized"}
+            className={styles.option}
+            onClick={() => onChange("romanized")}
+          >
+            <span className={styles.example}>{info.romanizedName}</span>
+            <span className={styles.subtitle}>Latin</span>
+          </button>
+        </div>
       </div>
     </div>
   );
