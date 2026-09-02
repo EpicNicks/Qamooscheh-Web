@@ -75,7 +75,7 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
   }
 
   const handlers: ScriptKeyboardHandlers = { pressLetter, pressSpace, pressZwnj, backspace };
-  engine = useScriptEngine({ keyboardKind, updateText, keyboardMode, disabled, text, languageInfo, inputWrapRef, handlers });
+  engine = useScriptEngine({ keyboardKind, updateText, keyboardMode, disabled, text, languageInfo, inputWrapRef, handlers, fa, ja });
 
   const arabicVariantHits = isPersian(courseCode) && exercise.scriptMode === "native" ? detectArabicVariants(text) : [];
 

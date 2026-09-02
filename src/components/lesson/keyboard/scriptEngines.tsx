@@ -17,8 +17,11 @@ import { PHYSICAL_KEY_TO_ISIRI } from "../../../domain/persian/isiriLayout";
 import { PHYSICAL_CHAR_TO_KANA } from "../../../domain/japanese/jisKanaLayout";
 import { usePersianPhoneticInput, handlePickerNavigation } from "../../../hooks/usePersianPhoneticInput";
 import { useJapanesePhoneticInput } from "../../../hooks/useJapanesePhoneticInput";
-import { useKeyboardInputMethod } from "../../../hooks/useKeyboardInputMethod";
+import type { useKeyboardInputMethod } from "../../../hooks/useKeyboardInputMethod";
 import type { getLanguageInfo } from "../../../domain/language";
+
+type FaInputMethod = ReturnType<typeof useKeyboardInputMethod<"fa">>;
+type JaInputMethod = ReturnType<typeof useKeyboardInputMethod<"ja">>;
 import styles from "../Exercise.module.css";
 
 export const ZWNJ = "‌";
@@ -89,9 +92,9 @@ function usePersianLayoutEngine(params: {
   keyboardMode: "contextual" | "isolated" | undefined;
   disabled: boolean | undefined;
   handlers: ScriptKeyboardHandlers;
+  fa: FaInputMethod;
 }): ScriptEngine {
-  const { updateText, keyboardMode, disabled, handlers } = params;
-  const fa = useKeyboardInputMethod("fa");
+  const { updateText, keyboardMode, disabled, handlers, fa } = params;
 
   return {
     pressLetter(letter) {
@@ -134,9 +137,9 @@ function usePersianPhoneticEngine(params: {
   languageInfo: LanguageInfo;
   inputWrapRef: React.RefObject<HTMLDivElement | null>;
   handlers: ScriptKeyboardHandlers;
+  fa: FaInputMethod;
 }): ScriptEngine {
-  const { updateText, disabled, text, languageInfo, inputWrapRef, handlers } = params;
-  const fa = useKeyboardInputMethod("fa");
+  const { updateText, disabled, text, languageInfo, inputWrapRef, handlers, fa } = params;
   const persianPhonetic = usePersianPhoneticInput((deleteCount, insertText) =>
     updateText((prev) => prev.slice(0, prev.length - deleteCount) + insertText),
   );
@@ -232,9 +235,13 @@ function usePersianPhoneticEngine(params: {
   };
 }
 
-function useJapanesePhoneticEngine(params: { updateText: UpdateText; disabled: boolean | undefined; handlers: ScriptKeyboardHandlers }): ScriptEngine {
-  const { updateText, disabled, handlers } = params;
-  const ja = useKeyboardInputMethod("ja");
+function useJapanesePhoneticEngine(params: {
+  updateText: UpdateText;
+  disabled: boolean | undefined;
+  handlers: ScriptKeyboardHandlers;
+  ja: JaInputMethod;
+}): ScriptEngine {
+  const { updateText, disabled, handlers, ja } = params;
   const japanesePhonetic = useJapanesePhoneticInput((deleteCount, insertText) =>
     updateText((prev) => prev.slice(0, prev.length - deleteCount) + insertText),
   );
@@ -288,9 +295,9 @@ function useJapaneseKanaEngine(params: {
   disabled: boolean | undefined;
   text: string;
   handlers: ScriptKeyboardHandlers;
+  ja: JaInputMethod;
 }): ScriptEngine {
-  const { updateText, disabled, text, handlers } = params;
-  const ja = useKeyboardInputMethod("ja");
+  const { updateText, disabled, text, handlers, ja } = params;
 
   return {
     pressLetter(letter) {
@@ -343,14 +350,16 @@ export function useScriptEngine(params: {
   languageInfo: LanguageInfo;
   inputWrapRef: React.RefObject<HTMLDivElement | null>;
   handlers: ScriptKeyboardHandlers;
+  fa: FaInputMethod;
+  ja: JaInputMethod;
 }): ScriptEngine {
-  const { keyboardKind, updateText, keyboardMode, disabled, text, languageInfo, inputWrapRef, handlers } = params;
+  const { keyboardKind, updateText, keyboardMode, disabled, text, languageInfo, inputWrapRef, handlers, fa, ja } = params;
 
   const plain = createPlainEngine(updateText);
-  const persianLayout = usePersianLayoutEngine({ updateText, keyboardMode, disabled, handlers });
-  const persianPhonetic = usePersianPhoneticEngine({ updateText, disabled, text, languageInfo, inputWrapRef, handlers });
-  const japanesePhonetic = useJapanesePhoneticEngine({ updateText, disabled, handlers });
-  const japaneseKana = useJapaneseKanaEngine({ updateText, disabled, text, handlers });
+  const persianLayout = usePersianLayoutEngine({ updateText, keyboardMode, disabled, handlers, fa });
+  const persianPhonetic = usePersianPhoneticEngine({ updateText, disabled, text, languageInfo, inputWrapRef, handlers, fa });
+  const japanesePhonetic = useJapanesePhoneticEngine({ updateText, disabled, handlers, ja });
+  const japaneseKana = useJapaneseKanaEngine({ updateText, disabled, text, handlers, ja });
 
   switch (keyboardKind) {
     case "persian-layout":
