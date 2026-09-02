@@ -82,3 +82,8 @@
   color: var(--color-text-muted);
   font-size: 0.85rem;
 }
+
+.error {
+  color: var(--color-danger);
+  font-size: 0.85rem;
+}

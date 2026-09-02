@@ -10,6 +10,7 @@ import type {
   Register,
   ScriptMode,
 } from "../domain/enums";
+import type { ExerciseReportReason } from "../domain/exerciseReport";
 
 // ---------------------------------------------------------------------------
 // v1/auth (Auth/AuthContracts.cs)
@@ -341,6 +342,24 @@ export interface BatchSetStarredRequest {
 export interface OnboardingCompleteResponse {
   /** Always true — the only thing POST /v1/onboarding/complete can do is set the flag, never clear it. */
   onboardingComplete: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// v1/exercise-reports (ExerciseReports/ExerciseReportContracts.cs). courseCode
+// is not here: resolved server-side from the caller's active course, same as
+// UpdatePrefsRequest never naming one.
+// ---------------------------------------------------------------------------
+
+export interface SubmitExerciseReportRequest {
+  exercisePrompt: string;
+  exerciseTags: string[];
+  reasons: ExerciseReportReason[];
+  details: string | null;
+}
+
+export interface SubmitExerciseReportResponse {
+  id: number;
+  createdAt: string;
 }
 
 // ---------------------------------------------------------------------------

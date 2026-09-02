@@ -11,17 +11,12 @@ interface ReportIssueProps {
   prompt: string;
 }
 
-/**
- * Sits above the wrong-answer feedback row. No backend exists yet for the
- * report this files (api/exerciseReport.ts is a stub) — this only has to be
- * fully wired on the frontend so swapping in the real submission later
- * doesn't touch this component at all.
- */
+/** Sits above the wrong-answer feedback row — POST /v1/exercise-reports. */
 export function ReportIssue({ exerciseTags, prompt }: ReportIssueProps) {
   const [open, setOpen] = useState(false);
   const [reasons, setReasons] = useState<Set<ExerciseReportReason>>(new Set());
   const [details, setDetails] = useState("");
-  const [status, setStatus] = useState<"idle" | "submitting" | "sent">("idle");
+  const [status, setStatus] = useState<"idle" | "submitting" | "sent" | "error">("idle");
 
   function toggleReason(reason: ExerciseReportReason) {
     setReasons((prev) => {
@@ -34,13 +29,17 @@ export function ReportIssue({ exerciseTags, prompt }: ReportIssueProps) {
 
   async function submit() {
     setStatus("submitting");
-    await submitExerciseReport({
-      exerciseTags,
-      prompt,
-      reasons: [...reasons],
-      details: reasons.has("other") && details.trim() ? details.trim() : null,
-    });
-    setStatus("sent");
+    try {
+      await submitExerciseReport({
+        exercisePrompt: prompt,
+        exerciseTags,
+        reasons: [...reasons],
+        details: reasons.has("other") && details.trim() ? details.trim() : null,
+      });
+      setStatus("sent");
+    } catch {
+      setStatus("error");
+    }
   }
 
   if (!open) {
@@ -85,6 +84,8 @@ export function ReportIssue({ exerciseTags, prompt }: ReportIssueProps) {
           onChange={(event) => setDetails(event.target.value)}
         />
       )}
+
+      {status === "error" && <p className={styles.error}>Couldn't send that — try again?</p>}
 
       <div className={styles.actions}>
         <Button
