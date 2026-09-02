@@ -38,7 +38,11 @@
   border-radius: 999px;
   background: var(--color-bg);
   box-shadow: 0 1px 3px rgb(0 0 0 / 15%);
-  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  /* "easeOutBack" — a cubic-bezier can overshoot past 1 (and back) by
+     letting its Y control points exceed the 0-1 range, which is what
+     reads as a spring settling into place rather than just easing to a
+     stop. A plain ease-out curve is monotonic and can't do this. */
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .pillRomanized {
