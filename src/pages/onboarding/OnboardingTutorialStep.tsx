@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "../../components/common/Button";
 import { TutorialOverlay, type TutorialStep } from "../../components/tutorial/TutorialOverlay";
-import { SkipTutorialModal } from "../../components/tutorial/SkipTutorialModal";
+import { SkipTutorialModal, type SkipTutorialModalSource } from "../../components/tutorial/SkipTutorialModal";
 import exerciseStyles from "../../components/lesson/Exercise.module.css";
 import styles from "./OnboardingTutorialStep.module.css";
 
@@ -9,7 +9,7 @@ type Phase = "wordbank" | "typein" | "done";
 
 const WORD_BANK_TILES = ["Hello", "Goodbye", "Thanks"];
 const WORD_BANK_ANSWER = "Hello";
-const TYPE_IN_ANSWER = "Goodbye";
+const TYPE_IN_ANSWER = "Onward";
 
 /**
  * A self-contained mock lesson — not the real WordBankExercise/TypeInExercise
@@ -31,7 +31,7 @@ export function OnboardingTutorialStep({ onDone }: { onDone: () => void }) {
   const [typed, setTyped] = useState("");
   const [feedback, setFeedback] = useState<string | null>(null);
   const [guided, setGuided] = useState(true);
-  const [confirmingSkip, setConfirmingSkip] = useState(false);
+  const [confirmingSkip, setConfirmingSkip] = useState<SkipTutorialModalSource | null>(null);
 
   // Callback refs (not useRef + reading .current during render) so a
   // freshly-mounted target element is picked up via a normal state update,
@@ -98,7 +98,7 @@ export function OnboardingTutorialStep({ onDone }: { onDone: () => void }) {
     <div className={styles.wrap}>
       <div className={styles.topRow}>
         <span className={styles.progress}>{phase === "wordbank" ? "Step 1 of 2" : "Step 2 of 2"}</span>
-        <button type="button" className={styles.skipLink} onClick={() => setConfirmingSkip(true)}>
+        <button type="button" className={styles.skipLink} onClick={() => setConfirmingSkip("skip-link")}>
           Skip tutorial
         </button>
       </div>
@@ -128,7 +128,7 @@ export function OnboardingTutorialStep({ onDone }: { onDone: () => void }) {
       ) : (
         <>
           <p ref={setPromptEl} className={exerciseStyles.prompt}>
-            Type the word for "Goodbye"
+            Type the word for "Onward"
           </p>
           <input
             ref={setInputEl}
@@ -149,9 +149,16 @@ export function OnboardingTutorialStep({ onDone }: { onDone: () => void }) {
         <Button onClick={phase === "wordbank" ? submitWordBank : submitTypeIn}>Submit</Button>
       </div>
 
-      {guided && <TutorialOverlay resetKey={phase} steps={phase === "wordbank" ? wordBankSteps : typeInSteps} onFinish={() => setGuided(false)} />}
+      {guided && (
+        <TutorialOverlay
+          resetKey={phase}
+          steps={phase === "wordbank" ? wordBankSteps : typeInSteps}
+          onFinish={() => setGuided(false)}
+          onRepeatedOutsideClick={() => setConfirmingSkip("outside-click")}
+        />
+      )}
 
-      {confirmingSkip && <SkipTutorialModal onCancel={() => setConfirmingSkip(false)} onConfirm={onDone} />}
+      {confirmingSkip && <SkipTutorialModal source={confirmingSkip} onCancel={() => setConfirmingSkip(null)} onConfirm={onDone} />}
     </div>
   );
 }

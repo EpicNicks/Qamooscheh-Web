@@ -10,6 +10,7 @@ import { AnswerFeedback } from "../components/lesson/AnswerFeedback";
 import { SkipLessonModal } from "../components/lesson/SkipLessonModal";
 import { CloseLessonButton } from "../components/lesson/CloseLessonButton";
 import { LanguageSettingsButton } from "../components/lesson/languageSettings/LanguageSettingsButton";
+import { RealLessonOverlay } from "../components/tutorial/RealLessonOverlay";
 import { LessonResults } from "../components/lesson/LessonResults";
 import { Spinner } from "../components/common/Spinner";
 import { ErrorBanner } from "../components/common/ErrorBanner";
@@ -21,6 +22,8 @@ export function LessonPage() {
   const engine = useLessonEngine();
   const prefs = usePrefs();
   const skip = useSkipConfirmation();
+  const [topRowEl, setTopRowEl] = useState<HTMLDivElement | null>(null);
+  const [exerciseEl, setExerciseEl] = useState<HTMLDivElement | null>(null);
 
   const [feedback, setFeedback] = useState<SubmitAnswerResult | null>(null);
   const [lastUsedHint, setLastUsedHint] = useState(false);
@@ -144,25 +147,28 @@ export function LessonPage() {
 
   return (
     <div className={styles.wrap}>
-      <div className={styles.topRow}>
+      <div ref={setTopRowEl} className={styles.topRow}>
         <SessionProgressBar completed={engine.progress.completed} total={engine.progress.total} />
         <LanguageSettingsButton courseCode={engine.courseCode} />
         <CloseLessonButton isConfirming={skip.isConfirming} onClick={skip.requestSkip} />
       </div>
-      <ExerciseRenderer
-        key={engine.current.key}
-        exercise={engine.current.exercise}
-        renderType={engine.current.renderType}
-        onSubmit={handleSubmit}
-        // Suspends TypeInExercise's window-level keydown handling while the
-        // Skip modal is open — it has its own document-level keydown
-        // listener (Escape/Tab), and both firing for the same keystroke
-        // would type into the hidden answer at the same time.
-        disabled={skip.isConfirming}
-        courseCode={engine.courseCode}
-        keyboardMode={prefs.data?.keyboardMode}
-        autoplayAudio={prefs.data?.autoplayAudio}
-      />
+      <div ref={setExerciseEl}>
+        <ExerciseRenderer
+          key={engine.current.key}
+          exercise={engine.current.exercise}
+          renderType={engine.current.renderType}
+          onSubmit={handleSubmit}
+          // Suspends TypeInExercise's window-level keydown handling while the
+          // Skip modal is open — it has its own document-level keydown
+          // listener (Escape/Tab), and both firing for the same keystroke
+          // would type into the hidden answer at the same time.
+          disabled={skip.isConfirming}
+          courseCode={engine.courseCode}
+          keyboardMode={prefs.data?.keyboardMode}
+          autoplayAudio={prefs.data?.autoplayAudio}
+        />
+      </div>
+      <RealLessonOverlay topRowEl={topRowEl} exerciseEl={exerciseEl} renderType={engine.current.renderType} />
       {skip.isConfirming && <SkipLessonModal onCancel={skip.cancelSkip} onConfirm={skip.confirmSkip} />}
     </div>
   );

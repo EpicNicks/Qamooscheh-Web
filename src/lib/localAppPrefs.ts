@@ -31,12 +31,24 @@ export interface LocalAppPrefs {
    * opt into.
    */
   showFurigana: boolean;
+  /**
+   * Whether the real-lesson spotlight overlay (components/tutorial/
+   * RealLessonOverlay.tsx) has already been shown for each exercise kind —
+   * frontend-only, unlike the onboarding tutorial's completion flag
+   * (server-synced, hooks/useTutorialCompletion.ts): this one points out
+   * the ACTUAL lesson screen's own controls (which the onboarding mock
+   * doesn't have — a real audio button, the language settings cog, real
+   * keyboards), so it's shown once per exercise kind independently of
+   * whether onboarding's tutorial ran at all.
+   */
+  seenLessonOverlay: { wordBank: boolean; typeIn: boolean };
 }
 
 const DEFAULTS: LocalAppPrefs = {
   suppressSkipWarning: false,
   keyboardInputMethod: { fa: "layout", ja: "phonetic" },
   showFurigana: true,
+  seenLessonOverlay: { wordBank: false, typeIn: false },
 };
 
 function storageKey(userId: string): string {

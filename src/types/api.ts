@@ -81,6 +81,8 @@ export interface BootstrapResponse {
   position: PositionRef | null;
   graders: GraderRef[];
   enrolledCourseCodes: string[];
+  /** app_user.onboarding_complete — a one-way flag, never true-then-false. Always false for a not-yet-enrolled account, since the onboarding tutorial only ever runs after language selection. */
+  onboardingComplete: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -330,6 +332,15 @@ export interface SetStarredRequest {
 export interface BatchSetStarredRequest {
   star: string[];
   unstar: string[];
+}
+
+// ---------------------------------------------------------------------------
+// v1/onboarding (Onboarding/OnboardingContracts.cs). One endpoint, one field.
+// ---------------------------------------------------------------------------
+
+export interface OnboardingCompleteResponse {
+  /** Always true — the only thing POST /v1/onboarding/complete can do is set the flag, never clear it. */
+  onboardingComplete: boolean;
 }
 
 // ---------------------------------------------------------------------------
