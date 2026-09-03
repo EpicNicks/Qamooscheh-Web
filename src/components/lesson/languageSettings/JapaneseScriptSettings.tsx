@@ -21,6 +21,8 @@ export function JapaneseScriptSettings({
   onChangeShowFurigana,
   showRomanizationHints,
   onChangeShowRomanizationHints,
+  showTranslationHints,
+  onChangeShowTranslationHints,
 }: LanguageSettingsProps) {
   return (
     <div className={styles.wrap}>
@@ -36,6 +38,14 @@ export function JapaneseScriptSettings({
           onChange={(e) => onChangeShowRomanizationHints(e.target.checked)}
         />
         Hover a word for its romanization
+      </label>
+      <label className={checkboxStyles.row}>
+        <input
+          type="checkbox"
+          checked={showTranslationHints}
+          onChange={(e) => onChangeShowTranslationHints(e.target.checked)}
+        />
+        Hover a word for its translation
       </label>
     </div>
   );

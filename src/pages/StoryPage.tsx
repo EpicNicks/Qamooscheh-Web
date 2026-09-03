@@ -6,7 +6,8 @@ import { useSkipConfirmation } from "../hooks/useSkipConfirmation";
 import { useAnswerConfirmation } from "../hooks/useAnswerConfirmation";
 import { useLexemeIndex } from "../hooks/useCourseContent";
 import { useShowRomanizationHints } from "../hooks/useShowRomanizationHints";
-import { buildLexemeRomanizationMap, gateRomanizationMap } from "../domain/romanization";
+import { useShowTranslationHints } from "../hooks/useShowTranslationHints";
+import { buildLexemeHintMap, gateLexemeHintMap, type HintSettings } from "../domain/romanization";
 import { ExerciseRenderer } from "../components/lesson/ExerciseRenderer";
 import { SessionProgressBar } from "../components/lesson/SessionProgressBar";
 import { AnswerFeedback } from "../components/lesson/AnswerFeedback";
@@ -31,7 +32,9 @@ export function StoryPage() {
   const prefs = usePrefs();
   const lexemeIndex = useLexemeIndex(walkthrough.course);
   const romanizationHints = useShowRomanizationHints();
-  const courseRomanizationMap = useMemo(() => buildLexemeRomanizationMap(lexemeIndex.data), [lexemeIndex.data]);
+  const translationHints = useShowTranslationHints();
+  const hintSettings: HintSettings = { translationEnabled: translationHints.enabled, romanizationEnabled: romanizationHints.enabled };
+  const courseHintMap = useMemo(() => buildLexemeHintMap(lexemeIndex.data), [lexemeIndex.data]);
   const skip = useSkipConfirmation();
   const confirmation = useAnswerConfirmation<WalkthroughExerciseInstance, WalkthroughAnswerResult>(skip.isConfirming);
 
@@ -72,11 +75,12 @@ export function StoryPage() {
           correct={feedback.correct}
           note={feedback.note}
           answer={answeredItem.exercise.answer}
-          romanizationMap={gateRomanizationMap(courseRomanizationMap, {
-            hintsEnabled: romanizationHints.enabled,
+          hintMap={gateLexemeHintMap(courseHintMap, {
+            settings: hintSettings,
             scriptModePref: prefs.data?.scriptMode,
             exerciseScriptMode: answeredItem.exercise.scriptMode,
           })}
+          hintSettings={hintSettings}
           reportContext={{ exerciseTags: answeredItem.exercise.tags, prompt: answeredItem.exercise.prompt }}
         />
         <ExerciseRenderer
@@ -88,11 +92,12 @@ export function StoryPage() {
           courseCode={walkthrough.courseCode}
           keyboardMode={prefs.data?.keyboardMode}
           autoplayAudio={prefs.data?.autoplayAudio}
-          romanizationMap={gateRomanizationMap(courseRomanizationMap, {
-            hintsEnabled: romanizationHints.enabled,
+          hintMap={gateLexemeHintMap(courseHintMap, {
+            settings: hintSettings,
             scriptModePref: prefs.data?.scriptMode,
             exerciseScriptMode: answeredItem.exercise.scriptMode,
           })}
+          hintSettings={hintSettings}
           advance={{ label: "Continue", onAdvance: confirmation.confirm }}
         />
         {skip.isConfirming && <SkipLessonModal onCancel={skip.cancelSkip} onConfirm={skip.confirmSkip} />}
@@ -142,11 +147,12 @@ export function StoryPage() {
         courseCode={walkthrough.courseCode}
         keyboardMode={prefs.data?.keyboardMode}
         autoplayAudio={prefs.data?.autoplayAudio}
-        romanizationMap={gateRomanizationMap(courseRomanizationMap, {
-          hintsEnabled: romanizationHints.enabled,
+        hintMap={gateLexemeHintMap(courseHintMap, {
+          settings: hintSettings,
           scriptModePref: prefs.data?.scriptMode,
           exerciseScriptMode: walkthrough.current.exercise.scriptMode,
         })}
+        hintSettings={hintSettings}
       />
       {skip.isConfirming && <SkipLessonModal onCancel={skip.cancelSkip} onConfirm={skip.confirmSkip} />}
     </div>

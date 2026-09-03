@@ -3,7 +3,7 @@ import { Button } from "../common/Button";
 import { DirectionalText } from "../common/DirectionalText";
 import { ExercisePrompt } from "./ExercisePrompt";
 import { RomanizedWord } from "./RomanizedText";
-import { EMPTY_ROMANIZATION_MAP } from "../../domain/romanization";
+import { EMPTY_HINT_MAP, NO_HINTS } from "../../domain/romanization";
 import type { ExerciseProps } from "./ExerciseRenderer";
 import styles from "./Exercise.module.css";
 
@@ -14,7 +14,8 @@ export function WordBankExercise({
   disabled,
   courseCode,
   autoplayAudio,
-  romanizationMap = EMPTY_ROMANIZATION_MAP,
+  hintMap = EMPTY_HINT_MAP,
+  hintSettings = NO_HINTS,
   advance,
 }: ExerciseProps) {
   const [chosen, setChosen] = useState<number[]>([]);
@@ -52,12 +53,12 @@ export function WordBankExercise({
 
   return (
     <div className={styles.wrap}>
-      <ExercisePrompt text={exercise.prompt} courseCode={courseCode} autoplayAudio={autoplayAudio} romanizationMap={romanizationMap} />
+      <ExercisePrompt text={exercise.prompt} courseCode={courseCode} autoplayAudio={autoplayAudio} hintMap={hintMap} hintSettings={hintSettings} />
       <div className={styles.answerRow}>
         {chosen.map((tileIndex, position) => (
           <DirectionalText key={`${tileIndex}-${position}`} courseCode={courseCode}>
             <button type="button" className={styles.tile} onClick={() => toggle(tileIndex)} disabled={disabled}>
-              <RomanizedWord word={tiles[tileIndex]} romanization={romanizationMap.get(tiles[tileIndex])} />
+              <RomanizedWord word={tiles[tileIndex]} hint={hintMap.get(tiles[tileIndex])} settings={hintSettings} />
             </button>
           </DirectionalText>
         ))}
@@ -67,7 +68,7 @@ export function WordBankExercise({
           chosen.includes(tileIndex) ? null : (
             <DirectionalText key={tileIndex} courseCode={courseCode}>
               <button type="button" className={styles.tile} onClick={() => toggle(tileIndex)} disabled={disabled}>
-                <RomanizedWord word={tile} romanization={romanizationMap.get(tile)} />
+                <RomanizedWord word={tile} hint={hintMap.get(tile)} settings={hintSettings} />
               </button>
             </DirectionalText>
           ),

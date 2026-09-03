@@ -40,6 +40,16 @@ export interface LocalAppPrefs {
    */
   showRomanizationHints: boolean;
   /**
+   * Whether hovering/focusing a native-script word that has a matching
+   * lexeme shows its English translation (gloss) in the same tooltip as
+   * showRomanizationHints — a per-device reading aid, same reasoning as
+   * that setting, not an account-level study setting like scriptMode.
+   * Defaults OFF, unlike showFurigana/showRomanizationHints: a translation
+   * is a much bigger hint than a reading aid (it hands over the meaning,
+   * not just how to say it), so this stays opt-in rather than on-by-default.
+   */
+  showTranslationHints: boolean;
+  /**
    * Whether the real-lesson spotlight overlay (components/tutorial/
    * RealLessonOverlay.tsx) has already been shown for each exercise kind —
    * frontend-only, unlike the onboarding tutorial's completion flag
@@ -57,6 +67,7 @@ const DEFAULTS: LocalAppPrefs = {
   keyboardInputMethod: { fa: "layout", ja: "phonetic" },
   showFurigana: true,
   showRomanizationHints: true,
+  showTranslationHints: false,
   seenLessonOverlay: { wordBank: false, typeIn: false },
 };
 
@@ -79,4 +90,24 @@ export function loadLocalAppPrefs(userId: string): LocalAppPrefs {
 export function saveLocalAppPrefs(userId: string, patch: Partial<LocalAppPrefs>): void {
   const next = { ...loadLocalAppPrefs(userId), ...patch };
   localStorage.setItem(storageKey(userId), JSON.stringify(next));
+  notifyLocalAppPrefsListeners();
+}
+
+// Every field here is read through its own useState-per-component hook
+// (useShowFurigana, useShowRomanizationHints, useShowTranslationHints, ...),
+// each initialized once from storage — without this, one instance's setter
+// (e.g. the language-settings cog) would write localStorage correctly but
+// every OTHER already-mounted instance (e.g. the lesson page underneath it)
+// would keep rendering its own stale initial read until it happened to
+// remount. hooks/useLocalAppPref.ts subscribes every instance to this so a
+// change from any one of them is visible everywhere immediately.
+const listeners = new Set<() => void>();
+
+export function subscribeLocalAppPrefsListener(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+function notifyLocalAppPrefsListeners(): void {
+  listeners.forEach((listener) => listener());
 }

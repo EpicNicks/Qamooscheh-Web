@@ -1,4 +1,5 @@
 import type { ExerciseType, KeyboardMode } from "../../domain/enums";
+import type { HintSettings, WordHint } from "../../domain/romanization";
 import type { ExerciseArtifact } from "../../types/content";
 import { WordBankExercise } from "./WordBankExercise";
 import { TypeInExercise } from "./TypeInExercise";
@@ -16,14 +17,16 @@ export interface ExerciseProps {
   /** user_prefs.autoplay_audio — plays the prompt aloud once, the moment it's shown (see ExercisePrompt). */
   autoplayAudio?: boolean;
   /**
-   * Native word -> romanization (domain/romanization.ts), for the hover-a-
-   * word-for-its-romanization feature — the CALLER resolves this already
-   * gated to an empty map when the hint toggle is off, the learner's own
-   * scriptMode preference is "romanized", or this exercise's own scriptMode
-   * isn't "native" (nothing native-script to hover in the first place), so
-   * every consumer here can just render it unconditionally.
+   * Native word -> hover hint (domain/romanization.ts), for the hover-a-word
+   * feature — the CALLER resolves this already gated to an empty map when
+   * both hint toggles are off, the learner's own scriptMode preference is
+   * "romanized", or this exercise's own scriptMode isn't "native" (nothing
+   * native-script to hover in the first place), so every consumer here can
+   * just render it unconditionally.
    */
-  romanizationMap?: ReadonlyMap<string, string>;
+  hintMap?: ReadonlyMap<string, WordHint>;
+  /** Which of a word's hints (translation, phonetic reading) are actually enabled right now — see domain/romanization.ts's HintSettings. */
+  hintSettings?: HintSettings;
   /**
    * Set once this exercise has been answered and is waiting on the learner
    * to explicitly confirm before the lesson moves on — every exercise
@@ -49,7 +52,8 @@ export function ExerciseRenderer({
   courseCode,
   keyboardMode,
   autoplayAudio,
-  romanizationMap,
+  hintMap,
+  hintSettings,
   advance,
 }: ExerciseProps & { renderType: ExerciseType }) {
   switch (renderType) {
@@ -61,7 +65,8 @@ export function ExerciseRenderer({
           disabled={disabled}
           courseCode={courseCode}
           autoplayAudio={autoplayAudio}
-          romanizationMap={romanizationMap}
+          hintMap={hintMap}
+          hintSettings={hintSettings}
           advance={advance}
         />
       );
@@ -74,7 +79,8 @@ export function ExerciseRenderer({
           courseCode={courseCode}
           keyboardMode={keyboardMode}
           autoplayAudio={autoplayAudio}
-          romanizationMap={romanizationMap}
+          hintMap={hintMap}
+          hintSettings={hintSettings}
           advance={advance}
         />
       );
@@ -86,7 +92,8 @@ export function ExerciseRenderer({
           disabled={disabled}
           courseCode={courseCode}
           autoplayAudio={autoplayAudio}
-          romanizationMap={romanizationMap}
+          hintMap={hintMap}
+          hintSettings={hintSettings}
           advance={advance}
         />
       );
@@ -98,7 +105,8 @@ export function ExerciseRenderer({
           disabled={disabled}
           courseCode={courseCode}
           autoplayAudio={autoplayAudio}
-          romanizationMap={romanizationMap}
+          hintMap={hintMap}
+          hintSettings={hintSettings}
           advance={advance}
         />
       );

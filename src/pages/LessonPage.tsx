@@ -6,8 +6,9 @@ import { useSkipConfirmation } from "../hooks/useSkipConfirmation";
 import { useAnswerConfirmation } from "../hooks/useAnswerConfirmation";
 import { useLexemeIndex } from "../hooks/useCourseContent";
 import { useShowRomanizationHints } from "../hooks/useShowRomanizationHints";
+import { useShowTranslationHints } from "../hooks/useShowTranslationHints";
 import { xpForAnswer } from "../domain/xp";
-import { buildLexemeRomanizationMap, gateRomanizationMap } from "../domain/romanization";
+import { buildLexemeHintMap, gateLexemeHintMap, type HintSettings } from "../domain/romanization";
 import { ExerciseRenderer } from "../components/lesson/ExerciseRenderer";
 import { SessionProgressBar } from "../components/lesson/SessionProgressBar";
 import { AnswerFeedback } from "../components/lesson/AnswerFeedback";
@@ -27,7 +28,9 @@ export function LessonPage() {
   const prefs = usePrefs();
   const lexemeIndex = useLexemeIndex(engine.course);
   const romanizationHints = useShowRomanizationHints();
-  const courseRomanizationMap = useMemo(() => buildLexemeRomanizationMap(lexemeIndex.data), [lexemeIndex.data]);
+  const translationHints = useShowTranslationHints();
+  const hintSettings: HintSettings = { translationEnabled: translationHints.enabled, romanizationEnabled: romanizationHints.enabled };
+  const courseHintMap = useMemo(() => buildLexemeHintMap(lexemeIndex.data), [lexemeIndex.data]);
   const skip = useSkipConfirmation();
   const [topRowEl, setTopRowEl] = useState<HTMLDivElement | null>(null);
   const [exerciseEl, setExerciseEl] = useState<HTMLDivElement | null>(null);
@@ -79,11 +82,12 @@ export function LessonPage() {
           note={feedback.note}
           xp={xpForAnswer(feedback.verdict, feedback.attempt, lastUsedHint)}
           answer={answeredItem.exercise.answer}
-          romanizationMap={gateRomanizationMap(courseRomanizationMap, {
-            hintsEnabled: romanizationHints.enabled,
+          hintMap={gateLexemeHintMap(courseHintMap, {
+            settings: hintSettings,
             scriptModePref: prefs.data?.scriptMode,
             exerciseScriptMode: answeredItem.exercise.scriptMode,
           })}
+          hintSettings={hintSettings}
           reportContext={{ exerciseTags: answeredItem.exercise.tags, prompt: answeredItem.exercise.prompt }}
         />
         <ExerciseRenderer
@@ -95,11 +99,12 @@ export function LessonPage() {
           courseCode={engine.courseCode}
           keyboardMode={prefs.data?.keyboardMode}
           autoplayAudio={prefs.data?.autoplayAudio}
-          romanizationMap={gateRomanizationMap(courseRomanizationMap, {
-            hintsEnabled: romanizationHints.enabled,
+          hintMap={gateLexemeHintMap(courseHintMap, {
+            settings: hintSettings,
             scriptModePref: prefs.data?.scriptMode,
             exerciseScriptMode: answeredItem.exercise.scriptMode,
           })}
+          hintSettings={hintSettings}
           advance={{ label: "Continue", onAdvance: confirmation.confirm }}
         />
         {skip.isConfirming && <SkipLessonModal onCancel={skip.cancelSkip} onConfirm={skip.confirmSkip} />}
@@ -159,11 +164,12 @@ export function LessonPage() {
           courseCode={engine.courseCode}
           keyboardMode={prefs.data?.keyboardMode}
           autoplayAudio={prefs.data?.autoplayAudio}
-          romanizationMap={gateRomanizationMap(courseRomanizationMap, {
-            hintsEnabled: romanizationHints.enabled,
+          hintMap={gateLexemeHintMap(courseHintMap, {
+            settings: hintSettings,
             scriptModePref: prefs.data?.scriptMode,
             exerciseScriptMode: engine.current.exercise.scriptMode,
           })}
+          hintSettings={hintSettings}
         />
       </div>
       <RealLessonOverlay topRowEl={topRowEl} exerciseEl={exerciseEl} renderType={engine.current.renderType} />

@@ -4,7 +4,7 @@ import { useVoiceAvailability } from "../../hooks/useVoiceAvailability";
 import { PlayAudioButton } from "./PlayAudioButton";
 import { NoVoiceButton } from "./NoVoiceButton";
 import { RomanizedText } from "./RomanizedText";
-import { EMPTY_ROMANIZATION_MAP } from "../../domain/romanization";
+import { EMPTY_HINT_MAP, NO_HINTS, type HintSettings, type WordHint } from "../../domain/romanization";
 import styles from "./Exercise.module.css";
 
 interface ExercisePromptProps {
@@ -12,8 +12,10 @@ interface ExercisePromptProps {
   courseCode?: string | null;
   /** user_prefs.autoplay_audio — plays this prompt once, the moment it's shown, when true. */
   autoplayAudio?: boolean;
-  /** Native word -> romanization (domain/romanization.ts), pre-gated by the caller — non-empty only when this prompt is itself in the target language (a reading/story exercise) and hints are on. Words with no entry render plain, so an empty map is the same as omitting this. */
-  romanizationMap?: ReadonlyMap<string, string>;
+  /** Native word -> hover hint (domain/romanization.ts), pre-gated by the caller — non-empty only when this prompt is itself in the target language (a reading/story exercise) and at least one hint toggle is on. Words with no entry render plain, so an empty map is the same as omitting this. */
+  hintMap?: ReadonlyMap<string, WordHint>;
+  /** Which of a word's hints are enabled — see domain/romanization.ts's HintSettings. */
+  hintSettings?: HintSettings;
 }
 
 /**
@@ -27,7 +29,13 @@ interface ExercisePromptProps {
  * explanatory tooltip (NoVoiceButton) instead of silently doing nothing or
  * reading the phrase in the wrong voice/language.
  */
-export function ExercisePrompt({ text, courseCode, autoplayAudio, romanizationMap = EMPTY_ROMANIZATION_MAP }: ExercisePromptProps) {
+export function ExercisePrompt({
+  text,
+  courseCode,
+  autoplayAudio,
+  hintMap = EMPTY_HINT_MAP,
+  hintSettings = NO_HINTS,
+}: ExercisePromptProps) {
   const languageInfo = getLanguageInfo(courseCode);
   const speechLang = languageInfo?.speechLang ?? null;
   const voiceAvailable = useVoiceAvailability(speechLang);
@@ -36,7 +44,7 @@ export function ExercisePrompt({ text, courseCode, autoplayAudio, romanizationMa
   return (
     <div className={styles.promptRow}>
       <p className={styles.prompt}>
-        <RomanizedText text={text} romanizationMap={romanizationMap} />
+        <RomanizedText text={text} hintMap={hintMap} settings={hintSettings} />
       </p>
       {speechLang &&
         (voiceAvailable ? (

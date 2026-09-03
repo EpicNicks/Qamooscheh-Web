@@ -14,4 +14,6 @@ export interface LanguageSettingsProps {
   onChangeShowFurigana: (enabled: boolean) => void;
   showRomanizationHints: boolean;
   onChangeShowRomanizationHints: (enabled: boolean) => void;
+  showTranslationHints: boolean;
+  onChangeShowTranslationHints: (enabled: boolean) => void;
 }

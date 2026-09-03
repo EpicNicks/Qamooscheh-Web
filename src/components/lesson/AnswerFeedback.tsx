@@ -2,7 +2,7 @@ import { useState } from "react";
 import { XpBurst } from "./XpBurst";
 import { ReportIssue } from "./ReportIssue";
 import { RomanizedText } from "./RomanizedText";
-import { EMPTY_ROMANIZATION_MAP } from "../../domain/romanization";
+import { EMPTY_HINT_MAP, NO_HINTS, type HintSettings, type WordHint } from "../../domain/romanization";
 import styles from "./AnswerFeedback.module.css";
 
 export interface AnswerFeedbackProps {
@@ -12,8 +12,10 @@ export interface AnswerFeedbackProps {
   xp?: number;
   /** The accepted answer(s) — only ever read when `!correct`, to back "Reveal Answer?". Omit to hide that control (e.g. no exercise context available). */
   answer?: string[];
-  /** Native word -> romanization (domain/romanization.ts), pre-gated by the caller — see ExerciseProps.romanizationMap's own doc. Words with no entry render plain, so an empty/omitted map is the same as plain text. */
-  romanizationMap?: ReadonlyMap<string, string>;
+  /** Native word -> hover hint (domain/romanization.ts), pre-gated by the caller — see ExerciseProps.hintMap's own doc. Words with no entry render plain, so an empty/omitted map is the same as plain text. */
+  hintMap?: ReadonlyMap<string, WordHint>;
+  /** Which of a word's hints are enabled — see domain/romanization.ts's HintSettings. */
+  hintSettings?: HintSettings;
   /** Cites which lesson part a report is about — omit to hide the Report control entirely. */
   reportContext?: { exerciseTags: string[]; prompt: string };
 }
@@ -30,7 +32,8 @@ export function AnswerFeedback({
   note,
   xp = 0,
   answer,
-  romanizationMap = EMPTY_ROMANIZATION_MAP,
+  hintMap = EMPTY_HINT_MAP,
+  hintSettings = NO_HINTS,
   reportContext,
 }: AnswerFeedbackProps) {
   const [revealed, setRevealed] = useState(false);
@@ -51,7 +54,7 @@ export function AnswerFeedback({
       <div className={`${styles.incorrect} ${styles.shake}`} role="status">
         {revealed ? (
           <span className={styles.verdict}>
-            {answer && <RomanizedText text={answer.join(" / ")} romanizationMap={romanizationMap} />}
+            {answer && <RomanizedText text={answer.join(" / ")} hintMap={hintMap} settings={hintSettings} />}
           </span>
         ) : (
           <>
