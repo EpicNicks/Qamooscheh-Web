@@ -1,23 +1,41 @@
 import { ScriptModeToggle } from "./ScriptModeToggle";
 import type { LanguageSettingsProps } from "./LanguageSettingsProps";
-import styles from "./JapaneseScriptSettings.module.css";
+import styles from "./ScriptSettingsLayout.module.css";
+import checkboxStyles from "./CheckboxRow.module.css";
 
 /**
- * Japanese gets native/romanized display plus one setting Persian has no
- * equivalent of: furigana over kanji. Local-only (hooks/useShowFurigana.ts)
- * — see that file for why it isn't a synced user_prefs column. Actually
- * annotating kanji with readings needs per-word furigana data that doesn't
- * exist in the content schema yet (same gap as recorded pronunciation audio
- * — see domain/tts.ts); this wires up the preference so it's ready the
- * moment that data does.
+ * Japanese gets native/romanized display plus two settings Persian has no
+ * equivalent of: furigana over kanji, and (like Persian) hover-to-reveal
+ * word romanization. Both are local-only (hooks/useShowFurigana.ts,
+ * hooks/useShowRomanizationHints.ts) — see those files for why they aren't
+ * synced user_prefs columns. Furigana's own reading data doesn't exist in
+ * the content schema yet (same gap as recorded pronunciation audio — see
+ * domain/tts.ts); this wires up the preference so it's ready the moment
+ * that data does. Word romanization has no such gap — domain/romanization.ts
+ * derives it from lexemes.json, which already ships.
  */
-export function JapaneseScriptSettings({ scriptMode, onChangeScriptMode, showFurigana, onChangeShowFurigana }: LanguageSettingsProps) {
+export function JapaneseScriptSettings({
+  scriptMode,
+  onChangeScriptMode,
+  showFurigana,
+  onChangeShowFurigana,
+  showRomanizationHints,
+  onChangeShowRomanizationHints,
+}: LanguageSettingsProps) {
   return (
     <div className={styles.wrap}>
       <ScriptModeToggle language="ja" value={scriptMode} onChange={onChangeScriptMode} />
-      <label className={styles.furiganaRow}>
+      <label className={checkboxStyles.row}>
         <input type="checkbox" checked={showFurigana} onChange={(e) => onChangeShowFurigana(e.target.checked)} />
         Furigana over kanji (ふりがな)
+      </label>
+      <label className={checkboxStyles.row}>
+        <input
+          type="checkbox"
+          checked={showRomanizationHints}
+          onChange={(e) => onChangeShowRomanizationHints(e.target.checked)}
+        />
+        Hover a word for its romanization
       </label>
     </div>
   );

@@ -17,7 +17,7 @@ const LETTER_KEY = /^[a-zA-Z']$/;
  * this component asks for — see keyboard/scriptEngines.tsx. Adding a new
  * keyboard kind means writing one engine there; nothing here changes.
  */
-export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keyboardMode, autoplayAudio, advance }: ExerciseProps) {
+export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keyboardMode, autoplayAudio, romanizationMap, advance }: ExerciseProps) {
   const [text, setText] = useState("");
   const [usedHint, setUsedHint] = useState(false);
   const [hintShown, setHintShown] = useState(false);
@@ -154,7 +154,7 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
 
   return (
     <div className={styles.wrap}>
-      <ExercisePrompt text={exercise.prompt} courseCode={courseCode} autoplayAudio={autoplayAudio} />
+      <ExercisePrompt text={exercise.prompt} courseCode={courseCode} autoplayAudio={autoplayAudio} romanizationMap={romanizationMap} />
       <div className={styles.inputWrap} ref={inputWrapRef}>
         <input
           ref={inputRef}

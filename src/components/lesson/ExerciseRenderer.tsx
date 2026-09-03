@@ -16,6 +16,15 @@ export interface ExerciseProps {
   /** user_prefs.autoplay_audio — plays the prompt aloud once, the moment it's shown (see ExercisePrompt). */
   autoplayAudio?: boolean;
   /**
+   * Native word -> romanization (domain/romanization.ts), for the hover-a-
+   * word-for-its-romanization feature — the CALLER resolves this already
+   * gated to an empty map when the hint toggle is off, the learner's own
+   * scriptMode preference is "romanized", or this exercise's own scriptMode
+   * isn't "native" (nothing native-script to hover in the first place), so
+   * every consumer here can just render it unconditionally.
+   */
+  romanizationMap?: ReadonlyMap<string, string>;
+  /**
    * Set once this exercise has been answered and is waiting on the learner
    * to explicitly confirm before the lesson moves on — every exercise
    * type's own submit control becomes this instead (not a second button
@@ -40,6 +49,7 @@ export function ExerciseRenderer({
   courseCode,
   keyboardMode,
   autoplayAudio,
+  romanizationMap,
   advance,
 }: ExerciseProps & { renderType: ExerciseType }) {
   switch (renderType) {
@@ -51,6 +61,7 @@ export function ExerciseRenderer({
           disabled={disabled}
           courseCode={courseCode}
           autoplayAudio={autoplayAudio}
+          romanizationMap={romanizationMap}
           advance={advance}
         />
       );
@@ -63,6 +74,7 @@ export function ExerciseRenderer({
           courseCode={courseCode}
           keyboardMode={keyboardMode}
           autoplayAudio={autoplayAudio}
+          romanizationMap={romanizationMap}
           advance={advance}
         />
       );
@@ -74,6 +86,7 @@ export function ExerciseRenderer({
           disabled={disabled}
           courseCode={courseCode}
           autoplayAudio={autoplayAudio}
+          romanizationMap={romanizationMap}
           advance={advance}
         />
       );
@@ -85,6 +98,7 @@ export function ExerciseRenderer({
           disabled={disabled}
           courseCode={courseCode}
           autoplayAudio={autoplayAudio}
+          romanizationMap={romanizationMap}
           advance={advance}
         />
       );

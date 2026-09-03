@@ -253,6 +253,7 @@ export function useLessonEngine() {
 
   return {
     status: derivedStatus,
+    course,
     courseCode: course?.code ?? null,
     current,
     progress: { completed: totalCount - (queue?.length ?? totalCount), total: totalCount },

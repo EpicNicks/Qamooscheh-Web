@@ -12,4 +12,6 @@ export interface LanguageSettingsProps {
   onChangeScriptMode: (mode: ScriptMode) => void;
   showFurigana: boolean;
   onChangeShowFurigana: (enabled: boolean) => void;
+  showRomanizationHints: boolean;
+  onChangeShowRomanizationHints: (enabled: boolean) => void;
 }

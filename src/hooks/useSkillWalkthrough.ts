@@ -163,6 +163,7 @@ export function useSkillWalkthrough(unitKey: string, skillKey: string) {
   return {
     status: derivedStatus,
     title: artifact?.title ?? null,
+    course,
     courseCode: course?.code ?? null,
     current,
     progress: { completed: totalCount - (queue?.length ?? totalCount), total: totalCount },

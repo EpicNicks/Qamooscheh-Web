@@ -3,6 +3,7 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import { getLanguageInfo, type Language } from "../../../domain/language";
 import { usePrefs, useUpdatePrefs } from "../../../hooks/usePrefs";
 import { useShowFurigana } from "../../../hooks/useShowFurigana";
+import { useShowRomanizationHints } from "../../../hooks/useShowRomanizationHints";
 import { PersianScriptSettings } from "./PersianScriptSettings";
 import { JapaneseScriptSettings } from "./JapaneseScriptSettings";
 import { LanguageSettingsPopover } from "./LanguageSettingsPopover";
@@ -37,6 +38,7 @@ export function LanguageSettingsButton({ courseCode }: { courseCode: string | nu
   const prefs = usePrefs();
   const updatePrefs = useUpdatePrefs();
   const furigana = useShowFurigana();
+  const romanizationHints = useShowRomanizationHints();
 
   if (!SettingsPanel) return null;
 
@@ -52,6 +54,8 @@ export function LanguageSettingsButton({ courseCode }: { courseCode: string | nu
             onChangeScriptMode={(scriptMode) => updatePrefs.mutate({ ...prefs.data!, scriptMode })}
             showFurigana={furigana.enabled}
             onChangeShowFurigana={furigana.setShowFurigana}
+            showRomanizationHints={romanizationHints.enabled}
+            onChangeShowRomanizationHints={romanizationHints.setShowRomanizationHints}
           />
         </LanguageSettingsPopover>
       )}

@@ -32,6 +32,14 @@ export interface LocalAppPrefs {
    */
   showFurigana: boolean;
   /**
+   * Whether hovering/focusing a native-script word that has a matching
+   * lexeme shows its romanization in a small tooltip above it — a per-
+   * device reading aid, same reasoning as showFurigana, not an account-
+   * level study setting like scriptMode. Defaults on for the same reason
+   * showFurigana does.
+   */
+  showRomanizationHints: boolean;
+  /**
    * Whether the real-lesson spotlight overlay (components/tutorial/
    * RealLessonOverlay.tsx) has already been shown for each exercise kind —
    * frontend-only, unlike the onboarding tutorial's completion flag
@@ -48,6 +56,7 @@ const DEFAULTS: LocalAppPrefs = {
   suppressSkipWarning: false,
   keyboardInputMethod: { fa: "layout", ja: "phonetic" },
   showFurigana: true,
+  showRomanizationHints: true,
   seenLessonOverlay: { wordBank: false, typeIn: false },
 };
 

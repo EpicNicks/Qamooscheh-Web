@@ -13,7 +13,7 @@ import styles from "./Exercise.module.css";
  * of blocking the lesson on unbuilt infrastructure. Replace the input with
  * real audio capture once that pipeline is decided.
  */
-export function SpeakExercise({ exercise, onSubmit, disabled, courseCode, autoplayAudio, advance }: ExerciseProps) {
+export function SpeakExercise({ exercise, onSubmit, disabled, courseCode, autoplayAudio, romanizationMap, advance }: ExerciseProps) {
   const [text, setText] = useState("");
   const languageInfo = getLanguageInfo(courseCode);
 
@@ -24,7 +24,7 @@ export function SpeakExercise({ exercise, onSubmit, disabled, courseCode, autopl
 
   return (
     <div className={styles.wrap}>
-      <ExercisePrompt text={exercise.prompt} courseCode={courseCode} autoplayAudio={autoplayAudio} />
+      <ExercisePrompt text={exercise.prompt} courseCode={courseCode} autoplayAudio={autoplayAudio} romanizationMap={romanizationMap} />
       <p className={styles.note}>Speech capture isn't wired up yet — type what you'd say.</p>
       <input
         className={styles.input}
