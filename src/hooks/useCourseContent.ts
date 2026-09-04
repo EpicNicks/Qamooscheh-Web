@@ -70,21 +70,31 @@ export function useAllUnitArtifacts(course: CourseRef | null | undefined, manife
 }
 
 /**
- * The whole path/skill-tree, statuses computed against the current cursor.
- * Two fetch stages, both against the CDN: every unit artifact (for position
- * ordering + refs), then every skill artifact those units point at (for
- * title/category/arc — a UnitArtifact's positions hold only {id, path}
- * pointers, per types/content.ts).
+ * The course's whole content tree, in two CDN fetch stages: every unit
+ * artifact the manifest lists (for position ordering + refs), then every
+ * skill artifact those units point at (for title/category/arc/exercises — a
+ * UnitArtifact's positions hold only {id, path} pointers, per
+ * types/content.ts).
  *
- * This is also the one place the artifact's shape is turned into
- * pathProgress.ts's: standard skills keep their position grouping (so a fork
- * survives into the road), everything else flattens into one content-ordered
- * list (so groupByArc can nest chapters in the order they're authored).
+ * Shared by useCoursePath and useCourseVocabulary, which want the same two
+ * stages and diverge only in what they compute from them. Both used to run
+ * this fetch themselves under identical query keys, so they already shared
+ * react-query's cache entries; hoisting it here just stops the code being
+ * written twice.
+ *
+ * `skillKeys` is the `${unitKey}/${skillKey}` list in content order — the
+ * keys of `skillsByUnitAndKey`, kept as an array because it's also the
+ * loaded-content signature useCoursePath memoizes on (and, unlike the map's
+ * key set, it doesn't collapse a ref repeated within a unit).
  */
-export function useCoursePath(
-  course: CourseRef | null | undefined,
-  position: PositionKey | null | undefined,
-): { path: PathUnit[]; isLoading: boolean; isError: boolean } {
+export function useAllSkillArtifacts(course: CourseRef | null | undefined): {
+  manifestOrderedUnits: UnitArtifact[];
+  skillsByUnitAndKey: Map<string, SkillArtifact>;
+  skillKeys: string[];
+  skillsReady: boolean;
+  isLoading: boolean;
+  isError: boolean;
+} {
   const manifestQuery = useCourseManifest(course);
   const { units, isLoading: unitsLoading, isError: unitsError } = useAllUnitArtifacts(course, manifestQuery.data);
 
@@ -116,7 +126,31 @@ export function useCoursePath(
     if (data) skillsByUnitAndKey.set(`${unitKey}/${ref.id}`, data);
   });
 
-  const skillsReady = allSkillRefs.length > 0 && skillResults.every((r) => r.data != null);
+  return {
+    manifestOrderedUnits,
+    skillsByUnitAndKey,
+    skillKeys: allSkillRefs.map(({ unitKey, ref }) => `${unitKey}/${ref.id}`),
+    skillsReady: allSkillRefs.length > 0 && skillResults.every((r) => r.data != null),
+    isLoading: manifestQuery.isLoading || unitsLoading || skillResults.some((r) => r.isLoading),
+    isError: manifestQuery.isError || unitsError || skillResults.some((r) => r.isError),
+  };
+}
+
+/**
+ * The whole path/skill-tree, statuses computed against the current cursor,
+ * over useAllSkillArtifacts's two-stage fetch.
+ *
+ * This is also the one place the artifact's shape is turned into
+ * pathProgress.ts's: standard skills keep their position grouping (so a fork
+ * survives into the road), everything else flattens into one content-ordered
+ * list (so groupByArc can nest chapters in the order they're authored).
+ */
+export function useCoursePath(
+  course: CourseRef | null | undefined,
+  position: PositionKey | null | undefined,
+): { path: PathUnit[]; isLoading: boolean; isError: boolean } {
+  const { manifestOrderedUnits, skillsByUnitAndKey, skillKeys, skillsReady, isLoading, isError } =
+    useAllSkillArtifacts(course);
 
   // Content artifacts are immutable per course version (staleTime: Infinity),
   // so the course, the loaded unit/skill ids and the cursor fully determine
@@ -131,7 +165,7 @@ export function useCoursePath(
         course?.version,
         position ?? null,
         manifestOrderedUnits.map((unit) => unit.id),
-        allSkillRefs.map(({ unitKey, ref }) => `${unitKey}/${ref.id}`),
+        skillKeys,
       ])
     : "";
 
@@ -169,19 +203,14 @@ export function useCoursePath(
     // eslint-disable-next-line react-hooks/exhaustive-deps -- pathSignature stands in for the render-unstable inputs above.
   }, [pathSignature]);
 
-  return {
-    path,
-    isLoading: manifestQuery.isLoading || unitsLoading || skillResults.some((r) => r.isLoading),
-    isError: manifestQuery.isError || unitsError || skillResults.some((r) => r.isError),
-  };
+  return { path, isLoading, isError };
 }
 
 /**
  * Every unit's vocabulary, grouped by lesson (domain/courseVocabulary.ts's
- * UnitVocab) — the same two-stage CDN fetch useCoursePath does (every unit
- * artifact, then every skill artifact those point at), sharing its
- * react-query cache entries (identical query keys) rather than duplicating
- * the network calls, but keeping vocabulary as its own concern rather than
+ * UnitVocab), over the same useAllSkillArtifacts fetch useCoursePath runs on
+ * — so it shares those react-query cache entries rather than duplicating the
+ * network calls, while keeping vocabulary as its own concern rather than
  * threading tags through PathUnit/PathSkill, which know nothing about them.
  *
  * Every skill in a unit contributes its lessons' tags here, standard or not
@@ -191,38 +220,7 @@ export function useCoursePath(
 export function useCourseVocabulary(
   course: CourseRef | null | undefined,
 ): { units: UnitVocab[]; isLoading: boolean; isError: boolean } {
-  const manifestQuery = useCourseManifest(course);
-  const { units, isLoading: unitsLoading, isError: unitsError } = useAllUnitArtifacts(course, manifestQuery.data);
-
-  const manifestOrderedUnits =
-    manifestQuery.data?.units
-      .map((ref) => units.find((u) => u.id === ref.id))
-      .filter((u): u is UnitArtifact => u != null) ?? [];
-
-  const unitsReady = manifestOrderedUnits.length === (manifestQuery.data?.units.length ?? -1);
-
-  const allSkillRefs = unitsReady
-    ? manifestOrderedUnits.flatMap((unit) =>
-        unit.positions.flatMap((pos) => pos.skills.map((ref) => ({ unitKey: unit.id, ref }))),
-      )
-    : [];
-
-  const skillResults = useQueries({
-    queries: allSkillRefs.map(({ ref }) => ({
-      queryKey: ["content", "skill", course?.code, course?.version, ref.id],
-      queryFn: () => getSkillArtifact(course!.code, course!.version, ref.path),
-      enabled: course != null && unitsReady,
-      staleTime: Infinity,
-    })),
-  });
-
-  const skillsByUnitAndKey = new Map<string, SkillArtifact>();
-  allSkillRefs.forEach(({ unitKey, ref }, i) => {
-    const data = skillResults[i]?.data;
-    if (data) skillsByUnitAndKey.set(`${unitKey}/${ref.id}`, data);
-  });
-
-  const skillsReady = allSkillRefs.length > 0 && skillResults.every((r) => r.data != null);
+  const { manifestOrderedUnits, skillsByUnitAndKey, skillsReady, isLoading, isError } = useAllSkillArtifacts(course);
 
   const vocabUnits: UnitVocab[] = skillsReady
     ? manifestOrderedUnits.map((unit) => ({
@@ -242,11 +240,7 @@ export function useCourseVocabulary(
       }))
     : [];
 
-  return {
-    units: vocabUnits,
-    isLoading: manifestQuery.isLoading || unitsLoading || skillResults.some((r) => r.isLoading),
-    isError: manifestQuery.isError || unitsError || skillResults.some((r) => r.isError),
-  };
+  return { units: vocabUnits, isLoading, isError };
 }
 
 /**

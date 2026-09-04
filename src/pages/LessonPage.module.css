@@ -1,9 +1,9 @@
-.wrap {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-}
-
+/*
+ * What the lesson-flow PAGES own: the between-sessions screens (nothing due,
+ * lesson complete, chapter complete, checkpoint result). The in-session screen
+ * itself — .wrap/.topRow/.chapterTitle — moved to the component that renders
+ * it, components/lesson/ExerciseSessionScreen.module.css.
+ */
 .done {
   text-align: center;
   display: flex;
@@ -11,23 +11,6 @@
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-5) 0;
-}
-
-/* Progress bar and the skip affordance share one line; the bar takes the rest. */
-.topRow {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.topRow > *:first-child {
-  flex: 1;
-}
-
-.chapterTitle {
-  margin: 0;
-  font-size: 1.1rem;
-  color: var(--color-text-muted);
 }
 
 .doneActions {

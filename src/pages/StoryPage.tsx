@@ -1,19 +1,7 @@
-import { useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useSkillWalkthrough, type WalkthroughExerciseInstance, type WalkthroughAnswerResult } from "../hooks/useSkillWalkthrough";
-import { usePrefs } from "../hooks/usePrefs";
-import { useSkipConfirmation } from "../hooks/useSkipConfirmation";
-import { useAnswerConfirmation } from "../hooks/useAnswerConfirmation";
-import { useLexemeIndex } from "../hooks/useCourseContent";
-import { useShowRomanizationHints } from "../hooks/useShowRomanizationHints";
-import { useShowTranslationHints } from "../hooks/useShowTranslationHints";
-import { buildLexemeHintMap, gateLexemeHintMap, type HintSettings } from "../domain/romanization";
-import { ExerciseRenderer } from "../components/lesson/ExerciseRenderer";
-import { SessionProgressBar } from "../components/lesson/SessionProgressBar";
-import { AnswerFeedback } from "../components/lesson/AnswerFeedback";
-import { SkipLessonModal } from "../components/lesson/SkipLessonModal";
-import { CloseLessonButton } from "../components/lesson/CloseLessonButton";
-import { LanguageSettingsButton } from "../components/lesson/languageSettings/LanguageSettingsButton";
+import { useExerciseSession } from "../hooks/useExerciseSession";
+import { ExerciseSessionScreen } from "../components/lesson/ExerciseSessionScreen";
 import { Spinner } from "../components/common/Spinner";
 import { ErrorBanner } from "../components/common/ErrorBanner";
 import { Button } from "../components/common/Button";
@@ -22,21 +10,16 @@ import styles from "./LessonPage.module.css";
 /**
  * Reading one chapter of a story (or a conversation, or a song). Thin over
  * useSkillWalkthrough the same way LessonPage is over useLessonEngine, and
- * sharing LessonPage's stylesheet the way CheckpointPage already does —
- * these are the same screen in every respect except which engine feeds them.
+ * rendering the same ExerciseSessionScreen both of those do — these are the
+ * same screen in every respect except which engine feeds them and what
+ * surrounds it, which here is nothing but story copy.
  */
 export function StoryPage() {
   const { unitKey = "", skillKey = "" } = useParams();
   const navigate = useNavigate();
   const walkthrough = useSkillWalkthrough(unitKey, skillKey);
-  const prefs = usePrefs();
-  const lexemeIndex = useLexemeIndex(walkthrough.course);
-  const romanizationHints = useShowRomanizationHints();
-  const translationHints = useShowTranslationHints();
-  const hintSettings: HintSettings = { translationEnabled: translationHints.enabled, romanizationEnabled: romanizationHints.enabled };
-  const courseHintMap = useMemo(() => buildLexemeHintMap(lexemeIndex.data), [lexemeIndex.data]);
-  const skip = useSkipConfirmation();
-  const confirmation = useAnswerConfirmation<WalkthroughExerciseInstance, WalkthroughAnswerResult>(skip.isConfirming);
+  const session = useExerciseSession<WalkthroughExerciseInstance, WalkthroughAnswerResult>(walkthrough.course);
+  const { confirmation } = session;
 
   if (walkthrough.status === "loading") {
     return <Spinner label="Opening the story…" />;
@@ -56,72 +39,27 @@ export function StoryPage() {
     );
   }
 
-  // Checked BEFORE "submitting"/"done" — see LessonPage's identical check
-  // for why: submitAnswer() already kicked off the session submission the
-  // instant the last exercise was answered, but the learner still needs to
-  // confirm it before landing on the completion screen.
-  if (confirmation.answeredItem && confirmation.feedback) {
-    const { answeredItem, feedback } = confirmation;
-    return (
-      <div className={styles.wrap}>
-        <div className={styles.topRow}>
-          <SessionProgressBar completed={walkthrough.progress.completed} total={walkthrough.progress.total} />
-          <LanguageSettingsButton courseCode={walkthrough.courseCode} />
-          <CloseLessonButton isConfirming={skip.isConfirming} onClick={skip.requestSkip} />
+  // An unconfirmed answer outranks both branches below — see LessonPage's
+  // identical check for why: submitAnswer() already kicked off the session
+  // submission the instant the last exercise was answered, but the learner
+  // still needs to confirm it before landing on the completion screen.
+  if (!(confirmation.answeredItem && confirmation.feedback)) {
+    if (walkthrough.status === "submitting") {
+      return <Spinner label="Saving your progress…" />;
+    }
+
+    if (walkthrough.status === "done") {
+      return (
+        <div className={styles.done}>
+          <h1>Chapter complete!</h1>
+          {walkthrough.result && (
+            <p>{walkthrough.result.outcome === "AlreadyProcessed" ? "Already recorded." : "Nicely read."}</p>
+          )}
+          <Button onClick={() => navigate("/path")}>Back to path</Button>
         </div>
-        {walkthrough.title && <h1 className={styles.chapterTitle}>{walkthrough.title}</h1>}
-        <AnswerFeedback
-          key={confirmation.submissionCount}
-          correct={feedback.correct}
-          note={feedback.note}
-          answer={answeredItem.exercise.answer}
-          hintMap={gateLexemeHintMap(courseHintMap, {
-            settings: hintSettings,
-            scriptModePref: prefs.data?.scriptMode,
-            exerciseScriptMode: answeredItem.exercise.scriptMode,
-          })}
-          hintSettings={hintSettings}
-          reportContext={{ exerciseTags: answeredItem.exercise.tags, prompt: answeredItem.exercise.prompt }}
-        />
-        <ExerciseRenderer
-          key={answeredItem.key}
-          exercise={answeredItem.exercise}
-          renderType={answeredItem.renderType}
-          onSubmit={() => {}}
-          disabled
-          courseCode={walkthrough.courseCode}
-          keyboardMode={prefs.data?.keyboardMode}
-          autoplayAudio={prefs.data?.autoplayAudio}
-          hintMap={gateLexemeHintMap(courseHintMap, {
-            settings: hintSettings,
-            scriptModePref: prefs.data?.scriptMode,
-            exerciseScriptMode: answeredItem.exercise.scriptMode,
-          })}
-          hintSettings={hintSettings}
-          advance={{ label: "Continue", onAdvance: confirmation.confirm }}
-        />
-        {skip.isConfirming && <SkipLessonModal onCancel={skip.cancelSkip} onConfirm={skip.confirmSkip} />}
-      </div>
-    );
+      );
+    }
   }
-
-  if (walkthrough.status === "submitting") {
-    return <Spinner label="Saving your progress…" />;
-  }
-
-  if (walkthrough.status === "done") {
-    return (
-      <div className={styles.done}>
-        <h1>Chapter complete!</h1>
-        {walkthrough.result && (
-          <p>{walkthrough.result.outcome === "AlreadyProcessed" ? "Already recorded." : "Nicely read."}</p>
-        )}
-        <Button onClick={() => navigate("/path")}>Back to path</Button>
-      </div>
-    );
-  }
-
-  if (!walkthrough.current) return null;
 
   async function handleSubmit(text: string, opts?: { usedHint?: boolean }) {
     const answered = walkthrough.current; // snapshot before submitAnswer advances the queue
@@ -131,30 +69,13 @@ export function StoryPage() {
   }
 
   return (
-    <div className={styles.wrap}>
-      <div className={styles.topRow}>
-        <SessionProgressBar completed={walkthrough.progress.completed} total={walkthrough.progress.total} />
-        <LanguageSettingsButton courseCode={walkthrough.courseCode} />
-        <CloseLessonButton isConfirming={skip.isConfirming} onClick={skip.requestSkip} />
-      </div>
-      {walkthrough.title && <h1 className={styles.chapterTitle}>{walkthrough.title}</h1>}
-      <ExerciseRenderer
-        key={walkthrough.current.key}
-        exercise={walkthrough.current.exercise}
-        renderType={walkthrough.current.renderType}
-        onSubmit={handleSubmit}
-        disabled={skip.isConfirming}
-        courseCode={walkthrough.courseCode}
-        keyboardMode={prefs.data?.keyboardMode}
-        autoplayAudio={prefs.data?.autoplayAudio}
-        hintMap={gateLexemeHintMap(courseHintMap, {
-          settings: hintSettings,
-          scriptModePref: prefs.data?.scriptMode,
-          exerciseScriptMode: walkthrough.current.exercise.scriptMode,
-        })}
-        hintSettings={hintSettings}
-      />
-      {skip.isConfirming && <SkipLessonModal onCancel={skip.cancelSkip} onConfirm={skip.confirmSkip} />}
-    </div>
+    <ExerciseSessionScreen
+      session={session}
+      courseCode={walkthrough.courseCode}
+      progress={walkthrough.progress}
+      current={walkthrough.current}
+      title={walkthrough.title}
+      onSubmit={handleSubmit}
+    />
   );
 }

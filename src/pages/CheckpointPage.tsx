@@ -6,6 +6,9 @@ import { LanguageSettingsButton } from "../components/lesson/languageSettings/La
 import { Spinner } from "../components/common/Spinner";
 import { ErrorBanner } from "../components/common/ErrorBanner";
 import { Button } from "../components/common/Button";
+// The two halves of the lesson-flow chrome this page borrows: the in-session
+// screen's own layout, and the between-sessions result screen the pages share.
+import screenStyles from "../components/lesson/ExerciseSessionScreen.module.css";
 import styles from "./LessonPage.module.css";
 
 export function CheckpointPage() {
@@ -46,8 +49,8 @@ export function CheckpointPage() {
   }
 
   return (
-    <div className={styles.wrap}>
-      <div className={styles.topRow}>
+    <div className={screenStyles.wrap}>
+      <div className={screenStyles.topRow}>
         <p>
           Question {checkpoint.index + 1} of {checkpoint.instances.length}
         </p>

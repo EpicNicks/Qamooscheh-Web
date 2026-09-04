@@ -1,0 +1,28 @@
+/*
+ * The in-session screen chrome itself. Lived in pages/LessonPage.module.css
+ * while LessonPage was the only screen that had it; CheckpointPage borrows
+ * .wrap/.topRow from here for its own hand-rolled top row, which is a
+ * different layout over the same chrome.
+ */
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* Progress bar and the skip affordance share one line; the bar takes the rest. */
+.topRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.topRow > *:first-child {
+  flex: 1;
+}
+
+.chapterTitle {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--color-text-muted);
+}
