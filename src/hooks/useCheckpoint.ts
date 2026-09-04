@@ -9,9 +9,11 @@ import { getCheckpointPlan, submitCheckpoint } from "../api/checkpoint";
 import { useSkillArtifactsForRefs } from "./useCourseContent";
 import { useBootstrap } from "./useBootstrap";
 import { useAuth } from "../auth/useAuth";
-import { mergeCardStates } from "../lib/cardStateStore";
+import { loadCardStates, mergeCardStates } from "../lib/cardStateStore";
+import { resolveExerciseType } from "../domain/exerciseResolution";
 import type { CheckpointSkillAnswers, CheckpointSubmitResponse, SubmittedItem } from "../types/api";
 import type { ExerciseArtifact } from "../types/content";
+import type { ExerciseType } from "../domain/enums";
 
 export interface CheckpointExerciseInstance {
   key: string;
@@ -19,6 +21,8 @@ export interface CheckpointExerciseInstance {
   skillKey: string;
   ordinal: number;
   exercise: ExerciseArtifact;
+  /** How this one is actually presented — a composite's authored `type` isn't it (domain/exerciseResolution.ts), and this is what gets submitted as `exerciseType`. */
+  renderType: ExerciseType;
 }
 
 export function useCheckpoint(targetUnitKey: string, targetSkillKey: string) {
@@ -43,6 +47,10 @@ export function useCheckpoint(targetUnitKey: string, targetSkillKey: string) {
 
   const instances = useMemo<CheckpointExerciseInstance[]>(() => {
     if (!plan.data) return [];
+    // Same local card history useLessonEngine resolves composites against, so
+    // a checkpoint question is presented the way a lesson would have
+    // presented it rather than always as type-in.
+    const localCards = userId ? loadCardStates(userId) : {};
     const result: CheckpointExerciseInstance[] = [];
     for (const skillPlan of plan.data.skills) {
       const artifact = skillArtifacts.get(`${skillPlan.unitKey}/${skillPlan.skillKey}`);
@@ -56,11 +64,12 @@ export function useCheckpoint(targetUnitKey: string, targetSkillKey: string) {
           skillKey: skillPlan.skillKey,
           ordinal,
           exercise,
+          renderType: resolveExerciseType(exercise, localCards[exercise.tags[0]] ?? null),
         });
       }
     }
     return result;
-  }, [plan.data, skillArtifacts]);
+  }, [plan.data, skillArtifacts, userId]);
 
   const [answers, setAnswers] = useState<Map<string, string>>(new Map());
   const [index, setIndex] = useState(0);
@@ -95,7 +104,7 @@ export function useCheckpoint(targetUnitKey: string, targetSkillKey: string) {
           items.push({
             exerciseOrdinal: instance.ordinal,
             lexemeTag,
-            exerciseType: instance.exercise.type,
+            exerciseType: instance.renderType,
             scriptMode: instance.exercise.scriptMode,
             submittedText,
             usedHint: false,

@@ -73,10 +73,43 @@ export function RomanizedWord({
 }
 
 /**
+ * Where a word ends, for lookup purposes. Whitespace can't answer that:
+ * Japanese writes `こんにちは、元気ですか` with no spaces at all, so a
+ * whitespace split hands the hint map one enormous "word" that matches
+ * nothing, and the feature is simply dead for the language. Intl.Segmenter
+ * applies UAX #29 word boundaries — which land in the same places whitespace
+ * did for Persian, and additionally split off punctuation, so `سلام،` now
+ * finds `سلام` where before it missed — plus ICU's dictionary segmentation
+ * for the scripts that don't space their words.
+ *
+ * Built once: constructing a Segmenter is the expensive part, and the rules
+ * are locale-independent for our purposes (the map is keyed by literal
+ * surface text, whatever course it came from).
+ */
+const wordSegmenter = typeof Intl !== "undefined" && "Segmenter" in Intl ? new Intl.Segmenter(undefined, { granularity: "word" }) : null;
+
+interface TextPiece {
+  text: string;
+  /** Word-like pieces get a hint lookup; the rest (spaces, punctuation) render as-is. */
+  isWord: boolean;
+}
+
+function segmentWords(text: string): TextPiece[] {
+  if (!wordSegmenter) {
+    // Pre-Segmenter fallback — the original capturing whitespace split.
+    return text.split(/(\s+)/).map((piece) => ({ text: piece, isWord: !/^\s*$/.test(piece) }));
+  }
+  return Array.from(wordSegmenter.segment(text), (segment) => ({
+    text: segment.segment,
+    isWord: segment.isWordLike === true,
+  }));
+}
+
+/**
  * Free-form native-script text (an exercise prompt, a revealed answer) split
- * word-by-word through RomanizedWord — whitespace itself passes through
- * unchanged (the capturing split keeps it as its own piece) so spacing/RTL
- * layout isn't disturbed. `hintMap` is expected pre-gated by the caller
+ * word-by-word through RomanizedWord — everything between words (whitespace,
+ * punctuation) passes through unchanged as plain text, so spacing/RTL layout
+ * isn't disturbed. `hintMap` is expected pre-gated by the caller
  * (empty when both hints are off/not applicable — domain/romanization.ts's
  * gateLexemeHintMap) — every word simply renders plain when its lookup
  * misses, so passing an empty map here is the same as not calling this at
@@ -93,8 +126,12 @@ export function RomanizedText({
 }) {
   return (
     <>
-      {text.split(/(\s+)/).map((piece, i) =>
-        /^\s*$/.test(piece) ? piece : <RomanizedWord key={i} word={piece} hint={hintMap.get(piece)} settings={settings} />,
+      {segmentWords(text).map((piece, i) =>
+        piece.isWord ? (
+          <RomanizedWord key={i} word={piece.text} hint={hintMap.get(piece.text)} settings={settings} />
+        ) : (
+          piece.text
+        ),
       )}
     </>
   );

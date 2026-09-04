@@ -12,7 +12,7 @@ export const API_BASE_URL: string =
  * server rooted at the backend repo's `artifacts/` folder).
  */
 export const CONTENT_BASE_URL: string =
-  import.meta.env.VITE_CONTENT_BASE_URL ?? "http://localhost:8080/artifacts";
+  import.meta.env.VITE_CONTENT_BASE_URL ?? "http://localhost:8080";
 
 /** Google Identity Services client id — must match Auth:GoogleClientId server-side. */
 export const GOOGLE_CLIENT_ID: string = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? "";

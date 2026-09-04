@@ -1,6 +1,6 @@
 import { useState } from "react";
-import FlagOutlinedIcon from "@mui/icons-material/FlagOutlined";
 import { Button } from "../common/Button";
+import { FlagOutlinedIcon } from "../common/icons";
 import { EXERCISE_REPORT_REASONS, type ExerciseReportReason } from "../../domain/exerciseReport";
 import { submitExerciseReport } from "../../api/exerciseReport";
 import styles from "./ReportIssue.module.css";
@@ -45,7 +45,7 @@ export function ReportIssue({ exerciseTags, prompt }: ReportIssueProps) {
   if (!open) {
     return (
       <button type="button" className={styles.trigger} onClick={() => setOpen(true)}>
-        <FlagOutlinedIcon fontSize="inherit" />
+        <FlagOutlinedIcon />
         Report
       </button>
     );
@@ -59,7 +59,7 @@ export function ReportIssue({ exerciseTags, prompt }: ReportIssueProps) {
     <div className={styles.panel} role="group" aria-label="Report an issue with this exercise">
       <div className={styles.panelHeader}>
         <span className={styles.panelTitle}>
-          <FlagOutlinedIcon fontSize="inherit" />
+          <FlagOutlinedIcon />
           What went wrong?
         </span>
         <button type="button" className={styles.close} aria-label="Close report" onClick={() => setOpen(false)}>

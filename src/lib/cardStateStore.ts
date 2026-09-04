@@ -11,6 +11,7 @@
 // FSRS client-side. See that file for the actual (simplified) resolution
 // heuristic — it is the thing to refine once the Persian/Japanese-specific
 // passes land, not this storage layer.
+import { safeStorage } from "./safeStorage";
 import type { CardState } from "../types/api";
 
 function storageKey(userId: string): string {
@@ -18,7 +19,7 @@ function storageKey(userId: string): string {
 }
 
 export function loadCardStates(userId: string): Record<string, CardState> {
-  const raw = localStorage.getItem(storageKey(userId));
+  const raw = safeStorage.getItem(storageKey(userId));
   if (!raw) return {};
   try {
     return JSON.parse(raw) as Record<string, CardState>;
@@ -31,5 +32,5 @@ export function loadCardStates(userId: string): Record<string, CardState> {
 export function mergeCardStates(userId: string, cards: CardState[]): void {
   const current = loadCardStates(userId);
   for (const card of cards) current[card.lexemeTag] = card;
-  localStorage.setItem(storageKey(userId), JSON.stringify(current));
+  safeStorage.setItem(storageKey(userId), JSON.stringify(current));
 }

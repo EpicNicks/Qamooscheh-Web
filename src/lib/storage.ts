@@ -2,6 +2,11 @@
 // doesn't force a re-login — refresh tokens are opaque and rotated on every
 // use server-side (RefreshToken.cs), so a stolen value from local storage is
 // no worse than a stolen cookie would be for this app's threat model.
+//
+// Through safeStorage, not localStorage directly: loadSession() runs in
+// AuthProvider's lazy state initializer, where a throwing storage access
+// (Safari private mode, some webviews) would white-screen the app.
+import { safeStorage } from "./safeStorage";
 
 const ACCESS_TOKEN_KEY = "qamooscheh.accessToken";
 const ACCESS_TOKEN_EXPIRES_AT_KEY = "qamooscheh.accessTokenExpiresAt";
@@ -16,19 +21,19 @@ export interface StoredSession {
 }
 
 export function loadSession(): StoredSession | null {
-  const userId = localStorage.getItem(USER_ID_KEY);
-  const accessToken = localStorage.getItem(ACCESS_TOKEN_KEY);
-  const accessTokenExpiresAt = localStorage.getItem(ACCESS_TOKEN_EXPIRES_AT_KEY);
-  const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+  const userId = safeStorage.getItem(USER_ID_KEY);
+  const accessToken = safeStorage.getItem(ACCESS_TOKEN_KEY);
+  const accessTokenExpiresAt = safeStorage.getItem(ACCESS_TOKEN_EXPIRES_AT_KEY);
+  const refreshToken = safeStorage.getItem(REFRESH_TOKEN_KEY);
   if (!userId || !accessToken || !accessTokenExpiresAt || !refreshToken) return null;
   return { userId, accessToken, accessTokenExpiresAt, refreshToken };
 }
 
 export function saveSession(session: StoredSession): void {
-  localStorage.setItem(USER_ID_KEY, session.userId);
-  localStorage.setItem(ACCESS_TOKEN_KEY, session.accessToken);
-  localStorage.setItem(ACCESS_TOKEN_EXPIRES_AT_KEY, session.accessTokenExpiresAt);
-  localStorage.setItem(REFRESH_TOKEN_KEY, session.refreshToken);
+  safeStorage.setItem(USER_ID_KEY, session.userId);
+  safeStorage.setItem(ACCESS_TOKEN_KEY, session.accessToken);
+  safeStorage.setItem(ACCESS_TOKEN_EXPIRES_AT_KEY, session.accessTokenExpiresAt);
+  safeStorage.setItem(REFRESH_TOKEN_KEY, session.refreshToken);
 }
 
 const sessionClearedListeners = new Set<() => void>();
@@ -48,9 +53,9 @@ export function onSessionCleared(listener: () => void): () => void {
 }
 
 export function clearSession(): void {
-  localStorage.removeItem(USER_ID_KEY);
-  localStorage.removeItem(ACCESS_TOKEN_KEY);
-  localStorage.removeItem(ACCESS_TOKEN_EXPIRES_AT_KEY);
-  localStorage.removeItem(REFRESH_TOKEN_KEY);
+  safeStorage.removeItem(USER_ID_KEY);
+  safeStorage.removeItem(ACCESS_TOKEN_KEY);
+  safeStorage.removeItem(ACCESS_TOKEN_EXPIRES_AT_KEY);
+  safeStorage.removeItem(REFRESH_TOKEN_KEY);
   sessionClearedListeners.forEach((listener) => listener());
 }

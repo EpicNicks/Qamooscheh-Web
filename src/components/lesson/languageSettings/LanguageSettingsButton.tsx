@@ -1,5 +1,5 @@
 import { useState, type ComponentType } from "react";
-import SettingsIcon from "@mui/icons-material/Settings";
+import { SettingsIcon } from "../../common/icons";
 import { getLanguageInfo, type Language } from "../../../domain/language";
 import { usePrefs, useUpdatePrefs } from "../../../hooks/usePrefs";
 import { useShowFurigana } from "../../../hooks/useShowFurigana";
@@ -47,7 +47,7 @@ export function LanguageSettingsButton({ courseCode }: { courseCode: string | nu
   return (
     <>
       <button ref={setButtonEl} type="button" className={styles.cog} aria-label="Script settings" onClick={() => setOpen((o) => !o)}>
-        <SettingsIcon fontSize="small" />
+        <SettingsIcon size="1.25rem" />
       </button>
       {open && prefs.data && (
         <LanguageSettingsPopover anchorEl={buttonEl} onClose={() => setOpen(false)}>

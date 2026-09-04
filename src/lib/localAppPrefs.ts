@@ -11,6 +11,8 @@
 // the other local stores (cardStateStore.ts, offlineQueue.ts, storage.ts) and
 // keyed per-user the same way they are, so two accounts sharing a browser
 // don't inherit each other's dismissals.
+import { safeStorage } from "./safeStorage";
+
 /** Which virtual keyboard a learner sees for a given language — a UI choice, not an FSRS/grading concern, so it lives here rather than in usePrefs. */
 export interface KeyboardInputMethod {
   fa: "layout" | "phonetic";
@@ -76,7 +78,7 @@ function storageKey(userId: string): string {
 }
 
 export function loadLocalAppPrefs(userId: string): LocalAppPrefs {
-  const raw = localStorage.getItem(storageKey(userId));
+  const raw = safeStorage.getItem(storageKey(userId));
   if (!raw) return { ...DEFAULTS };
   try {
     // Spread over the defaults rather than trusting the parse: a stored blob
@@ -89,7 +91,7 @@ export function loadLocalAppPrefs(userId: string): LocalAppPrefs {
 
 export function saveLocalAppPrefs(userId: string, patch: Partial<LocalAppPrefs>): void {
   const next = { ...loadLocalAppPrefs(userId), ...patch };
-  localStorage.setItem(storageKey(userId), JSON.stringify(next));
+  safeStorage.setItem(storageKey(userId), JSON.stringify(next));
   notifyLocalAppPrefsListeners();
 }
 

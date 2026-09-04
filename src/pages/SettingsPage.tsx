@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
+import { useBootstrap } from "../hooks/useBootstrap";
 import { usePrefs, useUpdatePrefs } from "../hooks/usePrefs";
 import { useTutorialCompletion } from "../hooks/useTutorialCompletion";
 import { Button } from "../components/common/Button";
@@ -8,7 +9,7 @@ import { ErrorBanner } from "../components/common/ErrorBanner";
 import { errorMessage } from "../lib/errors";
 import { OnboardingTutorialStep } from "./onboarding/OnboardingTutorialStep";
 import type { KeyboardMode, Register, ScriptMode } from "../domain/enums";
-import type { UpdatePrefsRequest } from "../types/api";
+import type { PrefsResponse, UpdatePrefsRequest } from "../types/api";
 import styles from "./SettingsPage.module.css";
 
 /**
@@ -19,22 +20,44 @@ import styles from "./SettingsPage.module.css";
  * courses.
  */
 export function SettingsPage() {
+  const bootstrap = useBootstrap();
   const prefsQuery = usePrefs();
   const updatePrefs = useUpdatePrefs();
   const tutorial = useTutorialCompletion();
   const [form, setForm] = useState<UpdatePrefsRequest | null>(null);
+  // What the form in hand was seeded from. Unlike ProfilePage's one-shot
+  // seeding, these values are course-scoped: the header's CourseSwitcher can
+  // change which course they describe while this page stays mounted, and a
+  // form still holding the previous course's answers would write them over
+  // the new course's on Save.
+  const [seeded, setSeeded] = useState<{ courseCode: string | null; prefs: PrefsResponse } | null>(null);
   const [replayingTutorial, setReplayingTutorial] = useState(false);
+
+  const courseCode = bootstrap.data?.course?.code ?? null;
 
   if (prefsQuery.isLoading) return <Spinner label="Loading settings…" />;
   if (prefsQuery.isError) return <ErrorBanner message={errorMessage(prefsQuery.error, "Couldn't load your settings.")} />;
   if (!prefsQuery.data) return null;
 
-  // Same render-time seeding pattern as ProfilePage — no useEffect, since
-  // there's nothing external to synchronize with beyond this first read.
-  if (form === null) {
+  // A switch swaps `["bootstrap"]` in synchronously but only *invalidates*
+  // `["prefs"]`, so for the length of that refetch the body in hand still
+  // belongs to the course we just left — show the spinner rather than seed a
+  // form from it that Save could fire off in the meantime.
+  if (seeded !== null && seeded.courseCode !== courseCode && prefsQuery.isFetching) {
+    return <Spinner label="Loading settings…" />;
+  }
+
+  // Render-time seeding (no useEffect), re-run whenever the prefs body or the
+  // course it describes changes. react-query's structural sharing keeps
+  // `data` identity stable across refetches that return the same values, so
+  // an ordinary background refetch doesn't discard edits in progress.
+  if (seeded === null || seeded.prefs !== prefsQuery.data || seeded.courseCode !== courseCode) {
+    setSeeded({ courseCode, prefs: prefsQuery.data });
     setForm(prefsQuery.data);
     return null;
   }
+
+  if (form === null) return null;
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

@@ -11,13 +11,20 @@ import { Spinner } from "../components/common/Spinner";
 import { ErrorBanner } from "../components/common/ErrorBanner";
 import { errorMessage } from "../lib/errors";
 import { Button } from "../components/common/Button";
+import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import styles from "./FriendsPage.module.css";
+
+/** Long enough to swallow a burst of typing, short enough that results still feel like they answer the current input. */
+const SEARCH_DEBOUNCE_MS = 250;
 
 export function FriendsPage() {
   const friends = useFriends();
   const requests = usePendingFriendRequests();
+  // The input stays on `query` (instant), the request keys off the debounced
+  // copy — without this every keystroke is its own query key and its own
+  // request.
   const [query, setQuery] = useState("");
-  const search = useFriendSearch(query);
+  const search = useFriendSearch(useDebouncedValue(query, SEARCH_DEBOUNCE_MS));
 
   const requestFriendship = useRequestFriendship();
   const acceptRequest = useAcceptFriendRequest();

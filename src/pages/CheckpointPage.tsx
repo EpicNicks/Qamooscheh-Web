@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useCheckpoint } from "../hooks/useCheckpoint";
 import { usePrefs } from "../hooks/usePrefs";
-import { TypeInExercise } from "../components/lesson/TypeInExercise";
+import { ExerciseRenderer } from "../components/lesson/ExerciseRenderer";
 import { LanguageSettingsButton } from "../components/lesson/languageSettings/LanguageSettingsButton";
 import { Spinner } from "../components/common/Spinner";
 import { ErrorBanner } from "../components/common/ErrorBanner";
@@ -53,9 +53,10 @@ export function CheckpointPage() {
         </p>
         <LanguageSettingsButton courseCode={checkpoint.courseCode} />
       </div>
-      <TypeInExercise
+      <ExerciseRenderer
         key={checkpoint.current.key}
         exercise={checkpoint.current.exercise}
+        renderType={checkpoint.current.renderType}
         onSubmit={(text) => checkpoint.answerCurrent(text)}
         courseCode={checkpoint.courseCode}
         keyboardMode={prefs.data?.keyboardMode}

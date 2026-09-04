@@ -4,6 +4,7 @@
 // once connectivity returns). Sessions already carry their own
 // SubmissionId/OccurredAt/CourseVersion, which is what makes a delayed,
 // batched flush safe to retry (§2.3 point 7's idempotency ledger).
+import { safeStorage } from "./safeStorage";
 import type { SubmittedSession } from "../types/api";
 
 /**
@@ -22,7 +23,7 @@ function notifyChanged(): void {
 }
 
 export function loadQueue(userId: string): SubmittedSession[] {
-  const raw = localStorage.getItem(storageKey(userId));
+  const raw = safeStorage.getItem(storageKey(userId));
   if (!raw) return [];
   try {
     return JSON.parse(raw) as SubmittedSession[];
@@ -34,13 +35,13 @@ export function loadQueue(userId: string): SubmittedSession[] {
 export function enqueue(userId: string, session: SubmittedSession): void {
   const queue = loadQueue(userId);
   queue.push(session);
-  localStorage.setItem(storageKey(userId), JSON.stringify(queue));
+  safeStorage.setItem(storageKey(userId), JSON.stringify(queue));
   notifyChanged();
 }
 
 /** Removes every queued session whose SubmissionId appears in `submissionIds` (i.e. was accepted by the server). */
 export function removeFromQueue(userId: string, submissionIds: string[]): void {
   const remaining = loadQueue(userId).filter((s) => !submissionIds.includes(s.submissionId));
-  localStorage.setItem(storageKey(userId), JSON.stringify(remaining));
+  safeStorage.setItem(storageKey(userId), JSON.stringify(remaining));
   notifyChanged();
 }

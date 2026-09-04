@@ -2,8 +2,11 @@
 // module (other than auth.ts's register/login/google, which are
 // [AllowAnonymous]) goes through `apiFetch`, which:
 //   - prefixes API_BASE_URL and injects `Authorization: Bearer <accessToken>`
+//   - refreshes up front when the stored token is at/near its expiry, rather
+//     than paying a 401 to find that out
 //   - on a 401, refreshes once (de-duplicated across concurrent callers) and
-//     retries the original request exactly once
+//     retries the original request exactly once — or retries straight away
+//     with the token another caller's refresh already landed
 //   - throws ApiError (status + the controller's `{ error, reason? }` body)
 //     for every non-2xx response, including the retried one
 //
@@ -32,6 +35,20 @@ export class SessionExpiredError extends Error {
     super("Session expired; please sign in again.");
     this.name = "SessionExpiredError";
   }
+}
+
+/**
+ * How close to `accessTokenExpiresAt` a stored token has to be before a
+ * request refreshes it up front instead of spending a guaranteed 401 +
+ * refresh + retry round trip on it. Wide enough to cover clock skew between
+ * this browser and the API and the request's own flight time.
+ */
+const EXPIRY_REFRESH_BUFFER_MS = 30_000;
+
+/** True when the stored access token is already expired, or will be by the time this request lands. An unparseable timestamp answers false — the 401 path still catches it. */
+function isExpiringSoon(accessTokenExpiresAt: string): boolean {
+  const expiresAt = Date.parse(accessTokenExpiresAt);
+  return !Number.isNaN(expiresAt) && expiresAt - Date.now() <= EXPIRY_REFRESH_BUFFER_MS;
 }
 
 let refreshPromise: Promise<string> | null = null;
@@ -80,7 +97,11 @@ export interface ApiFetchOptions {
 }
 
 async function doFetch(path: string, options: ApiFetchOptions, accessToken: string | null): Promise<Response> {
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  // Only describe a body that actually exists. `Content-Type: application/json`
+  // is not a CORS-safelisted value, so setting it on a bodiless GET forces a
+  // preflight OPTIONS round trip before every single read.
+  const headers: Record<string, string> = {};
+  if (options.body !== undefined) headers["Content-Type"] = "application/json";
   if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
 
   return fetch(`${API_BASE_URL}${path}`, {
@@ -101,11 +122,25 @@ async function parseErrorBody(response: Response): Promise<ApiErrorBody | null> 
 
 export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
   const session = options.anonymous ? null : loadSession();
-  let response = await doFetch(path, options, session?.accessToken ?? null);
+
+  // Refresh BEFORE sending when the stored token is spent: the 401 path below
+  // would arrive at the same place, one wasted round trip later.
+  let accessToken = session?.accessToken ?? null;
+  if (session && isExpiringSoon(session.accessTokenExpiresAt)) {
+    accessToken = await refreshAccessToken();
+  }
+
+  let response = await doFetch(path, options, accessToken);
 
   if (response.status === 401 && !options.anonymous && session) {
-    const newAccessToken = await refreshAccessToken();
-    response = await doFetch(path, options, newAccessToken);
+    // A concurrent request may have refreshed while this one was in flight —
+    // its 401 was already decided against the token it left with. Refreshing
+    // again would rotate a token that's perfectly good, so only refresh when
+    // storage still holds the same token this request actually used.
+    const currentAccessToken = loadSession()?.accessToken ?? null;
+    const retryToken =
+      currentAccessToken && currentAccessToken !== accessToken ? currentAccessToken : await refreshAccessToken();
+    response = await doFetch(path, options, retryToken);
   }
 
   if (!response.ok) throw new ApiError(response.status, await parseErrorBody(response));
