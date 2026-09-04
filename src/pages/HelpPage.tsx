@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import styles from "./HelpPage.module.css";
 
@@ -64,6 +64,35 @@ const FAQ: FaqEntry[] = [
 /** A plain FAQ, each entry a native `<details>` disclosure — no accordion library, and it works with the browser's own find-in-page. Supports deep-linking to one entry via `#id` (used by the "no voice installed" toast). */
 export function HelpPage() {
   const location = useLocation();
+  // Which entries are open, owned here rather than derived from the hash on
+  // every render: `open={hash === id}` alone is a controlled prop React
+  // re-asserts on ANY re-render, so an entry the reader opened themselves
+  // snapped shut again the moment anything else on the page changed. The hash
+  // only ever ADDS to this set (on mount and on a later hash change); every
+  // change after that comes from the reader, through onToggle.
+  const [openIds, setOpenIds] = useState<ReadonlySet<string>>(
+    () => new Set(location.hash ? [location.hash.slice(1)] : []),
+  );
+
+  function setOpen(id: string, open: boolean) {
+    setOpenIds((prev) => {
+      if (prev.has(id) === open) return prev;
+      const next = new Set(prev);
+      if (open) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }
+
+  // A later hash change (a second "no voice installed" toast, say) opens that
+  // entry too — adjusted during render rather than from the effect below,
+  // which keeps the effect to the one thing that genuinely reaches outside
+  // React: scrolling the entry into view.
+  const [seededHash, setSeededHash] = useState(location.hash);
+  if (seededHash !== location.hash) {
+    setSeededHash(location.hash);
+    if (location.hash) setOpen(location.hash.slice(1), true);
+  }
 
   useEffect(() => {
     if (!location.hash) return;
@@ -75,7 +104,13 @@ export function HelpPage() {
       <h1>Help &amp; FAQ</h1>
       <div className={styles.list}>
         {FAQ.map((entry) => (
-          <details key={entry.id} id={entry.id} className={styles.entry} open={location.hash === `#${entry.id}`}>
+          <details
+            key={entry.id}
+            id={entry.id}
+            className={styles.entry}
+            open={openIds.has(entry.id)}
+            onToggle={(event) => setOpen(entry.id, event.currentTarget.open)}
+          >
             <summary className={styles.question}>{entry.question}</summary>
             <div className={styles.answer}>{entry.answer}</div>
           </details>

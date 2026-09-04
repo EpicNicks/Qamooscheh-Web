@@ -31,7 +31,7 @@ export interface RoadNode {
 }
 
 export interface RoadEdge {
-  /** An SVG cubic-Bezier path `d`. */
+  /** An SVG path `d` — a straight segment (`M … L …`) from one node to the next, not a curve. */
   d: string;
   fromPositionIndex: number;
   toPositionIndex: number;

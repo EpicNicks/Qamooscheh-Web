@@ -43,7 +43,7 @@
   transition: color 0.2s ease;
 }
 
-.option[aria-selected="true"] {
+.option[aria-checked="true"] {
   color: var(--color-text);
 }
 

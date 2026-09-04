@@ -21,10 +21,15 @@ export function SkipLessonModal({
   const [dontAskAgain, setDontAskAgain] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
 
-  // Opens focused on the first control, which is the non-destructive one —
-  // a confirmation shouldn't put "Skip" under a reflexive Enter.
+  // Opens focused on "Keep going" — a confirmation shouldn't put the
+  // destructive action under a reflexive Enter. Deliberately `button` alone
+  // and not `button, input`: the "Don't ask me again" checkbox comes FIRST in
+  // DOM order, so the wider selector (what this used to use) landed initial
+  // focus on the checkbox instead, one Space away from silently disarming the
+  // guard for good. The focus trap below still uses the wider selector — it
+  // has to keep Tab inside the dialog, checkbox included.
   useEffect(() => {
-    dialogRef.current?.querySelector<HTMLElement>("button, input")?.focus();
+    dialogRef.current?.querySelector<HTMLElement>("button")?.focus();
   }, []);
 
   useEffect(() => {

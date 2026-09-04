@@ -43,6 +43,26 @@ export function CourseSwitcher() {
   const [isOpen, setIsOpen] = useState(false);
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // Opening puts focus on the first row (a menu that can't be reached with
+  // the keyboard is a menu keyboard users can't use), and closing hands focus
+  // back to the flag button it came from. The `document.body` check is what
+  // keeps that hand-back from fighting a close caused by clicking something
+  // else: focus only falls back to the body when the still-focused row was
+  // removed out from under it, i.e. when the menu closed by Escape or by
+  // picking a row.
+  useEffect(() => {
+    if (!isOpen) return;
+    // Captured now rather than read from the ref in the cleanup: by the time
+    // that runs, the ref may already point somewhere else.
+    const trigger = triggerRef.current;
+    panelRef.current?.querySelector<HTMLElement>("button")?.focus();
+    return () => {
+      if (document.activeElement === null || document.activeElement === document.body) trigger?.focus();
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -76,6 +96,7 @@ export function CourseSwitcher() {
   return (
     <div className={styles.wrap} ref={wrapRef}>
       <button
+        ref={triggerRef}
         type="button"
         className={`${badgeStyles.badge} ${styles.trigger}`}
         style={flagStyle(activeCode)}
@@ -89,7 +110,36 @@ export function CourseSwitcher() {
       </button>
 
       {isOpen && (
-        <div className={styles.panel} role="menu" aria-label="Your languages">
+        <div
+          ref={panelRef}
+          className={styles.panel}
+          role="menu"
+          aria-label="Your languages"
+          // Up/Down walk the rows (wrapping), Home/End jump to either end —
+          // what a `role="menu"` promises its users. Enter/Space need no
+          // handling: every row is a real <button>.
+          onKeyDown={(event) => {
+            const rows = Array.from(panelRef.current?.querySelectorAll<HTMLButtonElement>("button") ?? []);
+            if (rows.length === 0) return;
+            // Focus outside the panel (indexOf -1) starts the walk from the
+            // first row rather than doing nothing.
+            const at = rows.indexOf(document.activeElement as HTMLButtonElement);
+            const from = at === -1 ? 0 : at;
+            const to =
+              event.key === "ArrowDown"
+                ? (from + 1) % rows.length
+                : event.key === "ArrowUp"
+                  ? (from - 1 + rows.length) % rows.length
+                  : event.key === "Home"
+                    ? 0
+                    : event.key === "End"
+                      ? rows.length - 1
+                      : -1;
+            if (to === -1) return;
+            event.preventDefault();
+            rows[to].focus();
+          }}
+        >
           {enrolledCodes.map((code) => {
             const entry = nameOf(code);
             const info = getLanguageInfo(code);

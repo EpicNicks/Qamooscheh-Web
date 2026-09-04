@@ -35,15 +35,24 @@ function assembleTooltipLines(parts: TooltipPart[]): string[] {
  * `settings.romanizationEnabled` — and renders as plain text the moment
  * neither yields anything, so a caller can route every word through this
  * unconditionally rather than branching per-word.
+ *
+ * `focusable` is what a caller that already renders this inside a focusable
+ * control (WordBankExercise's tiles are `<button>`s) turns off: interactive
+ * content nested inside a button is invalid HTML and gives every tile two tab
+ * stops instead of one. With it off the span is inert and the tooltip reveals
+ * on the enclosing control's own focus instead — see RomanizedText.module.css's
+ * `:focus-visible > .wrap` rule.
  */
 export function RomanizedWord({
   word,
   hint,
   settings,
+  focusable = true,
 }: {
   word: string;
   hint?: WordHint | null;
   settings: HintSettings;
+  focusable?: boolean;
 }) {
   const lines = hint
     ? assembleTooltipLines([
@@ -59,7 +68,7 @@ export function RomanizedWord({
   if (lines.length === 0) return <>{word}</>;
 
   return (
-    <span className={styles.wrap} tabIndex={0}>
+    <span className={styles.wrap} tabIndex={focusable ? 0 : undefined}>
       {word}
       <span className={styles.tooltip} role="tooltip">
         {lines.map((line, i) => (

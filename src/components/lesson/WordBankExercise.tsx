@@ -58,7 +58,10 @@ export function WordBankExercise({
         {chosen.map((tileIndex, position) => (
           <DirectionalText key={`${tileIndex}-${position}`} courseCode={courseCode}>
             <button type="button" className={styles.tile} onClick={() => toggle(tileIndex)} disabled={disabled}>
-              <RomanizedWord word={tiles[tileIndex]} hint={hintMap.get(tiles[tileIndex])} settings={hintSettings} />
+              {/* focusable={false}: the tile's own <button> is already the tab
+                  stop, and a focusable span inside it would be both invalid
+                  HTML and a second stop per tile. */}
+              <RomanizedWord word={tiles[tileIndex]} hint={hintMap.get(tiles[tileIndex])} settings={hintSettings} focusable={false} />
             </button>
           </DirectionalText>
         ))}
@@ -68,7 +71,7 @@ export function WordBankExercise({
           chosen.includes(tileIndex) ? null : (
             <DirectionalText key={tileIndex} courseCode={courseCode}>
               <button type="button" className={styles.tile} onClick={() => toggle(tileIndex)} disabled={disabled}>
-                <RomanizedWord word={tile} hint={hintMap.get(tile)} settings={hintSettings} />
+                <RomanizedWord word={tile} hint={hintMap.get(tile)} settings={hintSettings} focusable={false} />
               </button>
             </DirectionalText>
           ),

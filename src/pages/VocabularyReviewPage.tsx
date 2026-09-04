@@ -32,7 +32,23 @@ export function VocabularyReviewPage() {
   const vocabulary = useCourseVocabulary(course);
   const starred = useStarredLexemes(course?.code);
 
-  const [scope, setScope] = useState<Scope>(skillKey ? "lesson" : unitKey ? "unit" : "course");
+  // The scope a given route arrives at (see App.tsx's three /vocabulary
+  // entries). It's only the STARTING point — the toggle below is free to move
+  // off it — but all three routes render this same element, so React keeps
+  // the component mounted when the learner navigates from one to another and
+  // the initial value has to be re-applied by hand when that happens.
+  const routeScope: Scope = skillKey ? "lesson" : unitKey ? "unit" : "course";
+  const routeKey = `${unitKey ?? ""}/${skillKey ?? ""}`;
+  const [scope, setScope] = useState<Scope>(routeScope);
+  // A plain state adjustment during render (this render's output is
+  // discarded; React immediately re-renders with the new scope) rather than a
+  // useEffect — the same pattern ProfilePage/SettingsPage use for their own
+  // re-seeding, and there's no external system to synchronize with here.
+  const [seededFor, setSeededFor] = useState(routeKey);
+  if (seededFor !== routeKey) {
+    setSeededFor(routeKey);
+    setScope(routeScope);
+  }
 
   if (bootstrap.isLoading || lexemeIndex.isLoading || vocabulary.isLoading) return <Spinner label="Loading vocabulary…" />;
   if (bootstrap.isError || lexemeIndex.isError || vocabulary.isError) {

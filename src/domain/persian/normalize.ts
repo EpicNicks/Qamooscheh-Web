@@ -12,7 +12,15 @@
 //   Alef with Hamza Below U+0625, Arabic-Indic digits U+0660-0669,
 //   Extended Arabic-Indic (Persian) digits U+06F0-06F9.
 
-const ZWNJ = "‌";
+/**
+ * U+200C ZERO WIDTH NON-JOINER, written as an escape rather than the literal
+ * character: the literal is invisible in every editor, so a stray one (or a
+ * missing one) in source reads as nothing at all. Exported as the single
+ * definition in the codebase — components/lesson/PersianKeyboard.tsx and
+ * components/lesson/keyboard/scriptEngines.tsx import this one rather than
+ * each declaring their own.
+ */
+export const ZWNJ = "\u200C";
 const HEH_GOAL = "ۀ";
 const HEH = "ه";
 const PERSIAN_YEH = "ی";

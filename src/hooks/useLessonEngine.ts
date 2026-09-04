@@ -107,7 +107,13 @@ export function useLessonEngine() {
       if (!artifact) continue;
       artifact.exercises.forEach((exercise, ordinal) => {
         if (dueTagsFilter && !exercise.tags.some((tag) => dueTagsFilter.has(tag))) return;
-        const primaryCardState = localCards[exercise.tags[0]] ?? null;
+        // An exercise with no tags at all has no card to resolve its render
+        // mode against — without the guard, `tags[0]` is `undefined` and the
+        // lookup becomes `localCards["undefined"]`, which quietly matches a
+        // real stored card if one ever happened to be keyed that way. `null`
+        // is the honest answer: treat it as never-seen.
+        const primaryTag = exercise.tags[0];
+        const primaryCardState = (primaryTag ? localCards[primaryTag] : null) ?? null;
         instances.push({
           key: `${ref.unitKey}/${ref.skillKey}/${ordinal}`,
           unitKey: ref.unitKey,

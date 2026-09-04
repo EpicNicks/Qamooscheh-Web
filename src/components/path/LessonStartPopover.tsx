@@ -63,6 +63,19 @@ export function LessonStartPopover({
     };
   }, [onClose]);
 
+  // Open focused on the primary action, and hand focus back to whatever
+  // opened this (the tapped skill node) on close — this popover only exists
+  // while it's open, so mount/unmount is open/close. Without the return, a
+  // keyboard user who presses Escape is left with focus on nothing and has to
+  // Tab from the top of the document to reach the road again. A node that's
+  // since been unmounted (the popover closed by starting the lesson, which
+  // navigates away) simply can't take focus, which is harmless.
+  useEffect(() => {
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    popoverRef.current?.querySelector<HTMLElement>("button")?.focus();
+    return () => opener?.focus();
+  }, []);
+
   // Anchored via `bottom`, not `top` + a measured height: the popover's own
   // height isn't known until it's laid out, but `bottom` lets the browser
   // grow it upward from a fixed point, so it always ends up directly above

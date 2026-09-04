@@ -36,6 +36,16 @@ export function LanguageSettingsPopover({ anchorEl, onClose, children }: Languag
     };
   }, [onClose, anchorEl]);
 
+  // Open focused on the panel's first control and hand focus back to the cog
+  // on close — the popover mounts only while it's open (see
+  // LanguageSettingsButton), so mount/unmount IS open/close here. Without
+  // this, Escape or a click outside leaves focus on nothing and a keyboard
+  // user's next Tab restarts from the top of the document.
+  useEffect(() => {
+    popoverRef.current?.querySelector<HTMLElement>("button, input, select, textarea, [tabindex]")?.focus();
+    return () => anchorEl?.focus();
+  }, [anchorEl]);
+
   if (!anchorEl) return null;
 
   const rect = anchorEl.getBoundingClientRect();

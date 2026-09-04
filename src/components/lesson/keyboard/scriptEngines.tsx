@@ -13,6 +13,7 @@ import { JapanesePhoneticKeyboard } from "../JapanesePhoneticKeyboard";
 import { JapaneseKanaKeyboard } from "../JapaneseKanaKeyboard";
 import { PhoneticCandidatePicker } from "../PhoneticCandidatePicker";
 import { hasPhoneticValue } from "../../../domain/persian/phoneticMap";
+import { ZWNJ } from "../../../domain/persian/normalize";
 import { PHYSICAL_KEY_TO_ISIRI } from "../../../domain/persian/isiriLayout";
 import { PHYSICAL_CHAR_TO_KANA } from "../../../domain/japanese/jisKanaLayout";
 import { usePersianPhoneticInput, handlePickerNavigation } from "../../../hooks/usePersianPhoneticInput";
@@ -24,7 +25,6 @@ type FaInputMethod = ReturnType<typeof useKeyboardInputMethod<"fa">>;
 type JaInputMethod = ReturnType<typeof useKeyboardInputMethod<"ja">>;
 import styles from "../Exercise.module.css";
 
-export const ZWNJ = "‌";
 
 type UpdateText = (updater: (prev: string) => string) => void;
 type LanguageInfo = ReturnType<typeof getLanguageInfo>;

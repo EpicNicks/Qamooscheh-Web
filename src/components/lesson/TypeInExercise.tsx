@@ -1,14 +1,26 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "../common/Button";
-import { useScriptEngine, ZWNJ, type ScriptEngine, type ScriptKeyboardHandlers } from "./keyboard/scriptEngines";
+import { useScriptEngine, type ScriptEngine, type ScriptKeyboardHandlers } from "./keyboard/scriptEngines";
 import { ExercisePrompt } from "./ExercisePrompt";
 import { getLanguageInfo, getKeyboardKind, isPersian } from "../../domain/language";
-import { detectArabicVariants } from "../../domain/persian/normalize";
+import { detectArabicVariants, ZWNJ } from "../../domain/persian/normalize";
 import { useKeyboardInputMethod } from "../../hooks/useKeyboardInputMethod";
 import type { ExerciseProps } from "./ExerciseRenderer";
 import styles from "./Exercise.module.css";
 
 const LETTER_KEY = /^[a-zA-Z']$/;
+
+/**
+ * Whether a keystroke landed on a control that has its own meaning for Enter
+ * — the "Use a hint" button, the settings cog, a link, another text field —
+ * rather than on the page at large. Same guard useAnswerConfirmation.ts
+ * applies to its own window-level Enter handling; without it, Enter pressed
+ * on a focused button submits the answer instead of pressing that button.
+ */
+function isInteractiveTarget(target: EventTarget | null, except: HTMLElement | null): boolean {
+  if (!(target instanceof HTMLElement) || target === except) return false;
+  return target.isContentEditable || /^(button|a|input|textarea|select)$/i.test(target.tagName) || target.getAttribute("role") === "button";
+}
 
 /**
  * Every keyboard-kind-specific behavior (which letters are valid, how
@@ -117,6 +129,11 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
     }
 
     if (event.key === "Enter") {
+      // Enter belongs to whatever control is focused when that control has
+      // its own answer for it — pressing it on "Use a hint" must reveal the
+      // hint, not submit the exercise. The answer input itself is the one
+      // exception: Enter there IS "submit".
+      if (isInteractiveTarget(event.target, inputRef.current)) return;
       event.preventDefault();
       if (textRef.current.trim().length > 0) submit();
       return;

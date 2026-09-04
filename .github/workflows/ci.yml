@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Node 22 to match the Dockerfile's node:22-alpine build stage, so CI
+      # fails on the same toolchain the deployed bundle is built with.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run lint
+
+      # `npm run build` runs `tsc -b` itself, but running it separately first
+      # reports a type error as a type error rather than as a build failure.
+      - run: npx tsc -b
+
+      - run: npm run build
+
+      - run: npm run test

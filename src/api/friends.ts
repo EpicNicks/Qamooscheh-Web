@@ -16,13 +16,13 @@ export function searchUsers(query: string): Promise<UserSearchResultResponse[]> 
 }
 
 export function requestFriendship(otherUserId: string): Promise<FriendRequestResponse> {
-  return apiFetch<FriendRequestResponse>(`/v1/friends/${otherUserId}`, { method: "POST" });
+  return apiFetch<FriendRequestResponse>(`/v1/friends/${encodeURIComponent(otherUserId)}`, { method: "POST" });
 }
 
 export function acceptFriendRequest(otherUserId: string): Promise<void> {
-  return apiFetch<void>(`/v1/friends/${otherUserId}/accept`, { method: "POST" });
+  return apiFetch<void>(`/v1/friends/${encodeURIComponent(otherUserId)}/accept`, { method: "POST" });
 }
 
 export function declineFriendRequest(otherUserId: string): Promise<void> {
-  return apiFetch<void>(`/v1/friends/${otherUserId}/decline`, { method: "POST" });
+  return apiFetch<void>(`/v1/friends/${encodeURIComponent(otherUserId)}/decline`, { method: "POST" });
 }

@@ -1,9 +1,8 @@
 import { VirtualKey } from "./keyboard/VirtualKey";
 import { usePhysicalKeyState } from "./keyboard/usePhysicalKeyState";
 import { ISIRI_ROWS } from "../../domain/persian/isiriLayout";
+import { ZWNJ } from "../../domain/persian/normalize";
 import styles from "./PersianKeyboard.module.css";
-
-const ZWNJ = "‌";
 
 /**
  * The standard ISIRI (Iranian national standard) keyboard layout: Persian

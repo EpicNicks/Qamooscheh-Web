@@ -41,8 +41,13 @@ const server = http.createServer((req, res) => {
   const urlPath = decodeURIComponent(new URL(req.url, "http://localhost").pathname);
   const filePath = path.join(root, urlPath);
 
-  // Never resolve outside root.
-  if (!filePath.startsWith(root)) {
+  // Never resolve outside root. Compared as a relative path rather than with
+  // startsWith: `<root>-sibling/secret` starts with `<root>` as a STRING while
+  // being an entirely different directory, so a prefix test lets it through.
+  // A path genuinely inside root relativizes to something that neither climbs
+  // out (`..`) nor is absolute (a different drive on Windows).
+  const relative = path.relative(root, filePath);
+  if (relative.startsWith("..") || path.isAbsolute(relative)) {
     res.writeHead(403).end();
     return;
   }

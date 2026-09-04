@@ -27,6 +27,10 @@ export function FriendsPage() {
   const search = useFriendSearch(useDebouncedValue(query, SEARCH_DEBOUNCE_MS));
 
   const requestFriendship = useRequestFriendship();
+  // Which search hit's Add button is mid-request. `requestFriendship.isPending`
+  // alone is one flag for the whole mutation, so using it directly greys out
+  // every Add button in the results, not the one that was pressed.
+  const [addingUserId, setAddingUserId] = useState<string | null>(null);
   const acceptRequest = useAcceptFriendRequest();
   const declineRequest = useDeclineFriendRequest();
 
@@ -47,8 +51,11 @@ export function FriendsPage() {
                 <span>{hit.displayName}</span>
                 <Button
                   variant="secondary"
-                  onClick={() => requestFriendship.mutate(hit.userId)}
-                  disabled={requestFriendship.isPending}
+                  onClick={() => {
+                    setAddingUserId(hit.userId);
+                    requestFriendship.mutate(hit.userId, { onSettled: () => setAddingUserId(null) });
+                  }}
+                  disabled={addingUserId === hit.userId}
                 >
                   Add
                 </Button>

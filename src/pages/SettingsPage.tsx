@@ -64,6 +64,17 @@ export function SettingsPage() {
     if (form) updatePrefs.mutate(form);
   }
 
+  /**
+   * "Saved." describes the values as they were when the save succeeded — the
+   * moment a field is changed again it's describing something that is no
+   * longer on screen, so the mutation's success state is cleared on the next
+   * edit rather than left standing until the page unmounts.
+   */
+  function editForm(patch: Partial<UpdatePrefsRequest>) {
+    if (updatePrefs.isSuccess) updatePrefs.reset();
+    setForm((prev) => (prev ? { ...prev, ...patch } : prev));
+  }
+
   return (
     <form className={styles.form} onSubmit={handleSubmit}>
       <h1>Settings</h1>
@@ -74,7 +85,7 @@ export function SettingsPage() {
         Script
         <select
           value={form.scriptMode}
-          onChange={(e) => setForm({ ...form, scriptMode: e.target.value as ScriptMode })}
+          onChange={(e) => editForm({ scriptMode: e.target.value as ScriptMode })}
         >
           <option value="native">Native script</option>
           <option value="romanized">Romanized</option>
@@ -84,7 +95,7 @@ export function SettingsPage() {
 
       <label className={styles.field}>
         Register
-        <select value={form.register} onChange={(e) => setForm({ ...form, register: e.target.value as Register })}>
+        <select value={form.register} onChange={(e) => editForm({ register: e.target.value as Register })}>
           <option value="spoken">Spoken / colloquial</option>
           <option value="written">Written / formal</option>
           <option value="both">Both</option>
@@ -95,7 +106,7 @@ export function SettingsPage() {
         Keyboard
         <select
           value={form.keyboardMode}
-          onChange={(e) => setForm({ ...form, keyboardMode: e.target.value as KeyboardMode })}
+          onChange={(e) => editForm({ keyboardMode: e.target.value as KeyboardMode })}
         >
           <option value="contextual">Contextual letterforms</option>
           <option value="isolated">Isolated letterforms</option>
@@ -106,7 +117,7 @@ export function SettingsPage() {
         <input
           type="checkbox"
           checked={form.autoplayAudio}
-          onChange={(e) => setForm({ ...form, autoplayAudio: e.target.checked })}
+          onChange={(e) => editForm({ autoplayAudio: e.target.checked })}
         />
         Autoplay audio
       </label>
@@ -118,7 +129,7 @@ export function SettingsPage() {
           min={1}
           max={1440}
           value={form.dailyGoalMinutes}
-          onChange={(e) => setForm({ ...form, dailyGoalMinutes: Number(e.target.value) })}
+          onChange={(e) => editForm({ dailyGoalMinutes: Number(e.target.value) })}
         />
       </label>
 
@@ -130,7 +141,7 @@ export function SettingsPage() {
           max={0.99}
           step={0.01}
           value={form.desiredRetention}
-          onChange={(e) => setForm({ ...form, desiredRetention: Number(e.target.value) })}
+          onChange={(e) => editForm({ desiredRetention: Number(e.target.value) })}
         />
       </label>
 

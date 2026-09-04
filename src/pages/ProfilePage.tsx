@@ -35,6 +35,17 @@ export function ProfilePage() {
     return null;
   }
 
+  /**
+   * "Saved." describes the values as they were when the save succeeded — the
+   * moment a field is edited again it's describing something that is no
+   * longer on screen, so the mutation's success state is cleared on the next
+   * edit rather than left standing until the page unmounts.
+   */
+  function editForm(patch: Partial<ProfileForm>) {
+    if (updateProfile.isSuccess) updateProfile.reset();
+    setForm((prev) => (prev ? { ...prev, ...patch } : prev));
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form) return;
@@ -56,7 +67,7 @@ export function ProfilePage() {
         Display name
         <input
           value={form.displayName}
-          onChange={(e) => setForm({ ...form, displayName: e.target.value })}
+          onChange={(e) => editForm({ displayName: e.target.value })}
           required
           maxLength={64}
         />
@@ -65,7 +76,7 @@ export function ProfilePage() {
         Full name (optional, private)
         <input
           value={form.fullName}
-          onChange={(e) => setForm({ ...form, fullName: e.target.value })}
+          onChange={(e) => editForm({ fullName: e.target.value })}
           maxLength={128}
         />
       </label>
@@ -73,7 +84,7 @@ export function ProfilePage() {
         Country (optional, ISO 2-letter, e.g. US)
         <input
           value={form.country}
-          onChange={(e) => setForm({ ...form, country: e.target.value.toUpperCase() })}
+          onChange={(e) => editForm({ country: e.target.value.toUpperCase() })}
           maxLength={2}
           pattern="[A-Z]{2}"
         />

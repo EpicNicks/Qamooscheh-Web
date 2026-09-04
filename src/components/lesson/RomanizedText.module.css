@@ -40,7 +40,11 @@
 }
 
 .wrap:hover .tooltip,
-.wrap:focus-visible .tooltip {
+.wrap:focus-visible .tooltip,
+/* The word-bank case: the tile itself is the button, so the span inside it
+   carries no tabIndex of its own (RomanizedWord's `focusable={false}`) and the
+   tooltip follows the button's focus instead. */
+:focus-visible > .wrap .tooltip {
   opacity: 1;
   visibility: visible;
   transform: translate(-50%, 0);
