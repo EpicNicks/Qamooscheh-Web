@@ -37,6 +37,7 @@ export function CheckpointPage() {
       <div className={styles.done}>
         <h1>Ready to submit</h1>
         <p>You've answered every question. Submit when ready.</p>
+        {checkpoint.submitError && <ErrorBanner message={checkpoint.submitError} />}
         <Button onClick={() => void checkpoint.submit()} disabled={checkpoint.isSubmitting}>
           {checkpoint.isSubmitting ? "Submitting…" : "Submit checkpoint"}
         </Button>

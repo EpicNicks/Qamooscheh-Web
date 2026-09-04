@@ -1,6 +1,6 @@
-import { createContext, useCallback, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import * as authApi from "../api/auth";
-import { clearSession, loadSession, saveSession, type StoredSession } from "../lib/storage";
+import { clearSession, loadSession, onSessionCleared, saveSession, type StoredSession } from "../lib/storage";
 import { queryClient } from "../queryClient";
 import type { AuthResponse } from "../types/api";
 
@@ -45,6 +45,12 @@ function persist(auth: AuthResponse): StoredSession {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<StoredSession | null>(() => loadSession());
+
+  // httpClient clears the stored session when a token refresh fails, outside
+  // any React render. Mirroring that here is what flips `isAuthenticated` to
+  // false so RequireAuth sends an expired session back to /login, instead of
+  // leaving every page stuck on "couldn't load" until a manual reload.
+  useEffect(() => onSessionCleared(() => setSession(null)), []);
 
   const register = useCallback(async (email: string, password: string) => {
     const auth = await authApi.register(email, password);

@@ -1,6 +1,7 @@
 // CDN content-artifact hooks (api/content.ts), layered with react-query for
 // caching — content is immutable per course version, so these cache
 // essentially forever within a session.
+import { useMemo } from "react";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { getCourseManifest, getLexemeIndex, getSkillArtifact, getUnitArtifact } from "../api/content";
 import { computePathProgress, type PathSkillInput, type PathUnit, type PositionKey } from "../domain/pathProgress";
@@ -117,37 +118,56 @@ export function useCoursePath(
 
   const skillsReady = allSkillRefs.length > 0 && skillResults.every((r) => r.data != null);
 
-  const path = skillsReady
-    ? computePathProgress(
-        manifestOrderedUnits.map((unit) => {
-          const toInput = (ref: ManifestRef): PathSkillInput => {
-            const skill = skillsByUnitAndKey.get(`${unit.id}/${ref.id}`);
-            return {
-              skillKey: ref.id,
-              title: skill?.title ?? ref.id,
-              category: skill?.category ?? "standard",
-              arc: skill?.arc ?? undefined,
-            };
-          };
-
-          const inputs = unit.positions.map((pos) => pos.skills.map(toInput));
-
-          return {
-            unitKey: unit.id,
-            title: unit.title,
-            // Only standard skills sit in the sequence the cursor walks, so
-            // only they form positions. A position holding nothing standard
-            // contributes none, which keeps these indices comparable with the
-            // cursor the same way the old standard-only list did.
-            standardPositions: inputs
-              .map((skills) => ({ skills: skills.filter((s) => s.category === "standard") }))
-              .filter((pos) => pos.skills.length > 0),
-            otherSkills: inputs.flat().filter((s) => s.category !== "standard"),
-          };
-        }),
+  // Content artifacts are immutable per course version (staleTime: Infinity),
+  // so the course, the loaded unit/skill ids and the cursor fully determine
+  // the computed path — while the arrays and map above are rebuilt into fresh
+  // objects on every render. Memoizing on that signature keeps `path`'s
+  // identity stable across unrelated re-renders (a bootstrap refetch on window
+  // focus, a sibling query settling); PathPage keys its scroll-to-current-node
+  // effect on `path`, and would otherwise yank the reader back on each one.
+  const pathSignature = skillsReady
+    ? JSON.stringify([
+        course?.code,
+        course?.version,
         position ?? null,
-      )
-    : [];
+        manifestOrderedUnits.map((unit) => unit.id),
+        allSkillRefs.map(({ unitKey, ref }) => `${unitKey}/${ref.id}`),
+      ])
+    : "";
+
+  const path = useMemo<PathUnit[]>(() => {
+    if (!skillsReady) return [];
+    return computePathProgress(
+      manifestOrderedUnits.map((unit) => {
+        const toInput = (ref: ManifestRef): PathSkillInput => {
+          const skill = skillsByUnitAndKey.get(`${unit.id}/${ref.id}`);
+          return {
+            skillKey: ref.id,
+            title: skill?.title ?? ref.id,
+            category: skill?.category ?? "standard",
+            arc: skill?.arc ?? undefined,
+          };
+        };
+
+        const inputs = unit.positions.map((pos) => pos.skills.map(toInput));
+
+        return {
+          unitKey: unit.id,
+          title: unit.title,
+          // Only standard skills sit in the sequence the cursor walks, so
+          // only they form positions. A position holding nothing standard
+          // contributes none, which keeps these indices comparable with the
+          // cursor the same way the old standard-only list did.
+          standardPositions: inputs
+            .map((skills) => ({ skills: skills.filter((s) => s.category === "standard") }))
+            .filter((pos) => pos.skills.length > 0),
+          otherSkills: inputs.flat().filter((s) => s.category !== "standard"),
+        };
+      }),
+      position ?? null,
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- pathSignature stands in for the render-unstable inputs above.
+  }, [pathSignature]);
 
   return {
     path,

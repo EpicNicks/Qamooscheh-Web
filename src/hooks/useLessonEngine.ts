@@ -13,7 +13,7 @@
 //      merge the returned card states locally and refresh bootstrap/plan.
 //      A network failure queues the session for a later flush instead of
 //      losing it (lib/offlineQueue.ts).
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useBootstrap } from "./useBootstrap";
 import { useSkillArtifactsForRefs } from "./useCourseContent";
@@ -45,6 +45,18 @@ export interface LessonExerciseInstance {
 }
 
 export type LessonStatus = "loading" | "empty" | "ready" | "submitting" | "done" | "error";
+
+/**
+ * A recorded answer plus the skill the exercise actually came from. A session
+ * plan's `skills` is a list, so a single lesson's items can span several
+ * skills — finishLesson groups on this to submit one SubmittedSession per
+ * skill instead of attributing everything to skills[0].
+ */
+interface RecordedItem {
+  unitKey: string;
+  skillKey: string;
+  item: SubmittedItem;
+}
 
 export interface SubmitAnswerResult {
   correct: boolean;
@@ -118,7 +130,7 @@ export function useLessonEngine() {
 
   const [queue, setQueue] = useState<LessonExerciseInstance[] | null>(null);
   const [totalCount, setTotalCount] = useState(0);
-  const [items, setItems] = useState<SubmittedItem[]>([]);
+  const [items, setItems] = useState<RecordedItem[]>([]);
   const [status, setStatus] = useState<LessonStatus>("loading");
   const [result, setResult] = useState<SubmittedSessionResponse | null>(null);
   // First-attempt correctness only — a later successful retry doesn't add to
@@ -146,6 +158,17 @@ export function useLessonEngine() {
 
   const current = queue && queue.length > 0 ? queue[0] : null;
 
+  /**
+   * Restarts the latency clock. The page owning the answer-confirmation
+   * screen calls this the moment the next exercise actually becomes visible,
+   * so `latencyMs` measures answering time only — not the time the learner
+   * spent reading the previous exercise's feedback. Stable identity so it can
+   * sit in an effect's dependency list.
+   */
+  const markShown = useCallback(() => {
+    shownAt.current = performance.now();
+  }, []);
+
   /** Redo this lesson even though nothing's due for it — every exercise, no due-tag filter, no FSRS credit on completion (see finishLesson). Wired to the "Nothing due right now" screen's "Practice anyway" button so a learner is never simply locked out. */
   function startPractice() {
     if (!plan.data) return;
@@ -171,15 +194,19 @@ export function useLessonEngine() {
     if (current.attempt === 0 && correct) setFirstTryCorrect((n) => n + 1);
 
     const newItems = current.exercise.tags.map(
-      (lexemeTag): SubmittedItem => ({
-        exerciseOrdinal: current.ordinal,
-        lexemeTag,
-        exerciseType: current.renderType,
-        scriptMode: current.exercise.scriptMode,
-        submittedText,
-        usedHint: opts?.usedHint ?? false,
-        latencyMs,
-        attempt,
+      (lexemeTag): RecordedItem => ({
+        unitKey: current.unitKey,
+        skillKey: current.skillKey,
+        item: {
+          exerciseOrdinal: current.ordinal,
+          lexemeTag,
+          exerciseType: current.renderType,
+          scriptMode: current.exercise.scriptMode,
+          submittedText,
+          usedHint: opts?.usedHint ?? false,
+          latencyMs,
+          attempt,
+        },
       }),
     );
     setItems((prev) => [...prev, ...newItems]);
@@ -195,7 +222,10 @@ export function useLessonEngine() {
     }
 
     setQueue(rest);
-    shownAt.current = performance.now();
+    // NOT the place to restart the latency clock: the answered exercise stays
+    // on screen behind its feedback until the learner hits Continue, so
+    // resetting here would bill the next exercise for the feedback-reading
+    // time too. The page calls markShown() when the next one is really shown.
 
     if (rest.length === 0) {
       await finishLesson([...items, ...newItems]);
@@ -204,7 +234,7 @@ export function useLessonEngine() {
     return { correct, requeued, note: feedback.note, verdict: feedback.verdict, attempt };
   }
 
-  async function finishLesson(finalItems: SubmittedItem[]) {
+  async function finishLesson(finalItems: RecordedItem[]) {
     if (!plan.data || !current) return;
     setStatus("submitting");
 
@@ -215,27 +245,52 @@ export function useLessonEngine() {
       return;
     }
 
-    const primaryRef = plan.data.skills[0];
-    const session: SubmittedSession = {
-      submissionId: crypto.randomUUID(),
-      unitKey: primaryRef.unitKey,
-      skillKey: primaryRef.skillKey,
-      courseVersion: plan.data.courseVersion,
-      occurredAt: new Date().toISOString(),
-      completed: true,
-      items: finalItems,
-    };
+    // One session per skill the items actually came from — a plan may list
+    // several skills (§2.2), and grading an item under a skill it doesn't
+    // belong to would corrupt that skill's FSRS state.
+    const courseVersion = plan.data.courseVersion;
+    const occurredAt = new Date().toISOString();
+    const bySkill = new Map<string, SubmittedSession>();
+    for (const recorded of finalItems) {
+      const key = `${recorded.unitKey}/${recorded.skillKey}`;
+      let session = bySkill.get(key);
+      if (!session) {
+        session = {
+          submissionId: crypto.randomUUID(),
+          unitKey: recorded.unitKey,
+          skillKey: recorded.skillKey,
+          courseVersion,
+          occurredAt,
+          completed: true,
+          items: [],
+        };
+        bySkill.set(key, session);
+      }
+      session.items.push(recorded.item);
+    }
+
+    const sessions = [...bySkill.values()];
+    if (sessions.length === 0) {
+      setStatus("done");
+      return;
+    }
 
     try {
-      const response = await submitSessions([session]);
-      const sessionResult = response.sessions[0];
-      setResult(sessionResult ?? null);
-      if (userId && sessionResult) mergeCardStates(userId, sessionResult.cards);
+      const response = await submitSessions(sessions);
+      // Cards come back per session; every one of them needs merging. `result`
+      // only drives the recap's "Already recorded." line, so the first
+      // response stands in for the batch.
+      setResult(response.sessions[0] ?? null);
+      if (userId) {
+        for (const sessionResult of response.sessions) mergeCardStates(userId, sessionResult.cards);
+      }
       queryClient.invalidateQueries({ queryKey: ["bootstrap"] });
       queryClient.invalidateQueries({ queryKey: ["sessionPlan"] });
       setStatus("done");
     } catch {
-      if (userId) enqueueOffline(userId, session);
+      if (userId) {
+        for (const session of sessions) enqueueOffline(userId, session);
+      }
       setStatus("done"); // queued locally; will sync on next successful flush
     }
   }
@@ -261,6 +316,7 @@ export function useLessonEngine() {
     isPracticeMode,
     submitAnswer,
     startPractice,
+    markShown,
     result,
   };
 }

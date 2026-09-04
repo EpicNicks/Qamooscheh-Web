@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLessonEngine, type SubmitAnswerResult, type LessonExerciseInstance } from "../hooks/useLessonEngine";
 import { usePrefs } from "../hooks/usePrefs";
@@ -36,6 +36,17 @@ export function LessonPage() {
   const [exerciseEl, setExerciseEl] = useState<HTMLDivElement | null>(null);
   const [lastUsedHint, setLastUsedHint] = useState(false);
   const confirmation = useAnswerConfirmation<LessonExerciseInstance, SubmitAnswerResult>(skip.isConfirming);
+
+  // Restart the engine's latency clock exactly when an exercise becomes
+  // visible — i.e. once the previous answer's feedback has been dismissed
+  // (by the Continue button OR the hook's own Enter handling), not when that
+  // answer was submitted. Otherwise feedback-reading time is billed to the
+  // next exercise's latencyMs, which the server grades on.
+  const { markShown } = engine;
+  const isReviewing = confirmation.answeredItem !== null;
+  useEffect(() => {
+    if (!isReviewing) markShown();
+  }, [isReviewing, markShown]);
 
   if (engine.status === "loading") {
     return <Spinner label="Preparing your lesson…" />;

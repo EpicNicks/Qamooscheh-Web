@@ -31,9 +31,26 @@ export function saveSession(session: StoredSession): void {
   localStorage.setItem(REFRESH_TOKEN_KEY, session.refreshToken);
 }
 
+const sessionClearedListeners = new Set<() => void>();
+
+/**
+ * Notified whenever `clearSession()` runs. The session can be cleared from
+ * outside React — httpClient's refresh path drops it when a refresh fails —
+ * and AuthProvider's `isAuthenticated` is state seeded once from storage, so
+ * without this signal it stays true against an emptied store and RequireAuth
+ * never redirects. Returns an unsubscribe.
+ */
+export function onSessionCleared(listener: () => void): () => void {
+  sessionClearedListeners.add(listener);
+  return () => {
+    sessionClearedListeners.delete(listener);
+  };
+}
+
 export function clearSession(): void {
   localStorage.removeItem(USER_ID_KEY);
   localStorage.removeItem(ACCESS_TOKEN_KEY);
   localStorage.removeItem(ACCESS_TOKEN_EXPIRES_AT_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
+  sessionClearedListeners.forEach((listener) => listener());
 }

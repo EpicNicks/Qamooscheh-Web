@@ -66,6 +66,10 @@ export function useCheckpoint(targetUnitKey: string, targetSkillKey: string) {
   const [index, setIndex] = useState(0);
   const [submitResult, setSubmitResult] = useState<CheckpointSubmitResponse | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Set when POST /v1/checkpoint fails (network, 409, 5xx). CheckpointPage
+  // renders it and leaves the Submit button live so the learner can retry —
+  // without this the rejection was unhandled and the page said nothing.
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const current = instances[index] ?? null;
 
@@ -80,6 +84,7 @@ export function useCheckpoint(targetUnitKey: string, targetSkillKey: string) {
   async function submit() {
     if (!plan.data) return;
     setIsSubmitting(true);
+    setSubmitError(null);
     try {
       const bySkill = new Map<string, SubmittedItem[]>();
       for (const instance of instances) {
@@ -118,6 +123,8 @@ export function useCheckpoint(targetUnitKey: string, targetSkillKey: string) {
       setSubmitResult(response);
       if (userId) mergeCardStates(userId, response.cards);
       queryClient.invalidateQueries({ queryKey: ["bootstrap"] });
+    } catch {
+      setSubmitError("Couldn't submit your checkpoint. Check your connection and try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -133,6 +140,7 @@ export function useCheckpoint(targetUnitKey: string, targetSkillKey: string) {
     answerCurrent,
     submit,
     isSubmitting,
+    submitError,
     submitResult,
   };
 }

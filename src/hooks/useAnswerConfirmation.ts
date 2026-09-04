@@ -46,6 +46,12 @@ export function useAnswerConfirmation<TItem, TFeedback>(suppressEnter = false): 
   useEffect(() => {
     if (!(answeredItem && feedback) || suppressEnter) return;
     function onKeyDown(event: KeyboardEvent) {
+      // The feedback screen still holds editable fields — ReportIssue's
+      // "tell us more" textarea — where Enter means "newline", not "advance".
+      const target = event.target;
+      if (target instanceof HTMLElement && (target.isContentEditable || /^(input|textarea)$/i.test(target.tagName))) {
+        return;
+      }
       if (event.key === "Enter") {
         event.preventDefault();
         confirm();
