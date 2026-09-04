@@ -11,13 +11,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      # Node 22 to match the Dockerfile's node:22-alpine build stage, so CI
+      # Node 24 to match the Dockerfile's node:24-alpine build stage, so CI
       # fails on the same toolchain the deployed bundle is built with.
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
-          node-version: '22'
+          node-version: '24'
           cache: npm
 
       - run: npm ci

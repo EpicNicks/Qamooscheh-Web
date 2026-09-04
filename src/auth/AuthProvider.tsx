@@ -1,19 +1,9 @@
-import { createContext, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import * as authApi from "../api/auth";
 import { clearSession, loadSession, onSessionCleared, saveSession, type StoredSession } from "../lib/storage";
 import { queryClient } from "../queryClient";
 import type { AuthResponse } from "../types/api";
-
-export interface AuthContextValue {
-  userId: string | null;
-  isAuthenticated: boolean;
-  register: (email: string, password: string) => Promise<void>;
-  login: (email: string, password: string) => Promise<void>;
-  loginWithGoogle: (idToken: string) => Promise<void>;
-  logout: () => Promise<void>;
-}
-
-export const AuthContext = createContext<AuthContextValue | null>(null);
+import { AuthContext, type AuthContextValue } from "./AuthContext";
 
 /**
  * Every cached query belongs to whoever was signed in when it was fetched, so

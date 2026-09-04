@@ -3,7 +3,7 @@
 # minimal runtime image, non-root where the base image makes that free) and
 # reuses its choice of nginx:1.27-alpine (docker/nginx/artifacts.conf's edge
 # container) so the stack isn't running two different nginx versions.
-FROM node:22-alpine AS build
+FROM node:24-alpine AS build
 WORKDIR /app
 
 # package*.json only, so npm ci caches across source-only changes.
