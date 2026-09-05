@@ -25,7 +25,7 @@ export function SkillNode({ skill, layout = "node", nextSkipTarget = null }: Ski
   const theme = usePathTheme();
   const locked = skill.status === "locked";
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const [popoverAnchor, setPopoverAnchor] = useState<DOMRect | null>(null);
+  const [popoverOpen, setPopoverOpen] = useState(false);
 
   function handleClick() {
     if (locked) return;
@@ -45,7 +45,7 @@ export function SkillNode({ skill, layout = "node", nextSkipTarget = null }: Ski
     // LessonStartPopover. This is also the only way to reach "Review
     // vocabulary" from a skill that isn't current, since a completed skill's
     // node otherwise has no popover at all.
-    setPopoverAnchor(buttonRef.current?.getBoundingClientRect() ?? null);
+    setPopoverOpen(true);
   }
 
   function primaryAction() {
@@ -72,9 +72,9 @@ export function SkillNode({ skill, layout = "node", nextSkipTarget = null }: Ski
         <span className={styles.icon}>{theme.icons[skill.category]}</span>
         <span className={styles.title}>{skill.title}</span>
       </button>
-      {popoverAnchor && (
+      {popoverOpen && (
         <LessonStartPopover
-          anchorRect={popoverAnchor}
+          anchorRef={buttonRef}
           primaryLabel={skill.status === "current" ? "Start lesson" : "Practice"}
           onPrimary={primaryAction}
           onSkip={
@@ -83,7 +83,7 @@ export function SkillNode({ skill, layout = "node", nextSkipTarget = null }: Ski
               : undefined
           }
           onReviewVocabulary={() => navigate(`/vocabulary/${skill.unitKey}/${skill.skillKey}`)}
-          onClose={() => setPopoverAnchor(null)}
+          onClose={() => setPopoverOpen(false)}
         />
       )}
     </>

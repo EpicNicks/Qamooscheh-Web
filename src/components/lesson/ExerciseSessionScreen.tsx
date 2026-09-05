@@ -36,6 +36,8 @@ export interface ExerciseSessionItem {
 export interface ExerciseSessionFeedback {
   correct: boolean;
   note: string | null;
+  /** What was actually graded — shown on the revealed-answer feedback as "Your answer" so a learner can see exactly what the grader received. */
+  submittedText: string;
 }
 
 interface ExerciseSessionScreenProps<TItem extends ExerciseSessionItem, TFeedback extends ExerciseSessionFeedback> {
@@ -75,15 +77,14 @@ export function ExerciseSessionScreen<TItem extends ExerciseSessionItem, TFeedba
   feedbackXp,
   overlay,
 }: ExerciseSessionScreenProps<TItem, TFeedback>) {
-  const { skip, confirmation, hintSettings, courseHintMap, keyboardMode, autoplayAudio, scriptModePref } = session;
+  const { skip, confirmation, hintSettings, courseHintMap, keyboardMode, autoplayAudio } = session;
   const [topRowEl, setTopRowEl] = useState<HTMLDivElement | null>(null);
   const [exerciseEl, setExerciseEl] = useState<HTMLDivElement | null>(null);
 
-  /** Whether this exercise has any native-script text worth hovering — see gateLexemeHintMap's three conditions. */
+  /** Whether this exercise has any native-script text worth hovering — see gateLexemeHintMap's own conditions. */
   const hintMapFor = (exercise: ExerciseArtifact) =>
     gateLexemeHintMap(courseHintMap, {
       settings: hintSettings,
-      scriptModePref,
       exerciseScriptMode: exercise.scriptMode,
     });
 
@@ -110,6 +111,8 @@ export function ExerciseSessionScreen<TItem extends ExerciseSessionItem, TFeedba
           note={feedback.note}
           xp={feedbackXp?.(feedback)}
           answer={answeredItem.exercise.answer}
+          answerIsTokenized={answeredItem.exercise.type === "word_bank" || answeredItem.exercise.type === "match"}
+          submittedText={feedback.submittedText}
           hintMap={hintMap}
           hintSettings={hintSettings}
           reportContext={{ exerciseTags: answeredItem.exercise.tags, prompt: answeredItem.exercise.prompt }}

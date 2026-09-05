@@ -23,7 +23,7 @@ import { useShowTranslationHints } from "./useShowTranslationHints";
 import { useSkipConfirmation, type SkipConfirmation } from "./useSkipConfirmation";
 import { useAnswerConfirmation, type AnswerConfirmation } from "./useAnswerConfirmation";
 import { buildLexemeHintMap, type HintSettings, type WordHint } from "../domain/romanization";
-import type { KeyboardMode, ScriptMode } from "../domain/enums";
+import type { KeyboardMode } from "../domain/enums";
 import type { CourseRef } from "../types/api";
 
 export interface ExerciseSession<TItem, TFeedback> {
@@ -31,8 +31,6 @@ export interface ExerciseSession<TItem, TFeedback> {
   keyboardMode: KeyboardMode | undefined;
   /** user_prefs.autoplay_audio — plays a prompt aloud the moment it's shown. */
   autoplayAudio: boolean | undefined;
-  /** user_prefs.script_mode — one of gateLexemeHintMap's three "hide the hints" reasons. */
-  scriptModePref: ScriptMode | undefined;
   /** The learner's two local hint toggles, in the shape RomanizedText reads. */
   hintSettings: HintSettings;
   /** Course-wide word -> hint map, UNGATED — pass through gateLexemeHintMap with the exercise at hand before handing it to a component. */
@@ -63,7 +61,6 @@ export function useExerciseSession<TItem, TFeedback>(
   return {
     keyboardMode: prefs.data?.keyboardMode,
     autoplayAudio: prefs.data?.autoplayAudio,
-    scriptModePref: prefs.data?.scriptMode,
     hintSettings: { translationEnabled: translationHints.enabled, romanizationEnabled: romanizationHints.enabled },
     courseHintMap,
     skip,

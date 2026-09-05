@@ -1,4 +1,4 @@
-import { useEffect, useRef, type CSSProperties } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "../common/Button";
 import styles from "./LessonStartPopover.module.css";
@@ -7,8 +7,8 @@ import styles from "./LessonStartPopover.module.css";
 const VERTICAL_OFFSET_PX = 12;
 
 interface LessonStartPopoverProps {
-  /** The tapped node's own bounding rect, measured at click time — the popover hovers directly above it. */
-  anchorRect: DOMRect;
+  /** The tapped node itself — its position is re-measured on every scroll/resize so the popover tracks it instead of freezing at click-time coordinates. */
+  anchorRef: RefObject<HTMLElement | null>;
   /** "Start lesson" for the current skill, "Practice" for a past one being revisited — see SkillNode. */
   primaryLabel: string;
   onPrimary: () => void;
@@ -37,7 +37,7 @@ interface LessonStartPopoverProps {
  * the viewport, not against where anchorRect was actually measured.
  */
 export function LessonStartPopover({
-  anchorRect,
+  anchorRef,
   primaryLabel,
   onPrimary,
   onSkip,
@@ -45,6 +45,25 @@ export function LessonStartPopover({
   onClose,
 }: LessonStartPopoverProps) {
   const popoverRef = useRef<HTMLDivElement>(null);
+  const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
+
+  // Re-measure on every scroll (capture phase, so a scroll on the path's own
+  // scroll container — not just the window — is caught too) and resize,
+  // rather than freezing the rect from the click that opened this popover.
+  // The road scrolls independently of the window, so without this the
+  // popover would drift away from the node the moment the learner scrolled.
+  useLayoutEffect(() => {
+    function measure() {
+      setAnchorRect(anchorRef.current?.getBoundingClientRect() ?? null);
+    }
+    measure();
+    window.addEventListener("scroll", measure, true);
+    window.addEventListener("resize", measure);
+    return () => {
+      window.removeEventListener("scroll", measure, true);
+      window.removeEventListener("resize", measure);
+    };
+  }, [anchorRef]);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -76,6 +95,8 @@ export function LessonStartPopover({
     return () => opener?.focus();
   }, []);
 
+  if (!anchorRect) return null;
+
   // Anchored via `bottom`, not `top` + a measured height: the popover's own
   // height isn't known until it's laid out, but `bottom` lets the browser
   // grow it upward from a fixed point, so it always ends up directly above
@@ -91,7 +112,7 @@ export function LessonStartPopover({
     <div ref={popoverRef} className={styles.popover} style={style} role="dialog" aria-label={primaryLabel}>
       <Button onClick={onPrimary}>{primaryLabel}</Button>
       {onSkip && (
-        <Button variant="secondary" onClick={onSkip}>
+        <Button variant="secondary" onClick={onSkip} title="Complete a shorter quiz instead of the full lesson to advance">
           Test out
         </Button>
       )}

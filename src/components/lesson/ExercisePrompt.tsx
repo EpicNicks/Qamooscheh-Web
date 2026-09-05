@@ -1,4 +1,4 @@
-import { getLanguageInfo } from "../../domain/language";
+import { getLanguageInfo, detectScriptDirection } from "../../domain/language";
 import { usePhraseAudio } from "../../hooks/usePhraseAudio";
 import { useVoiceAvailability } from "../../hooks/useVoiceAvailability";
 import { PlayAudioButton } from "./PlayAudioButton";
@@ -43,7 +43,7 @@ export function ExercisePrompt({
 
   return (
     <div className={styles.promptRow}>
-      <p className={styles.prompt}>
+      <p className={styles.prompt} dir={detectScriptDirection(text)}>
         <RomanizedText text={text} hintMap={hintMap} settings={hintSettings} />
       </p>
       {speechLang &&

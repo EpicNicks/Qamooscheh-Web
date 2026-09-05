@@ -74,6 +74,27 @@ export function getWritingDirection(courseCode: string | null | undefined): Writ
   return getLanguageInfo(courseCode)?.direction ?? "ltr";
 }
 
+// The Arabic Unicode block (U+0600-U+06FF), which covers every Persian
+// letter and digit too — used to detect native-script text directly from
+// its content rather than trusting scriptMode/courseCode, which describe
+// only one side of a composite/translation exercise (a Persian prompt
+// translated into English tiles, or vice versa) and don't vary word-by-word.
+const ARABIC_SCRIPT_PATTERN = /[؀-ۿ]/;
+
+/**
+ * Which way a specific piece of text should flow, independent of the
+ * course's own overall direction. Needed anywhere a container mixes native
+ * Persian text with its English translation (composite exercise tiles, a
+ * multi-word Persian phrase) — without an explicit `dir` matching this,
+ * plain RTL text still displays correctly as one continuous run, but the
+ * moment it's split across multiple inline-block elements (RomanizedWord's
+ * hover-hint wrapper) the browser reorders those pieces by the *container's*
+ * base direction instead of following the script.
+ */
+export function detectScriptDirection(text: string): WritingDirection {
+  return ARABIC_SCRIPT_PATTERN.test(text) ? "rtl" : "ltr";
+}
+
 export type KeyboardKind = "persian-layout" | "persian-phonetic" | "japanese-phonetic" | "japanese-kana";
 
 /**

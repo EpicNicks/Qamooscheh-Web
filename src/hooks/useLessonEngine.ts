@@ -66,6 +66,8 @@ export interface SubmitAnswerResult {
   /** The underlying verdict and 1-indexed attempt number, for domain/xp.ts's cosmetic per-answer XP tiering. */
   verdict: AnswerVerdict;
   attempt: number;
+  /** What was actually graded — surfaced on the revealed-answer feedback so a learner can see exactly what the grader received (e.g. a word-bank submission whose tile order wasn't what they intended). */
+  submittedText: string;
 }
 
 export function useLessonEngine() {
@@ -217,7 +219,7 @@ export function useLessonEngine() {
   }
 
   async function submitAnswer(submittedText: string, opts?: { usedHint?: boolean }): Promise<SubmitAnswerResult> {
-    if (!current || !queue) return { correct: false, requeued: false, note: null, verdict: "incorrect", attempt: 1 };
+    if (!current || !queue) return { correct: false, requeued: false, note: null, verdict: "incorrect", attempt: 1, submittedText };
 
     const feedback = checkAnswer(course?.code, current.exercise, submittedText);
     const correct = feedback.verdict !== "incorrect";
@@ -264,7 +266,7 @@ export function useLessonEngine() {
       await finishLesson([...items, ...newItems]);
     }
 
-    return { correct, requeued, note: feedback.note, verdict: feedback.verdict, attempt };
+    return { correct, requeued, note: feedback.note, verdict: feedback.verdict, attempt, submittedText };
   }
 
   async function finishLesson(finalItems: RecordedItem[]) {

@@ -45,6 +45,8 @@ export type WalkthroughStatus = "loading" | "empty" | "ready" | "submitting" | "
 export interface WalkthroughAnswerResult {
   correct: boolean;
   note: string | null;
+  /** What was actually graded — surfaced on the revealed-answer feedback so a learner can see exactly what the grader received. */
+  submittedText: string;
 }
 
 export function useSkillWalkthrough(unitKey: string, skillKey: string) {
@@ -85,7 +87,7 @@ export function useSkillWalkthrough(unitKey: string, skillKey: string) {
   const current = queue && queue.length > 0 ? queue[0] : null;
 
   async function submitAnswer(submittedText: string, opts?: { usedHint?: boolean }): Promise<WalkthroughAnswerResult> {
-    if (!current || !queue) return { correct: false, note: null };
+    if (!current || !queue) return { correct: false, note: null, submittedText };
 
     const feedback = checkAnswer(course?.code, current.exercise, submittedText);
 
@@ -110,7 +112,7 @@ export function useSkillWalkthrough(unitKey: string, skillKey: string) {
 
     if (rest.length === 0) await finish([...items, ...newItems]);
 
-    return { correct: feedback.verdict !== "incorrect", note: feedback.note };
+    return { correct: feedback.verdict !== "incorrect", note: feedback.note, submittedText };
   }
 
   async function finish(finalItems: SubmittedItem[]) {

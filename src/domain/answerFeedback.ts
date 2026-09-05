@@ -36,9 +36,14 @@ export function checkAnswer(
   submittedText: string,
 ): AnswerFeedback {
   if (exercise.type === "word_bank" || exercise.type === "match") {
-    // Selection-based: a typo is structurally impossible either way.
-    const result = isPersian(courseCode) ? compareExact(submittedText, exercise.answer) : null;
-    const correct = result ? result.verdict === "correct" : looksCorrect(submittedText, exercise.answer);
+    // Selection-based: a typo is structurally impossible either way. Unlike
+    // every other exercise type, `answer` here is the ordered tokens of ONE
+    // correct selection (matching `tiles`' granularity), not a list of
+    // alternative whole-answer strings — WordBankExercise submits them
+    // space-joined, so join here too before comparing.
+    const acceptedAnswer = [exercise.answer.join(" ")];
+    const result = isPersian(courseCode) ? compareExact(submittedText, acceptedAnswer) : null;
+    const correct = result ? result.verdict === "correct" : looksCorrect(submittedText, acceptedAnswer);
     return { verdict: correct ? "correct" : "incorrect", note: null };
   }
 

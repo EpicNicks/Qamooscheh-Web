@@ -22,9 +22,27 @@
   color: var(--color-text-muted);
 }
 
+/*
+ * Greyed out, not faded out: opacity dims everything uniformly (text,
+ * border, icon alike), which reads as "hard to see" rather than "not yet
+ * available" and hurts contrast worst in dark mode. --color-locked is a
+ * dedicated grey token (light and dark variants) instead, kept at full
+ * opacity so the card stays perfectly legible while still reading as
+ * inactive.
+ */
 .locked {
   cursor: not-allowed;
-  opacity: 0.55;
+  background: var(--color-locked);
+  border-color: var(--color-locked);
+}
+
+.locked .title {
+  color: var(--color-text-muted);
+}
+
+.locked .icon {
+  filter: grayscale(1);
+  color: var(--color-text-muted);
 }
 
 .unlocked {

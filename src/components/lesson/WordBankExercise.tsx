@@ -4,6 +4,7 @@ import { DirectionalText } from "../common/DirectionalText";
 import { ExercisePrompt } from "./ExercisePrompt";
 import { RomanizedWord } from "./RomanizedText";
 import { EMPTY_HINT_MAP, NO_HINTS } from "../../domain/romanization";
+import { detectScriptDirection } from "../../domain/language";
 import type { ExerciseProps } from "./ExerciseRenderer";
 import styles from "./Exercise.module.css";
 
@@ -20,6 +21,18 @@ export function WordBankExercise({
 }: ExerciseProps) {
   const [chosen, setChosen] = useState<number[]>([]);
   const tiles = exercise.tiles ?? [];
+  // Each tile is individually RTL-wrapped via DirectionalText, but that only
+  // fixes glyph shaping within a tile — the flex rows below still lay their
+  // *children* out left-to-right unless the row itself is told to flow RTL,
+  // so a Persian answer would otherwise assemble backwards on screen even
+  // though the submitted string (built from tap order, below) is correct.
+  const isNativeScript = tiles.some((tile) => detectScriptDirection(tile) === "rtl");
+  const direction = isNativeScript ? "rtl" : "ltr";
+  // DirectionalText decides dir/font from courseCode alone, so a romanized
+  // tile (Latin letters) would otherwise get Persian's RTL/font treatment
+  // too — passing null for it here is the same as "not Persian" to that
+  // component, leaving romanized tiles plain LTR text.
+  const tileCourseCode = isNativeScript ? courseCode : null;
 
   function toggle(tileIndex: number) {
     setChosen((prev) =>
@@ -54,9 +67,9 @@ export function WordBankExercise({
   return (
     <div className={styles.wrap}>
       <ExercisePrompt text={exercise.prompt} courseCode={courseCode} autoplayAudio={autoplayAudio} hintMap={hintMap} hintSettings={hintSettings} />
-      <div className={styles.answerRow}>
+      <div className={styles.answerRow} dir={direction}>
         {chosen.map((tileIndex, position) => (
-          <DirectionalText key={`${tileIndex}-${position}`} courseCode={courseCode}>
+          <DirectionalText key={`${tileIndex}-${position}`} courseCode={tileCourseCode}>
             <button type="button" className={styles.tile} onClick={() => toggle(tileIndex)} disabled={disabled}>
               {/* focusable={false}: the tile's own <button> is already the tab
                   stop, and a focusable span inside it would be both invalid
@@ -66,10 +79,10 @@ export function WordBankExercise({
           </DirectionalText>
         ))}
       </div>
-      <div className={styles.tiles}>
+      <div className={styles.tiles} dir={direction}>
         {tiles.map((tile, tileIndex) =>
           chosen.includes(tileIndex) ? null : (
-            <DirectionalText key={tileIndex} courseCode={courseCode}>
+            <DirectionalText key={tileIndex} courseCode={tileCourseCode}>
               <button type="button" className={styles.tile} onClick={() => toggle(tileIndex)} disabled={disabled}>
                 <RomanizedWord word={tile} hint={hintMap.get(tile)} settings={hintSettings} focusable={false} />
               </button>

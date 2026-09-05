@@ -28,6 +28,18 @@
   font-weight: 700;
 }
 
+.revealed {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.yourAnswer {
+  font-size: 0.85em;
+  font-weight: 400;
+  opacity: 0.75;
+}
+
 .note {
   color: inherit;
   opacity: 0.85;

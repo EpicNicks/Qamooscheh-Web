@@ -9,7 +9,7 @@
 // exercise's own `tags` list happens to reference it. Built once per
 // lexemeIndex fetch and reused across every exercise on screen.
 import type { LexemeIndex } from "../types/content";
-import type { ExerciseScriptMode, ScriptMode } from "./enums";
+import type { ExerciseScriptMode } from "./enums";
 
 /** What a hovered/focused word can offer — its meaning and, when the source lexeme has one, a phonetic reading. Which of the two actually renders is up to the viewing component's own HintSettings, not this data. */
 export interface WordHint {
@@ -58,27 +58,35 @@ export interface HintSettings {
 
 /**
  * Whether the course-wide hint map should actually be handed to this
- * exercise's components, or the shared empty one instead — three independent
+ * exercise's components, or the shared empty one instead — two independent
  * reasons to hide it: both local hint toggles are off (nothing to show
- * either way), the learner's own scriptMode preference is "romanized" (their
- * exercises are already rendered in Latin script, so there's no native-script
- * text here to hover in the first place — see user_prefs.script_mode's
- * "native"|"romanized"|"both"), or this specific exercise's own scriptMode
- * isn't "native" (a "romanized"-authored exercise's own tiles/prompt are
- * already Latin — ExerciseArtifact's own doc). Centralized here so every page
- * gates the same way instead of each re-deriving the three-condition check.
+ * either way), or this specific exercise's own scriptMode isn't "native" (a
+ * "romanized"-authored exercise's own tiles/prompt are already Latin —
+ * ExerciseArtifact's own doc, so there is no native-script text to hover).
+ * Centralized here so every page gates the same way instead of each
+ * re-deriving the check.
+ *
+ * <b>Deliberately NOT gated on the learner's own scriptMode preference
+ * (user_prefs.script_mode).</b> That preference is what a lesson's session
+ * plan uses to pick which exercises to serve, but it names no such filter for
+ * stories/conversations/songs — useSkillWalkthrough reads a skill's
+ * exercises straight through, in authored order, regardless of the learner's
+ * preference (see its own doc). A "romanized" preference therefore does NOT
+ * mean "no native-script text is ever on screen" — a Persian story authored
+ * `scriptMode: "native"` still shows native text to a learner who prefers
+ * Latin, and that text still deserves a hover hint. Whether native text is
+ * actually present is a fact about THIS exercise, not about the learner's
+ * preference, so `exerciseScriptMode` is the only thing this checks.
  */
 export function gateLexemeHintMap(
   courseMap: ReadonlyMap<string, WordHint>,
   opts: {
     settings: HintSettings;
-    scriptModePref: ScriptMode | undefined;
     exerciseScriptMode: ExerciseScriptMode;
   },
 ): ReadonlyMap<string, WordHint> {
   if (
     (!opts.settings.translationEnabled && !opts.settings.romanizationEnabled) ||
-    opts.scriptModePref === "romanized" ||
     opts.exerciseScriptMode !== "native"
   ) {
     return EMPTY_HINT_MAP;
