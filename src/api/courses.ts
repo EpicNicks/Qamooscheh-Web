@@ -9,6 +9,7 @@ import type {
   ActivityResponse,
   BootstrapResponse,
   CourseCatalogResponse,
+  RollForwardCourseRequest,
   SwitchActiveCourseRequest,
 } from "../types/api";
 
@@ -26,6 +27,22 @@ export function enrollInCourse(courseCode: string): Promise<BootstrapResponse> {
 export function switchActiveCourse(courseCode: string): Promise<BootstrapResponse> {
   const body: SwitchActiveCourseRequest = { courseCode };
   return apiFetch<BootstrapResponse>("/v1/courses/active", { method: "PUT", body });
+}
+
+/**
+ * POST /v1/courses/{code}/roll-forward. `toVersion` must be exactly the
+ * version `BootstrapResponse.update` offered — see RollForwardCourseRequest.
+ * 200 answers with a full BootstrapResponse (the new pin/position/manifest);
+ * 409 means not enrolled or not yet eligible (body carries
+ * `highestEligibleVersion`); 503 means that version isn't published yet and
+ * is safe to retry.
+ */
+export function rollForwardCourse(courseCode: string, toVersion: number): Promise<BootstrapResponse> {
+  const body: RollForwardCourseRequest = { toVersion };
+  return apiFetch<BootstrapResponse>(`/v1/courses/${encodeURIComponent(courseCode)}/roll-forward`, {
+    method: "POST",
+    body,
+  });
 }
 
 /**

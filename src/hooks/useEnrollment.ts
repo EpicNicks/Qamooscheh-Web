@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query";
-import { enrollInCourse, switchActiveCourse } from "../api/courses";
+import { enrollInCourse, rollForwardCourse, switchActiveCourse } from "../api/courses";
 import type { BootstrapResponse } from "../types/api";
 
 /**
@@ -44,6 +44,27 @@ export function useSwitchActiveCourse() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (courseCode: string) => switchActiveCourse(courseCode),
+    onSuccess: (response) => adoptBootstrap(queryClient, response),
+  });
+}
+
+/**
+ * POST /v1/courses/{code}/roll-forward. The response is the same
+ * BootstrapResponse shape enroll/switch-active answer with, so it adopts the
+ * same way — `course.version` changing there is what makes every
+ * `["content", ...]` query re-key itself onto the new version's CDN
+ * artifacts, so no separate refetch step is needed here.
+ *
+ * 409 (ApiError, body carries `highestEligibleVersion`) means not enrolled or
+ * not eligible yet; 503 means the target version isn't published server-side
+ * yet and is safe to retry. Both are left for the caller to render — this
+ * hook only knows how to apply a *successful* roll-forward.
+ */
+export function useRollForwardCourse() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ courseCode, toVersion }: { courseCode: string; toVersion: number }) =>
+      rollForwardCourse(courseCode, toVersion),
     onSuccess: (response) => adoptBootstrap(queryClient, response),
   });
 }

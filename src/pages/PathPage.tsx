@@ -3,6 +3,7 @@ import { useBootstrap } from "../hooks/useBootstrap";
 import { useCoursePath } from "../hooks/useCourseContent";
 import { findNextStandardTarget } from "../domain/pathProgress";
 import { SkillRoad } from "../components/path/SkillRoad";
+import { CourseUpdateBanner } from "../components/course/CourseUpdateBanner";
 import { PathThemeProvider } from "../theme/PathThemeProvider";
 import { Spinner } from "../components/common/Spinner";
 import { ErrorBanner } from "../components/common/ErrorBanner";
@@ -37,6 +38,9 @@ export function PathPage() {
   // where a culture-specific skin would be swapped in is visible in the tree.
   return (
     <PathThemeProvider>
+      {bootstrap.data?.update && bootstrap.data.course && (
+        <CourseUpdateBanner courseCode={bootstrap.data.course.code} update={bootstrap.data.update} />
+      )}
       {path.map((unit) => (
         <section key={unit.unitKey} className={styles.section}>
           <h2 className={styles.title}>{unit.title}</h2>

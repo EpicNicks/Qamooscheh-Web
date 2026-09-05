@@ -64,6 +64,20 @@ export interface GraderRef {
 }
 
 /**
+ * A newer published version of the active course than the one it's currently
+ * pinned to. `eligible: false` is a normal answer, not an absence — it means
+ * the version exists but the learner hasn't progressed far enough in the
+ * current one to roll forward yet, and the client should still show the offer
+ * (disabled/pending), not hide it, so the learner understands why their
+ * course stopped growing.
+ */
+export interface CourseUpdateRef {
+  version: number;
+  manifestSha256: string;
+  eligible: boolean;
+}
+
+/**
  * Also what `POST /v1/courses/{code}/enroll` and `PUT /v1/courses/active`
  * hand back, so either response drops straight into the `["bootstrap"]` cache
  * slot (see BootstrapContracts.cs).
@@ -84,6 +98,8 @@ export interface BootstrapResponse {
   enrolledCourseCodes: string[];
   /** app_user.onboarding_complete — a one-way flag, never true-then-false. Always false for a not-yet-enrolled account, since the onboarding tutorial only ever runs after language selection. */
   onboardingComplete: boolean;
+  /** null when no newer version than `course.version` exists yet. */
+  update: CourseUpdateRef | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -292,6 +308,16 @@ export interface SwitchActiveCourseRequest {
   courseCode: string;
 }
 
+/**
+ * POST /v1/courses/{code}/roll-forward's body. `toVersion` must be the exact
+ * version the client showed the learner via `BootstrapResponse.update` — never
+ * "whatever is current now" — since a newer version could publish between the
+ * offer being shown and the learner confirming it.
+ */
+export interface RollForwardCourseRequest {
+  toVersion: number;
+}
+
 // ---------------------------------------------------------------------------
 // v1/activity (Activity/ActivityContracts.cs). The one endpoint that takes an
 // explicit course code — "how many days have I been active in Japanese" is a
@@ -370,4 +396,6 @@ export interface SubmitExerciseReportResponse {
 export interface ApiErrorBody {
   error: string;
   reason?: string;
+  /** 409 from POST /v1/courses/{code}/roll-forward only: the highest version the caller can legally roll forward to right now. */
+  highestEligibleVersion?: number;
 }
