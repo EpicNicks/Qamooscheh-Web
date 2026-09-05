@@ -81,9 +81,24 @@ export function useLessonEngine() {
     enabled: bootstrap.isSuccess,
   });
 
+  // The learner's current cursor, reused as the practice-mode skill whenever
+  // `plan.data.skills` comes back empty — which it does whenever nothing's
+  // due (§2.2: the plan lists what's due, not "whatever skill you're on"), so
+  // startPractice can't just drop the due-tag filter and reuse that list the
+  // way it does when something IS due.
+  const positionRef: SkillRef | null = bootstrap.data?.position
+    ? { unitKey: bootstrap.data.position.unitKey, skillKey: bootstrap.data.position.skillKey }
+    : null;
+
+  const skillRefsToLoad = useMemo<SkillRef[]>(() => {
+    const dueRefs = plan.data?.skills ?? [];
+    return dueRefs.length > 0 || !positionRef ? dueRefs : [positionRef];
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- positionRef is a fresh object each render; unitKey/skillKey are its only meaningful identity.
+  }, [plan.data, positionRef?.unitKey, positionRef?.skillKey]);
+
   const { skills: skillArtifacts, isLoading: skillsLoading, isError: skillsError } = useSkillArtifactsForRefs(
     course,
-    plan.data?.skills ?? [],
+    skillRefsToLoad,
   );
 
   const skillsReady = !!plan.data && plan.data.skills.every((ref) => skillArtifacts.has(`${ref.unitKey}/${ref.skillKey}`));
@@ -175,10 +190,22 @@ export function useLessonEngine() {
     shownAt.current = performance.now();
   }, []);
 
-  /** Redo this lesson even though nothing's due for it — every exercise, no due-tag filter, no FSRS credit on completion (see finishLesson). Wired to the "Nothing due right now" screen's "Practice anyway" button so a learner is never simply locked out. */
+  /**
+   * Redo this lesson even though nothing's due for it — every exercise, no
+   * due-tag filter, no FSRS credit on completion (see finishLesson). Wired to
+   * the "Nothing due right now" screen's "Practice anyway" button so a
+   * learner is never simply locked out.
+   *
+   * Falls back to the current cursor (`positionRef`) when `plan.data.skills`
+   * is empty — the normal shape of "nothing's due" — since that's exactly
+   * the case this button exists for; reusing an empty list here would build
+   * zero instances and silently do nothing.
+   */
   function startPractice() {
     if (!plan.data) return;
-    const instances = buildInstances(plan.data.skills, null);
+    const refs = plan.data.skills.length > 0 ? plan.data.skills : positionRef ? [positionRef] : [];
+    if (refs.length === 0) return;
+    const instances = buildInstances(refs, null);
     setIsPracticeMode(true);
     setItems([]);
     setFirstTryCorrect(0);

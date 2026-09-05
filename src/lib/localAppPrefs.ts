@@ -77,7 +77,7 @@ function storageKey(userId: string): string {
   return `qamooscheh.localPrefs.${userId}`;
 }
 
-export function loadLocalAppPrefs(userId: string): LocalAppPrefs {
+function readFromStorage(userId: string): LocalAppPrefs {
   const raw = safeStorage.getItem(storageKey(userId));
   if (!raw) return { ...DEFAULTS };
   try {
@@ -89,8 +89,32 @@ export function loadLocalAppPrefs(userId: string): LocalAppPrefs {
   }
 }
 
+/**
+ * One cached object per user rather than re-parsing storage on every call.
+ * `useLocalAppPref` reads an object-valued field (`keyboardInputMethod`,
+ * `seenLessonOverlay`) straight through `useSyncExternalStore`, which compares
+ * snapshots by reference — a fresh `JSON.parse` on every call hands it a new
+ * object every time even when nothing changed, which is exactly
+ * "getSnapshot should be cached" and, once React notices the mismatch on its
+ * own re-check, an infinite render loop (a real crash this caused, not a
+ * theoretical one). Keeping one object per user and only replacing it in
+ * `saveLocalAppPrefs` gives every unrelated field the same reference across
+ * calls, the same way a plain `useState` would.
+ */
+const cache = new Map<string, LocalAppPrefs>();
+
+export function loadLocalAppPrefs(userId: string): LocalAppPrefs {
+  let prefs = cache.get(userId);
+  if (!prefs) {
+    prefs = readFromStorage(userId);
+    cache.set(userId, prefs);
+  }
+  return prefs;
+}
+
 export function saveLocalAppPrefs(userId: string, patch: Partial<LocalAppPrefs>): void {
   const next = { ...loadLocalAppPrefs(userId), ...patch };
+  cache.set(userId, next);
   safeStorage.setItem(storageKey(userId), JSON.stringify(next));
   notifyLocalAppPrefsListeners();
 }
