@@ -6,6 +6,16 @@ import styles from "./LessonStartPopover.module.css";
 /** Gap between the popover's bottom edge and the node's top edge — keeps the tapped tile fully visible underneath, rather than the popover touching or overlapping it. */
 const VERTICAL_OFFSET_PX = 12;
 
+/**
+ * Widens the above/below flip boundary so a node parked right at the edge
+ * doesn't flip back and forth on every pixel of scroll — the standard
+ * hysteresis fix for a single hard threshold. Only guards the "below" ->
+ * "above" direction (see the flip effect below): flipping down still happens
+ * the instant space runs out, since there's no risk of oscillating on the way
+ * down.
+ */
+const FLIP_HYSTERESIS_PX = 24;
+
 interface LessonStartPopoverProps {
   /** The tapped node itself — its position is re-measured on every scroll/resize so the popover tracks it instead of freezing at click-time coordinates. */
   anchorRef: RefObject<HTMLElement | null>;
@@ -21,7 +31,9 @@ interface LessonStartPopoverProps {
 /**
  * A small popover hovering directly above the tapped lesson node,
  * Duolingo-style — offset up by VERTICAL_OFFSET_PX so the node itself stays
- * fully visible underneath — offering a primary action (Start or Practice,
+ * fully visible underneath — or below it, with the same offset, when the
+ * node sits too close to the top of the viewport for that to fit. Offers a
+ * primary action (Start or Practice,
  * see SkillNode) alongside Skip (test out of the current lesson — see
  * PathPage's use of findNextStandardTarget) and Review vocabulary (browse
  * every lexeme in the course, whichever node this was opened from — the
@@ -46,6 +58,10 @@ export function LessonStartPopover({
 }: LessonStartPopoverProps) {
   const popoverRef = useRef<HTMLDivElement>(null);
   const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
+  // Defaults to opening upward (the common case — most nodes aren't near the
+  // very top of the viewport); flipped to "below" post-render below when that
+  // would clip it.
+  const [placement, setPlacement] = useState<"above" | "below">("above");
 
   // Re-measure on every scroll (capture phase, so a scroll on the path's own
   // scroll container — not just the window — is caught too) and resize,
@@ -64,6 +80,41 @@ export function LessonStartPopover({
       window.removeEventListener("resize", measure);
     };
   }, [anchorRef]);
+
+  // The popover's own last-measured height, kept across placement flips.
+  // Refreshed after every render (not just anchorRect changes) since it's the
+  // one piece the flip decision below needs and can't get any other way
+  // without a height guess.
+  const popoverHeightRef = useRef<number | null>(null);
+  useLayoutEffect(() => {
+    if (popoverRef.current) popoverHeightRef.current = popoverRef.current.getBoundingClientRect().height;
+  });
+
+  // Flips to below the node when opening upward would clip the popover
+  // against the top of the viewport (a node near the top of the road, or a
+  // short window), and back to above once there's clearly room again.
+  //
+  // Decided from anchorRect + the cached height rather than by checking
+  // whether the CURRENTLY rendered placement happens to clip: that approach
+  // (this component's first cut) only works one way — once flipped "below",
+  // the popover's own rendered top is anchor.bottom + gap, which is never
+  // negative and says nothing about whether "above" would now fit, so it
+  // could never flip back. Worse, right at the boundary it could toggle every
+  // scroll tick, each toggle forcing an extra render/commit that painted
+  // before settling — the visible flicker while scrolling with the popover
+  // open. Computing both directions from the same two numbers up front
+  // avoids both problems in one pass.
+  useLayoutEffect(() => {
+    if (!anchorRect) return;
+    const height = popoverHeightRef.current;
+    if (height == null) return;
+    const spaceAbove = anchorRect.top - VERTICAL_OFFSET_PX;
+    setPlacement((current) => {
+      if (current === "above" && spaceAbove < height) return "below";
+      if (current === "below" && spaceAbove > height + FLIP_HYSTERESIS_PX) return "above";
+      return current;
+    });
+  }, [anchorRect]);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -97,16 +148,24 @@ export function LessonStartPopover({
 
   if (!anchorRect) return null;
 
-  // Anchored via `bottom`, not `top` + a measured height: the popover's own
-  // height isn't known until it's laid out, but `bottom` lets the browser
-  // grow it upward from a fixed point, so it always ends up directly above
-  // the node with the same gap regardless of how many buttons it renders.
-  const style: CSSProperties = {
-    position: "fixed",
-    left: anchorRect.left + anchorRect.width / 2,
-    bottom: window.innerHeight - anchorRect.top + VERTICAL_OFFSET_PX,
-    transform: "translateX(-50%)",
-  };
+  // Anchored via `bottom` (above) or `top` (below), never a measured height
+  // directly: either lets the browser grow the popover away from a fixed
+  // point, so it always ends up flush against the node with the same gap
+  // regardless of how many buttons it renders.
+  const style: CSSProperties =
+    placement === "above"
+      ? {
+          position: "fixed",
+          left: anchorRect.left + anchorRect.width / 2,
+          bottom: window.innerHeight - anchorRect.top + VERTICAL_OFFSET_PX,
+          transform: "translateX(-50%)",
+        }
+      : {
+          position: "fixed",
+          left: anchorRect.left + anchorRect.width / 2,
+          top: anchorRect.bottom + VERTICAL_OFFSET_PX,
+          transform: "translateX(-50%)",
+        };
 
   return createPortal(
     <div ref={popoverRef} className={styles.popover} style={style} role="dialog" aria-label={primaryLabel}>
