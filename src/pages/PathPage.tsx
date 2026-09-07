@@ -39,7 +39,7 @@ export function PathPage() {
   return (
     <PathThemeProvider>
       {bootstrap.data?.update && bootstrap.data.course && (
-        <CourseUpdateBanner courseCode={bootstrap.data.course.code} update={bootstrap.data.update} />
+        <CourseUpdateBanner course={bootstrap.data.course} update={bootstrap.data.update} />
       )}
       {path.map((unit) => (
         <section key={unit.unitKey} className={styles.section}>

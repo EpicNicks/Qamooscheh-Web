@@ -10,6 +10,7 @@ import type {
   BootstrapResponse,
   CourseCatalogResponse,
   RollForwardCourseRequest,
+  RollForwardPreviewResponse,
   SwitchActiveCourseRequest,
 } from "../types/api";
 
@@ -30,12 +31,25 @@ export function switchActiveCourse(courseCode: string): Promise<BootstrapRespons
 }
 
 /**
+ * GET /v1/courses/{code}/roll-forward-preview?toVersion={n}. Read-only, safe
+ * to call any number of times, no state changes — the confirmation dialog
+ * calls this to show "current position -> new position" before the learner
+ * commits. Shares its computation with the POST below, so what it shows can
+ * never disagree with what actually happens.
+ */
+export function getRollForwardPreview(courseCode: string, toVersion: number): Promise<RollForwardPreviewResponse> {
+  return apiFetch<RollForwardPreviewResponse>(
+    `/v1/courses/${encodeURIComponent(courseCode)}/roll-forward-preview?toVersion=${toVersion}`,
+  );
+}
+
+/**
  * POST /v1/courses/{code}/roll-forward. `toVersion` must be exactly the
  * version `BootstrapResponse.update` offered — see RollForwardCourseRequest.
- * 200 answers with a full BootstrapResponse (the new pin/position/manifest);
- * 409 means not enrolled or not yet eligible (body carries
- * `highestEligibleVersion`); 503 means that version isn't published yet and
- * is safe to retry.
+ * 200 answers with a full BootstrapResponse (the new pin/position/manifest),
+ * landing the learner exactly where getRollForwardPreview said it would; 409
+ * means not enrolled or the abandoned-branch case; 503 means that version
+ * isn't published yet and is safe to retry.
  */
 export function rollForwardCourse(courseCode: string, toVersion: number): Promise<BootstrapResponse> {
   const body: RollForwardCourseRequest = { toVersion };

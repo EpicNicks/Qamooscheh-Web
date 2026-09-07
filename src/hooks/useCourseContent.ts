@@ -70,6 +70,32 @@ export function useAllUnitArtifacts(course: CourseRef | null | undefined, manife
 }
 
 /**
+ * Resolves a `RollForwardPositionRef`-shaped `{unitKey, skillKey}` to human
+ * titles against a specific course version. Api's roll-forward-preview
+ * response never carries titles itself (no title column in its schema —
+ * see types/api.ts's `RollForwardPreviewResponse`), only the CDN content
+ * artifacts do, so the roll-forward confirmation dialog resolves them here
+ * the same way the rest of this file resolves a manifest ref to an artifact.
+ *
+ * Returns `undefined` both while still loading AND when `position` itself is
+ * null/undefined — callers that need to tell those apart (e.g. to render "no
+ * cursor yet" instead of a spinner) branch on `position` themselves first.
+ */
+export function useRollForwardPositionTitle(
+  course: CourseRef | null | undefined,
+  position: { unitKey: string; skillKey: string } | null | undefined,
+): { unitTitle: string; skillTitle: string } | undefined {
+  const manifestQuery = useCourseManifest(course);
+  const unitRef = manifestQuery.data?.units.find((u) => u.id === position?.unitKey) ?? null;
+  const unitQuery = useUnitArtifact(course, unitRef);
+  const skillRef = unitQuery.data?.positions.flatMap((p) => p.skills).find((s) => s.id === position?.skillKey) ?? null;
+  const skillQuery = useSkillArtifact(course, skillRef);
+
+  if (position == null || unitQuery.data == null || skillQuery.data == null) return undefined;
+  return { unitTitle: unitQuery.data.title, skillTitle: skillQuery.data.title };
+}
+
+/**
  * The course's whole content tree, in two CDN fetch stages: every unit
  * artifact the manifest lists (for position ordering + refs), then every
  * skill artifact those units point at (for title/category/arc/exercises — a

@@ -65,16 +65,56 @@ export interface GraderRef {
 
 /**
  * A newer published version of the active course than the one it's currently
- * pinned to. `eligible: false` is a normal answer, not an absence — it means
- * the version exists but the learner hasn't progressed far enough in the
- * current one to roll forward yet, and the client should still show the offer
- * (disabled/pending), not hide it, so the learner understands why their
- * course stopped growing.
+ * pinned to. `eligible` is now a purely STRUCTURAL check (the target version
+ * still ships the learner's current unit/skill, or a clamp target for it) —
+ * it is no longer about how far the learner has progressed, so it is false
+ * only for the abandoned-branch case, not the routine "keep studying" case
+ * roll-forward used to refuse on. The client should still show the offer when
+ * `eligible` is false rather than hide it, so the learner understands why
+ * their course stopped growing.
  */
 export interface CourseUpdateRef {
   version: number;
   manifestSha256: string;
   eligible: boolean;
+  /** Authored release notes for this version, or null. */
+  notes: string | null;
+}
+
+/** One resolved cursor position in `RollForwardPreviewResponse` — 0-based indices, add 1 for display. */
+export interface RollForwardPositionRef {
+  unitKey: string;
+  skillKey: string;
+  unitIndex: number;
+  lessonIndex: number;
+}
+
+/**
+ * GET /v1/courses/{code}/roll-forward-preview?toVersion={n}'s response.
+ * Read-only and safe to call any number of times — it never advances
+ * anything, unlike the POST below, which shares this same computation so the
+ * two can never disagree about where the learner will land.
+ *
+ * `from` is null when there's no cursor yet, or the cursor sits on a lesson
+ * the CURRENT version never shipped — render that as "you'll start at the
+ * first lesson you still owe," not as an error. `to` is null when there's
+ * nothing to land on, meaning the cursor won't move. Neither carries a
+ * title — there's no title column in Api's schema, so unitKey/skillKey must
+ * be resolved against the CDN manifests for `fromVersion`/`toVersion`
+ * (types/content.ts) to render human names.
+ */
+export interface RollForwardPreviewResponse {
+  courseCode: string;
+  fromVersion: number;
+  toVersion: number;
+  manifestSha256: string;
+  updateNotes: string | null;
+  from: RollForwardPositionRef | null;
+  to: RollForwardPositionRef | null;
+  /** unitClamped || lessonClamped — the one flag a confirmation dialog needs to show a "this shortens Unit X" notice. */
+  clamped: boolean;
+  unitClamped: boolean;
+  lessonClamped: boolean;
 }
 
 /**

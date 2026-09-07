@@ -1,5 +1,5 @@
-import { useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query";
-import { enrollInCourse, rollForwardCourse, switchActiveCourse } from "../api/courses";
+import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
+import { enrollInCourse, getRollForwardPreview, rollForwardCourse, switchActiveCourse } from "../api/courses";
 import type { BootstrapResponse } from "../types/api";
 
 /**
@@ -45,6 +45,20 @@ export function useSwitchActiveCourse() {
   return useMutation({
     mutationFn: (courseCode: string) => switchActiveCourse(courseCode),
     onSuccess: (response) => adoptBootstrap(queryClient, response),
+  });
+}
+
+/**
+ * GET /v1/courses/{code}/roll-forward-preview. Read-only and safe to refetch
+ * any number of times, so a plain query is the right shape even though it's
+ * only ever wanted on demand (the confirmation dialog opening) rather than on
+ * mount — the caller controls that via `enabled`.
+ */
+export function useRollForwardPreview(courseCode: string | undefined, toVersion: number | undefined, enabled: boolean) {
+  return useQuery({
+    queryKey: ["rollForwardPreview", courseCode, toVersion],
+    queryFn: () => getRollForwardPreview(courseCode!, toVersion!),
+    enabled: enabled && courseCode != null && toVersion != null,
   });
 }
 
