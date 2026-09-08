@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../../auth/useAuth";
 import { useOfflineQueueFlush } from "../../hooks/useOfflineQueueFlush";
@@ -25,11 +26,31 @@ export function AppShell() {
   const { pendingCount, isFlushing } = useOfflineQueueFlush();
   const location = useLocation();
   const isLessonMode = LESSON_MODE_PATH.test(location.pathname);
+  const shellRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLElement>(null);
+
+  // The sidebar sticks just below the header, so it needs to know the
+  // header's real rendered height (it varies with content/zoom) rather
+  // than a guessed constant — kept in sync via ResizeObserver.
+  useLayoutEffect(() => {
+    const header = headerRef.current;
+    const shell = shellRef.current;
+    if (!header || !shell || isLessonMode) return;
+    // contentRect excludes padding/border, which would understate the
+    // header's true height and make the sidebar stick a bit too high —
+    // use the border-box height (offsetHeight) instead so the gap above
+    // the top sidebar item matches whether it's stuck or not.
+    const observer = new ResizeObserver(() => {
+      shell.style.setProperty("--header-height", `${header.offsetHeight}px`);
+    });
+    observer.observe(header);
+    return () => observer.disconnect();
+  }, [isLessonMode]);
 
   return (
-    <div className={styles.shell}>
+    <div className={styles.shell} ref={shellRef}>
       {!isLessonMode && (
-        <header className={styles.header}>
+        <header className={styles.header} ref={headerRef}>
           <span className={styles.brand}>Qamooscheh</span>
           <nav className={styles.nav}>
             {NAV_ITEMS.map((item) => (
