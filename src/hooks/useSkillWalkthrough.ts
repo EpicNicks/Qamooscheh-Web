@@ -168,6 +168,8 @@ export function useSkillWalkthrough(unitKey: string, skillKey: string) {
     course,
     courseCode: course?.code ?? null,
     current,
+    /** The chapter's full, authored-order exercise list — every line, not just what's left in the queue. StoryTranscript reads this to render the lines already answered and the ones still ahead alongside `current`. */
+    instances,
     progress: { completed: totalCount - (queue?.length ?? totalCount), total: totalCount },
     submitAnswer,
     result,

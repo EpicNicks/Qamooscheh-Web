@@ -22,12 +22,12 @@ export function WordBankExercise({
   const [chosen, setChosen] = useState<number[]>([]);
   const tiles = exercise.tiles ?? [];
   // Each tile is individually RTL-wrapped via DirectionalText, but that only
-  // fixes glyph shaping within a tile — the flex rows below still lay their
-  // *children* out left-to-right unless the row itself is told to flow RTL,
-  // so a Persian answer would otherwise assemble backwards on screen even
-  // though the submitted string (built from tap order, below) is correct.
+  // fixes glyph shaping within a tile — the answer row's own layout is
+  // handled separately (see .answerRowRtl below) so a Persian answer reads
+  // right-to-left (first-tapped tile rightmost, each new tile added to its
+  // left) even though the submitted string (built from tap order) is a
+  // plain left-to-right array.
   const isNativeScript = tiles.some((tile) => detectScriptDirection(tile) === "rtl");
-  const direction = isNativeScript ? "rtl" : "ltr";
   // DirectionalText decides dir/font from courseCode alone, so a romanized
   // tile (Latin letters) would otherwise get Persian's RTL/font treatment
   // too — passing null for it here is the same as "not Persian" to that
@@ -67,7 +67,7 @@ export function WordBankExercise({
   return (
     <div className={styles.wrap}>
       <ExercisePrompt text={exercise.prompt} courseCode={courseCode} autoplayAudio={autoplayAudio} hintMap={hintMap} hintSettings={hintSettings} />
-      <div className={styles.answerRow} dir={direction}>
+      <div className={isNativeScript ? `${styles.answerRow} ${styles.answerRowRtl}` : styles.answerRow} dir="ltr">
         {chosen.map((tileIndex, position) => (
           <DirectionalText key={`${tileIndex}-${position}`} courseCode={tileCourseCode}>
             <button type="button" className={styles.tile} onClick={() => toggle(tileIndex)} disabled={disabled}>
@@ -79,7 +79,15 @@ export function WordBankExercise({
           </DirectionalText>
         ))}
       </div>
-      <div className={styles.tiles} dir={direction}>
+      {/* Unlike .answerRow above, the unpicked bank deliberately stays LTR
+          regardless of language — these boxes are read by position while
+          scanning for the next tile to tap, not in sentence order, so
+          pinning them to a consistent left-to-right layout (the same
+          "reduce eye travel" reasoning as StoryTranscript's left-aligned
+          lines) matters more here than mirroring the language's direction.
+          Only a tile's own text (via DirectionalText) still shapes/reads
+          right-to-left for Persian. */}
+      <div className={styles.tiles} dir="ltr">
         {tiles.map((tile, tileIndex) =>
           chosen.includes(tileIndex) ? null : (
             <DirectionalText key={tileIndex} courseCode={tileCourseCode}>

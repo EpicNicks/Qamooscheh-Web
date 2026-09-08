@@ -19,6 +19,19 @@ export interface KeyboardInputMethod {
   ja: "phonetic" | "kana";
 }
 
+/**
+ * How an RTL native-script text BLOCK (an exercise prompt, a revealed
+ * answer, a story transcript line) lines up on the page — independent of
+ * `dir`, which only controls character/word order within a line and stays
+ * "rtl" regardless of this setting. Defaults to "left": a right-aligned
+ * paragraph of Persian has each line's start land wherever that line
+ * happens to end (varying with its length), so scanning down several lines
+ * means the eye re-hunting for the next line's start every time; pinning
+ * every line's start to the same left edge (while the words within each
+ * line still read right-to-left) removes that hunt.
+ */
+export type NativeTextAlign = "left" | "center" | "right";
+
 export interface LocalAppPrefs {
   /** True once the learner has ticked "Don't ask me again" on the skip confirmation. */
   suppressSkipWarning: boolean;
@@ -51,6 +64,8 @@ export interface LocalAppPrefs {
    * not just how to say it), so this stays opt-in rather than on-by-default.
    */
   showTranslationHints: boolean;
+  /** See NativeTextAlign's own doc. Defaults to "left". */
+  nativeTextAlign: NativeTextAlign;
   /**
    * Whether the real-lesson spotlight overlay (components/tutorial/
    * RealLessonOverlay.tsx) has already been shown for each exercise kind —
@@ -70,6 +85,7 @@ const DEFAULTS: LocalAppPrefs = {
   showFurigana: true,
   showRomanizationHints: true,
   showTranslationHints: false,
+  nativeTextAlign: "left",
   seenLessonOverlay: { wordBank: false, typeIn: false },
 };
 

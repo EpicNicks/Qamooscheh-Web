@@ -48,6 +48,23 @@
   border-bottom: 2px solid var(--color-border);
 }
 
+/*
+ * A Persian answer reads right-to-left: the newest tile is the next word of
+ * the sentence, so it belongs at the LEFT edge of what's been built so far,
+ * with every earlier tile shifted right to make room for it — the group
+ * hugs the left edge of the row (so a single tile starts there, not off at
+ * the right) and grows rightward, oldest tile ending up rightmost, as more
+ * are tapped. `flex-direction: row-reverse` (a physical property, unaffected
+ * by the `dir` attribute) puts the first-tapped tile physically rightmost
+ * within the group; `justify-content: flex-end` then pins that whole
+ * group's LEFT edge (the newest tile) to the row's left edge instead of
+ * pinning the group to the row's right edge.
+ */
+.answerRowRtl {
+  flex-direction: row-reverse;
+  justify-content: flex-end;
+}
+
 .input {
   font-size: 1.2rem;
   padding: var(--space-3);

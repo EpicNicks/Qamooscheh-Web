@@ -1,0 +1,100 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.topRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.topRow > *:first-child {
+  flex: 1;
+}
+
+.chapterTitle {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--color-text-muted);
+}
+
+/* The scrollable chapter itself — a fixed viewport-relative height rather
+   than one derived from flex ancestors, since AppShell's lesson-mode layout
+   doesn't give this a height to fill (the page itself scrolls everywhere
+   else), and a story needs its own internal scroller regardless. */
+.transcript {
+  max-height: calc(100vh - 220px);
+  min-height: 240px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-2) var(--space-1);
+}
+
+.pastLine {
+  font-style: italic;
+  color: var(--color-text-muted);
+  opacity: 0.75;
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* Pinned physical-left gutter + body — `direction: ltr` here (independent of
+   whatever direction the prompt/answer text below sets on itself) is what
+   keeps the mark on the left even for an RTL line, instead of following the
+   text and flipping to the visual right. */
+.pastLineRow {
+  display: flex;
+  direction: ltr;
+  gap: var(--space-2);
+}
+
+.pastLineBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.pastPrompt {
+  margin: 0;
+}
+
+.correctMark,
+.incorrectMark {
+  flex: none;
+  width: 1.2em;
+  font-style: normal;
+  text-align: center;
+}
+
+.correctMark {
+  color: var(--color-success);
+}
+
+.incorrectMark {
+  color: var(--color-danger);
+}
+
+.pastCorrectAnswer {
+  margin: var(--space-1) 0 0;
+}
+
+.pastAnswer {
+  margin: var(--space-1) 0 0;
+  font-size: 0.85rem;
+}
+
+.upcomingLine {
+  margin: 0;
+  color: var(--color-text-muted);
+  opacity: 0.45;
+}
+
+.activeLine {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  scroll-margin: var(--space-4);
+}

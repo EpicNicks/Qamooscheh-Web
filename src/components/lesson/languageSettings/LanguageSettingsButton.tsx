@@ -5,6 +5,7 @@ import { usePrefs, useUpdatePrefs } from "../../../hooks/usePrefs";
 import { useShowFurigana } from "../../../hooks/useShowFurigana";
 import { useShowRomanizationHints } from "../../../hooks/useShowRomanizationHints";
 import { useShowTranslationHints } from "../../../hooks/useShowTranslationHints";
+import { useNativeTextAlign } from "../../../hooks/useNativeTextAlign";
 import { PersianScriptSettings } from "./PersianScriptSettings";
 import { JapaneseScriptSettings } from "./JapaneseScriptSettings";
 import { LanguageSettingsPopover } from "./LanguageSettingsPopover";
@@ -41,6 +42,7 @@ export function LanguageSettingsButton({ courseCode }: { courseCode: string | nu
   const furigana = useShowFurigana();
   const romanizationHints = useShowRomanizationHints();
   const translationHints = useShowTranslationHints();
+  const nativeTextAlign = useNativeTextAlign();
 
   if (!SettingsPanel) return null;
 
@@ -60,6 +62,8 @@ export function LanguageSettingsButton({ courseCode }: { courseCode: string | nu
             onChangeShowRomanizationHints={romanizationHints.setShowRomanizationHints}
             showTranslationHints={translationHints.enabled}
             onChangeShowTranslationHints={translationHints.setShowTranslationHints}
+            nativeTextAlign={nativeTextAlign.align}
+            onChangeNativeTextAlign={nativeTextAlign.setNativeTextAlign}
           />
         </LanguageSettingsPopover>
       )}

@@ -1,6 +1,7 @@
 import { getLanguageInfo, detectScriptDirection } from "../../domain/language";
 import { usePhraseAudio } from "../../hooks/usePhraseAudio";
 import { useVoiceAvailability } from "../../hooks/useVoiceAvailability";
+import { useNativeTextAlign } from "../../hooks/useNativeTextAlign";
 import { PlayAudioButton } from "./PlayAudioButton";
 import { NoVoiceButton } from "./NoVoiceButton";
 import { RomanizedText } from "./RomanizedText";
@@ -40,10 +41,15 @@ export function ExercisePrompt({
   const speechLang = languageInfo?.speechLang ?? null;
   const voiceAvailable = useVoiceAvailability(speechLang);
   const audio = usePhraseAudio({ text, speechLang, autoplay: autoplayAudio && voiceAvailable });
+  const { align } = useNativeTextAlign();
+  const direction = detectScriptDirection(text);
 
   return (
     <div className={styles.promptRow}>
-      <p className={styles.prompt} dir={detectScriptDirection(text)}>
+      {/* The alignment setting only applies to RTL blocks — see
+          localAppPrefs.ts's NativeTextAlign — an LTR prompt keeps its
+          natural browser default either way. */}
+      <p className={styles.prompt} dir={direction} style={direction === "rtl" ? { textAlign: align } : undefined}>
         <RomanizedText text={text} hintMap={hintMap} settings={hintSettings} />
       </p>
       {speechLang &&

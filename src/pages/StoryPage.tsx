@@ -1,7 +1,8 @@
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useSkillWalkthrough, type WalkthroughExerciseInstance, type WalkthroughAnswerResult } from "../hooks/useSkillWalkthrough";
 import { useExerciseSession } from "../hooks/useExerciseSession";
-import { ExerciseSessionScreen } from "../components/lesson/ExerciseSessionScreen";
+import { StoryTranscript } from "../components/lesson/StoryTranscript";
 import { Spinner } from "../components/common/Spinner";
 import { ErrorBanner } from "../components/common/ErrorBanner";
 import { Button } from "../components/common/Button";
@@ -9,10 +10,10 @@ import styles from "./LessonPage.module.css";
 
 /**
  * Reading one chapter of a story (or a conversation, or a song). Thin over
- * useSkillWalkthrough the same way LessonPage is over useLessonEngine, and
- * rendering the same ExerciseSessionScreen both of those do — these are the
- * same screen in every respect except which engine feeds them and what
- * surrounds it, which here is nothing but story copy.
+ * useSkillWalkthrough the same way LessonPage is over useLessonEngine, but
+ * rendering StoryTranscript rather than ExerciseSessionScreen — a story reads
+ * top to bottom, so its screen is a scrollable transcript of every line
+ * rather than one exercise on screen at a time.
  */
 export function StoryPage() {
   const { unitKey = "", skillKey = "" } = useParams();
@@ -20,6 +21,11 @@ export function StoryPage() {
   const walkthrough = useSkillWalkthrough(unitKey, skillKey);
   const session = useExerciseSession<WalkthroughExerciseInstance, WalkthroughAnswerResult>(walkthrough.course);
   const { confirmation } = session;
+
+  // Every line's result, kept independent of `confirmation`'s single-item
+  // snapshot (which clears on confirm) so a line already confirmed can still
+  // show what was answered once it collapses into the transcript's history.
+  const [resultsByOrdinal, setResultsByOrdinal] = useState<Map<number, WalkthroughAnswerResult>>(new Map());
 
   if (walkthrough.status === "loading") {
     return <Spinner label="Opening the story…" />;
@@ -65,15 +71,18 @@ export function StoryPage() {
     const answered = walkthrough.current; // snapshot before submitAnswer advances the queue
     if (!answered) return;
     const result = await walkthrough.submitAnswer(text, opts);
+    setResultsByOrdinal((prev) => new Map(prev).set(answered.ordinal, result));
     confirmation.record(answered, result);
   }
 
   return (
-    <ExerciseSessionScreen
+    <StoryTranscript
       session={session}
       courseCode={walkthrough.courseCode}
       progress={walkthrough.progress}
       current={walkthrough.current}
+      instances={walkthrough.instances}
+      resultsByOrdinal={resultsByOrdinal}
       title={walkthrough.title}
       onSubmit={handleSubmit}
     />
