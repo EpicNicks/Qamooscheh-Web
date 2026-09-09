@@ -1,11 +1,10 @@
 // StoryPage's own screen, replacing the one-exercise-at-a-time layout
 // ExerciseSessionScreen gives LessonPage/PracticePage with a scrollable
-// transcript of the whole chapter: lines already answered sit above (collapsed
-// to plain text, italicized and muted), the line being worked on renders at
-// full strength with its actual exercise widget, and the lines still ahead
-// preview below in plain text, muted but not italicized. A story is read
-// start to finish, so unlike a lesson's queue there's no harm in a learner
-// seeing the shape of what's coming.
+// transcript of the chapter so far: lines already answered sit above
+// (collapsed to plain text, italicized and muted), and the line being worked
+// on renders at full strength with its actual exercise widget. Lines still
+// ahead render nothing at all — finishing the current line is what reveals
+// the next one, rather than the whole chapter's shape being visible upfront.
 import { useEffect, useRef } from "react";
 import { ExerciseRenderer } from "./ExerciseRenderer";
 import { SessionProgressBar } from "./SessionProgressBar";
@@ -28,7 +27,7 @@ interface StoryTranscriptProps {
   progress: { completed: number; total: number };
   /** The exercise to ask next, or null once every line has been answered — the last line's review still renders from `confirmation`'s own snapshot even then. */
   current: WalkthroughExerciseInstance | null;
-  /** Every line in the chapter, authored order — read alongside `current`/`confirmation` to decide each line's role (past/active/upcoming). */
+  /** Every line in the chapter, authored order — read alongside `current`/`confirmation` to decide each line's role (past/active/not-yet-reached, the last of which renders nothing). */
   instances: WalkthroughExerciseInstance[];
   /** This chapter's answers so far, keyed by ordinal — populated by the page at submit time, independent of `confirmation`'s single-item snapshot, so lines already confirmed can still show what was answered. */
   resultsByOrdinal: ReadonlyMap<number, WalkthroughAnswerResult>;
@@ -172,16 +171,10 @@ export function StoryTranscript({
             );
           }
 
-          return (
-            <p
-              key={instance.key}
-              className={styles.upcomingLine}
-              dir={detectScriptDirection(instance.exercise.prompt)}
-              style={alignStyleFor(instance.exercise.prompt)}
-            >
-              {instance.exercise.prompt}
-            </p>
-          );
+          // Not yet reached — stays unrendered so finishing the current line
+          // is what reveals it, rather than the rest of the chapter already
+          // being visible below.
+          return null;
         })}
       </div>
 

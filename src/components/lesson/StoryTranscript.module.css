@@ -86,12 +86,6 @@
   font-size: 0.85rem;
 }
 
-.upcomingLine {
-  margin: 0;
-  color: var(--color-text-muted);
-  opacity: 0.45;
-}
-
 .activeLine {
   display: flex;
   flex-direction: column;
