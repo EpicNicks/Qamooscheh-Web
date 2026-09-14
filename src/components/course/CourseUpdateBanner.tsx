@@ -23,6 +23,9 @@ import styles from "./CourseUpdateBanner.module.css";
  */
 export function CourseUpdateBanner({ course, update }: { course: CourseRef; update: CourseUpdateRef }) {
   const [confirming, setConfirming] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+
+  if (dismissed) return null;
 
   return (
     <>
@@ -38,6 +41,10 @@ export function CourseUpdateBanner({ course, update }: { course: CourseRef; upda
         <Button type="button" onClick={() => setConfirming(true)}>
           Update
         </Button>
+        {/* No persistence yet — reappears next time the journey page mounts. Debounce TBD. */}
+        <button type="button" className={styles.close} aria-label="Dismiss update notice" onClick={() => setDismissed(true)}>
+          ✕
+        </button>
       </div>
       {confirming && (
         <RollForwardConfirmDialog
