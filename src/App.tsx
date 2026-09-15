@@ -7,6 +7,8 @@ import { RegisterPage } from "./pages/RegisterPage";
 import { OnboardingFlow } from "./pages/onboarding/OnboardingFlow";
 import { PathPage } from "./pages/PathPage";
 import { CategoryPage } from "./pages/CategoryPage";
+import { GlossaryPage } from "./pages/GlossaryPage";
+import { GlossaryEntryPage } from "./pages/GlossaryEntryPage";
 import { VocabularyReviewPage } from "./pages/VocabularyReviewPage";
 import { LessonPage } from "./pages/LessonPage";
 import { StoryPage } from "./pages/StoryPage";
@@ -57,6 +59,9 @@ export default function App() {
         <Route index element={<Navigate to="/path" replace />} />
         <Route path="/path" element={<PathPage />} />
         <Route path="/library/:category" element={<CategoryPage />} />
+        {/* Root lists/accordions the tree; the wildcard route is any leaf entry's term page — GlossaryTree only ever links into it via its full id path, never a bare /glossary/*. */}
+        <Route path="/glossary" element={<GlossaryPage />} />
+        <Route path="/glossary/*" element={<GlossaryEntryPage />} />
         {/* Three entry points, one page: with no params the page defaults to
             whole-course scope, :unitKey defaults it to that unit, and both
             params default it to that one lesson — VocabularyReviewPage's own

@@ -1,0 +1,17 @@
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  align-self: flex-start;
+  margin-bottom: var(--space-3);
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  padding: var(--space-1) 0;
+  cursor: pointer;
+}
+
+.back:hover {
+  color: var(--color-text);
+}

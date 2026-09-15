@@ -1,6 +1,7 @@
 import { NavLink } from "react-router-dom";
 import { useBootstrap } from "../../hooks/useBootstrap";
 import { useCoursePath } from "../../hooks/useCourseContent";
+import { glossaryForCourse } from "../../domain/glossaryContent";
 import type { SkillCategory } from "../../domain/enums";
 import styles from "./Sidebar.module.css";
 
@@ -21,6 +22,7 @@ const CATEGORY_LABEL: Record<Exclude<SkillCategory, "standard">, string> = {
 export function Sidebar() {
   const bootstrap = useBootstrap();
   const { path } = useCoursePath(bootstrap.data?.course ?? null, bootstrap.data?.position ?? null);
+  const hasGlossary = glossaryForCourse(bootstrap.data?.course?.code).length > 0;
 
   const categories = new Set<Exclude<SkillCategory, "standard">>();
   for (const unit of path) {
@@ -43,6 +45,11 @@ export function Sidebar() {
           {CATEGORY_LABEL[category]}
         </NavLink>
       ))}
+      {hasGlossary && (
+        <NavLink to="/glossary" className={({ isActive }) => (isActive ? `${styles.link} ${styles.active}` : styles.link)}>
+          Glossary
+        </NavLink>
+      )}
     </nav>
   );
 }
