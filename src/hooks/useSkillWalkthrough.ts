@@ -49,7 +49,19 @@ export interface WalkthroughAnswerResult {
   submittedText: string;
 }
 
-export function useSkillWalkthrough(unitKey: string, skillKey: string) {
+export interface SkillWalkthroughOptions {
+  /**
+   * Re-practicing a skill the learner has already passed (pages/PracticePage.tsx).
+   * Mirrors useLessonEngine's practice mode: the run is local-only — no POST
+   * /v1/sessions/submit, no `completed: true`, no card merge — so a practice
+   * round can never earn FSRS credit twice or re-grade a review that wasn't
+   * due, while staying available at any time.
+   */
+  practice?: boolean;
+}
+
+export function useSkillWalkthrough(unitKey: string, skillKey: string, options: SkillWalkthroughOptions = {}) {
+  const isPracticeMode = options.practice ?? false;
   const { userId } = useAuth();
   const queryClient = useQueryClient();
 
@@ -119,10 +131,19 @@ export function useSkillWalkthrough(unitKey: string, skillKey: string) {
     if (!course) return;
     setStatus("submitting");
 
+    if (isPracticeMode) {
+      // Local-only recap, exactly as useLessonEngine's practice branch: no
+      // POST /v1/sessions/submit, no card-state merge, no bootstrap refresh.
+      // Nothing was due, so there is nothing to credit.
+      setStatus("done");
+      return;
+    }
+
     const session: SubmittedSession = {
       submissionId: crypto.randomUUID(),
       unitKey,
       skillKey,
+      courseCode: course.code,
       // The learner's pinned course version — the only one §2.3 accepts, and
       // the version these exercises were in fact fetched from.
       courseVersion: course.version,
@@ -171,6 +192,7 @@ export function useSkillWalkthrough(unitKey: string, skillKey: string) {
     /** The chapter's full, authored-order exercise list — every line, not just what's left in the queue. StoryTranscript reads this to render the lines already answered and the ones still ahead alongside `current`. */
     instances,
     progress: { completed: totalCount - (queue?.length ?? totalCount), total: totalCount },
+    isPracticeMode,
     submitAnswer,
     result,
   };

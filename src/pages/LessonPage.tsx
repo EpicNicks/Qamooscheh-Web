@@ -72,6 +72,26 @@ export function LessonPage() {
       return <Spinner label="Saving your progress…" />;
     }
 
+    // The server answered, but refused the session(s) — see useLessonEngine's
+    // rejection handling. Showing the completion recap here would tell the
+    // learner their progress was saved when it wasn't.
+    if (engine.status === "rejected") {
+      const partial = engine.rejection !== null && engine.rejection.rejected < engine.rejection.total;
+      return (
+        <div className={styles.done}>
+          <h1>{partial ? "Only part of this lesson was saved" : "This lesson wasn't saved"}</h1>
+          <p>
+            {engine.rejection?.reason ??
+              "The server didn't record this session, so it won't count toward your review schedule."}
+          </p>
+          <LessonResults correct={engine.score.correct} total={engine.score.total} />
+          <div className={styles.doneActions}>
+            <Button onClick={() => navigate("/path")}>Back to path</Button>
+          </div>
+        </div>
+      );
+    }
+
     if (engine.status === "done") {
       return (
         <div className={styles.done}>

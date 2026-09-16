@@ -44,7 +44,23 @@ export interface LessonExerciseInstance {
   attempt: number;
 }
 
-export type LessonStatus = "loading" | "empty" | "ready" | "submitting" | "done" | "error";
+export type LessonStatus = "loading" | "empty" | "ready" | "submitting" | "done" | "rejected" | "error";
+
+/**
+ * A submission the server answered 200 to but explicitly refused — one or
+ * more sessions came back `outcome: "Rejected"` (a stale course version, a
+ * skill the learner isn't provisioned for, …). A session simply missing from
+ * the response isn't a rejection — see finishLesson, which requeues those
+ * instead. The lesson is NOT complete when this is set, and
+ * pages/LessonPage.tsx says so instead of showing the recap.
+ */
+export interface LessonRejection {
+  /** The server's reason for the first rejected session, when it gave one. */
+  reason: string | null;
+  /** How many of the submitted sessions were rejected — `rejected < total` is a partial batch failure. */
+  rejected: number;
+  total: number;
+}
 
 /**
  * A recorded answer plus the skill the exercise actually came from. A session
@@ -156,6 +172,7 @@ export function useLessonEngine() {
   const [items, setItems] = useState<RecordedItem[]>([]);
   const [status, setStatus] = useState<LessonStatus>("loading");
   const [result, setResult] = useState<SubmittedSessionResponse | null>(null);
+  const [rejection, setRejection] = useState<LessonRejection | null>(null);
   // First-attempt correctness only — a later successful retry doesn't add to
   // this, so the end-of-lesson fraction reflects "got it right the first
   // time" rather than "eventually got it", independent of the requeue depth.
@@ -212,6 +229,7 @@ export function useLessonEngine() {
     setItems([]);
     setFirstTryCorrect(0);
     setResult(null);
+    setRejection(null);
     setStatus("ready");
     setQueue(instances);
     setTotalCount(instances.length);
@@ -270,7 +288,7 @@ export function useLessonEngine() {
   }
 
   async function finishLesson(finalItems: RecordedItem[]) {
-    if (!plan.data || !current) return;
+    if (!plan.data || !current || !course) return;
     setStatus("submitting");
 
     if (isPracticeMode) {
@@ -294,6 +312,7 @@ export function useLessonEngine() {
           submissionId: crypto.randomUUID(),
           unitKey: recorded.unitKey,
           skillKey: recorded.skillKey,
+          courseCode: course.code,
           courseVersion,
           occurredAt,
           completed: true,
@@ -317,10 +336,42 @@ export function useLessonEngine() {
       // response stands in for the batch.
       setResult(response.sessions[0] ?? null);
       if (userId) {
-        for (const sessionResult of response.sessions) mergeCardStates(userId, sessionResult.cards);
+        for (const sessionResult of response.sessions) {
+          // A rejected session was never graded, so it has no card state worth
+          // merging (and trusting one would write FSRS state the server didn't
+          // actually record).
+          if (sessionResult.outcome !== "Rejected") mergeCardStates(userId, sessionResult.cards);
+        }
       }
       queryClient.invalidateQueries({ queryKey: ["bootstrap"] });
       queryClient.invalidateQueries({ queryKey: ["sessionPlan"] });
+
+      // 200 does NOT mean "every session landed": §2.3 answers per session,
+      // and one can come back Rejected (stale course version, not
+      // provisioned, …) while the request itself succeeded.
+      const answered = new Set(response.sessions.map((s) => s.submissionId));
+      const rejected = response.sessions.filter((s) => s.outcome === "Rejected");
+      // Missing from the response isn't the server refusing it — it's the
+      // server simply not answering for it (a partial batch failure). That's
+      // a delivery problem, not a rejection: requeue it exactly like a
+      // network failure would, instead of discarding it as unrecoverable.
+      const missing = sessions.filter((s) => !answered.has(s.submissionId));
+      if (missing.length > 0 && userId) {
+        for (const session of missing) enqueueOffline(userId, session);
+      }
+
+      if (rejected.length > 0) {
+        setRejection({
+          reason: rejected.find((s) => s.rejectionReason)?.rejectionReason ?? null,
+          rejected: rejected.length,
+          total: sessions.length,
+        });
+        setStatus("rejected");
+        return;
+      }
+
+      // Anything missing is queued locally and will sync on the next flush —
+      // same as a network failure, so it's fair to call the lesson done.
       setStatus("done");
     } catch {
       if (userId) {
@@ -331,7 +382,7 @@ export function useLessonEngine() {
   }
 
   const derivedStatus: LessonStatus =
-    status === "submitting" || status === "done"
+    status === "submitting" || status === "done" || status === "rejected"
       ? status
       : bootstrap.isLoading || plan.isLoading || skillsLoading
         ? "loading"
@@ -353,5 +404,7 @@ export function useLessonEngine() {
     startPractice,
     markShown,
     result,
+    /** Non-null exactly when `status === "rejected"` — what the server refused, and how much of the batch. */
+    rejection,
   };
 }

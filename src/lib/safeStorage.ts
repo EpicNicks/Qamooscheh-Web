@@ -41,6 +41,11 @@ export const safeStorage = {
   setItem(key: string, value: string): void {
     try {
       localStorage.setItem(key, value);
+      // localStorage now holds the newest value for this key, so any fallback
+      // entry left over from an earlier failed write is stale — dropping it is
+      // what lets reads return to localStorage once it starts working again
+      // (a quota-exceeded write that a later, smaller one succeeds past).
+      memory.delete(key);
     } catch (error) {
       // Also the quota-exceeded path, not just the blocked-access one: either
       // way the value belongs in the fallback rather than silently lost.

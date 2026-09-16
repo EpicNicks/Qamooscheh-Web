@@ -21,7 +21,10 @@ import styles from "./LessonPage.module.css";
 export function PracticePage() {
   const { unitKey = "", skillKey = "" } = useParams();
   const navigate = useNavigate();
-  const walkthrough = useSkillWalkthrough(unitKey, skillKey);
+  // `practice: true` keeps the run local-only — the screen promises "doesn't
+  // count toward your review schedule", so it must not submit a graded,
+  // `completed: true` session (useLessonEngine's practice mode does the same).
+  const walkthrough = useSkillWalkthrough(unitKey, skillKey, { practice: true });
   const session = useExerciseSession<WalkthroughExerciseInstance, WalkthroughAnswerResult>(walkthrough.course);
   const { confirmation } = session;
 
@@ -56,7 +59,9 @@ export function PracticePage() {
       return (
         <div className={styles.done}>
           <h1>Lesson complete!</h1>
-          <p className={styles.practiceNote}>Practice round — doesn't count toward your review schedule.</p>
+          {walkthrough.isPracticeMode && (
+            <p className={styles.practiceNote}>Practice round — doesn't count toward your review schedule.</p>
+          )}
           <Button onClick={() => navigate("/path")}>Back to path</Button>
         </div>
       );

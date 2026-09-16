@@ -178,6 +178,8 @@ export interface SubmittedSession {
   submissionId: string;
   unitKey: string;
   skillKey: string;
+  /** Which course this session was answered in — the server grades against this course explicitly, not whichever one is currently active for the caller. */
+  courseCode: string;
   courseVersion: number;
   occurredAt: string;
   completed: boolean;
