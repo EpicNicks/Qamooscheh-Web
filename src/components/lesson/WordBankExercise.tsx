@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "../common/Button";
 import { DirectionalText } from "../common/DirectionalText";
 import { ExercisePrompt } from "./ExercisePrompt";
@@ -7,6 +7,15 @@ import { EMPTY_HINT_MAP, NO_HINTS } from "../../domain/romanization";
 import { detectScriptDirection } from "../../domain/language";
 import type { ExerciseProps } from "./ExerciseRenderer";
 import styles from "./Exercise.module.css";
+
+function shuffleIndices(length: number): number[] {
+  const order = Array.from({ length }, (_, i) => i);
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  return order;
+}
 
 /** Tap tiles in order to build the answer; tapping a chosen tile again removes it. */
 export function WordBankExercise({
@@ -21,6 +30,11 @@ export function WordBankExercise({
 }: ExerciseProps) {
   const [chosen, setChosen] = useState<number[]>([]);
   const tiles = exercise.tiles ?? [];
+  // Shuffled once per exercise (keyed on the exercise object itself, which a
+  // new question gets a fresh reference for) so the bank's on-screen order
+  // never leaks the answer via tile position — re-shuffling on every render
+  // would instead reorder tiles out from under an in-progress tap sequence.
+  const tileOrder = useMemo(() => shuffleIndices(tiles.length), [exercise]);
   // Each tile is individually RTL-wrapped via DirectionalText, but that only
   // fixes glyph shaping within a tile — the answer row's own layout is
   // handled separately (see .answerRowRtl below) so a Persian answer reads
@@ -88,11 +102,11 @@ export function WordBankExercise({
           Only a tile's own text (via DirectionalText) still shapes/reads
           right-to-left for Persian. */}
       <div className={styles.tiles} dir="ltr">
-        {tiles.map((tile, tileIndex) =>
+        {tileOrder.map((tileIndex) =>
           chosen.includes(tileIndex) ? null : (
             <DirectionalText key={tileIndex} courseCode={tileCourseCode}>
               <button type="button" className={styles.tile} onClick={() => toggle(tileIndex)} disabled={disabled}>
-                <RomanizedWord word={tile} hint={hintMap.get(tile)} settings={hintSettings} focusable={false} />
+                <RomanizedWord word={tiles[tileIndex]} hint={hintMap.get(tiles[tileIndex])} settings={hintSettings} focusable={false} />
               </button>
             </DirectionalText>
           ),
