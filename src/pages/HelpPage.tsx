@@ -15,11 +15,11 @@ const FAQ: FaqEntry[] = [
     answer: (
       <>
         <p>
-          Qamooscheh doesn't ship recorded audio for every phrase yet — where there's no recording, the app asks
+          ParsLing doesn't ship recorded audio for every phrase yet — where there's no recording, the app asks
           your device to read the phrase aloud instead, using its own built-in text-to-speech voices.
         </p>
         <p>
-          That means the voice (and whether there's a voice at all) depends on your device, not on Qamooscheh:
+          That means the voice (and whether there's a voice at all) depends on your device, not on ParsLing:
         </p>
         <ul>
           <li>

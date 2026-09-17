@@ -47,9 +47,9 @@ export function LoginPage() {
   return (
     <div className={styles.wrap}>
       <div className={styles.card}>
-        <div className={styles.brand}>Qamooscheh</div>
+        <div className={styles.brand}>ParsLing</div>
         {isClosed && (
-          <RegistrationClosedNotice message="Qamooscheh is in alpha. Sign-ups are closed for now — if you've been given an account, sign in below." />
+          <RegistrationClosedNotice message="ParsLing is in alpha. Sign-ups are closed for now — if you've been given an account, sign in below." />
         )}
         {error && <ErrorBanner message={error} />}
         <form className={styles.form} onSubmit={handleSubmit}>
@@ -92,6 +92,9 @@ export function LoginPage() {
             New here? <Link to="/register">Create an account</Link>
           </p>
         )}
+        <p className={styles.switch}>
+          <Link to="/about">Learn more about ParsLing</Link>
+        </p>
       </div>
     </div>
   );

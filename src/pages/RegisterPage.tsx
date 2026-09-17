@@ -44,10 +44,10 @@ export function RegisterPage() {
   return (
     <div className={styles.wrap}>
       <div className={styles.card}>
-        <div className={styles.brand}>Qamooscheh</div>
+        <div className={styles.brand}>ParsLing</div>
 
         {isClosed && (
-          <RegistrationClosedNotice message="Qamooscheh is in alpha and closed to new sign-ups right now. Already have an account? Sign in below." />
+          <RegistrationClosedNotice message="ParsLing is in alpha and closed to new sign-ups right now. Already have an account? Sign in below." />
         )}
 
         {!isClosed && !registrationStatus.isPending && (
@@ -93,6 +93,9 @@ export function RegisterPage() {
 
         <p className={styles.switch}>
           Already have an account? <Link to="/login">Sign in</Link>
+        </p>
+        <p className={styles.switch}>
+          <Link to="/about">Learn more about ParsLing</Link>
         </p>
       </div>
     </div>

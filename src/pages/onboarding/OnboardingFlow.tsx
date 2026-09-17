@@ -84,7 +84,7 @@ export function OnboardingFlow() {
   return (
     <div className={styles.page}>
       <div className={styles.card}>
-        <div className={styles.brand}>Qamooscheh</div>
+        <div className={styles.brand}>ParsLing</div>
         {step === "name" && <OnboardingNameStep onDone={() => setStep("languages")} />}
         {step === "languages" && (
           <OnboardingLanguagesStep onConfirm={finishLanguages} isSubmitting={isSubmitting} error={error} />

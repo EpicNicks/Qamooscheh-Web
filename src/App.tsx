@@ -4,6 +4,7 @@ import { RequireOnboarded } from "./auth/RequireOnboarded";
 import { AppShell } from "./components/layout/AppShell";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
+import { AboutPage } from "./pages/AboutPage";
 import { OnboardingFlow } from "./pages/onboarding/OnboardingFlow";
 import { PathPage } from "./pages/PathPage";
 import { CategoryPage } from "./pages/CategoryPage";
@@ -26,6 +27,7 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/about" element={<AboutPage />} />
 
       {/* Signed in but enrolled in nothing. A sibling of /login and /register,
           NOT part of the AppShell group: there is no course yet, so a sidebar

@@ -51,7 +51,7 @@ export function AppShell() {
     <div className={styles.shell} ref={shellRef}>
       {!isLessonMode && (
         <header className={styles.header} ref={headerRef}>
-          <span className={styles.brand}>Qamooscheh</span>
+          <span className={styles.brand}>ParsLing</span>
           <nav className={styles.nav}>
             {NAV_ITEMS.map((item) => (
               <NavLink
