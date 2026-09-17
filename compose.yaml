@@ -22,7 +22,10 @@ services:
         VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID}
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8080/_health"]
+      # 127.0.0.1, not localhost: localhost resolves to ::1 first in this
+      # image and nginx's `listen 8080;` doesn't bind the IPv6 side, so wget
+      # gets an immediate connection refused before ever trying IPv4.
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/_health"]
       interval: 30s
       timeout: 5s
       retries: 3

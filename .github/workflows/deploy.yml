@@ -37,10 +37,14 @@ jobs:
       # separate from the actual host's. See Qamooscheh's own deploy.yml for
       # the full explanation of why curling a published host port from here
       # doesn't work.
+      #
+      # 127.0.0.1, not localhost, once inside the web container too: same
+      # reason as compose.yaml's own healthcheck -- localhost resolves to
+      # ::1 first here and nginx doesn't bind that side.
       - name: Wait for health
         run: |
           for i in $(seq 1 30); do
-            if docker compose --env-file "$ENV_FILE" exec -T web wget -qO- http://localhost:8080/_health > /dev/null 2>&1; then
+            if docker compose --env-file "$ENV_FILE" exec -T web wget -qO- http://127.0.0.1:8080/_health > /dev/null 2>&1; then
               echo "web healthy after ${i} check(s)."
               exit 0
             fi
