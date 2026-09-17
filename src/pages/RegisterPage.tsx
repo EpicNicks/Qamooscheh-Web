@@ -35,7 +35,7 @@ export function RegisterPage() {
       // bounce through RequireOnboarded to get here anyway.
       navigate("/onboarding", { replace: true });
     } catch (err) {
-      setError(errorMessage(err, "Couldn't create an account — that email may already be registered."));
+      setError(errorMessage(err, "Couldn't create an account: that email may already be registered."));
     } finally {
       setIsSubmitting(false);
     }

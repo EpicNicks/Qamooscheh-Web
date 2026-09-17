@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import styles from "./AboutPage.module.css";
 
 /**
- * Public, unauthenticated — reachable from the Login/Register "Learn more"
+ * Public, unauthenticated: reachable from the Login/Register "Learn more"
  * link, so it has to stand on its own without anything AppShell provides
  * (no sidebar, no nav). Content stays grounded in what actually exists
  * today rather than a roadmap; see the backend repo's own README for the
@@ -19,8 +19,8 @@ export function AboutPage() {
           <h2>What it is</h2>
           <p>
             ParsLing is a Duolingo-style language course: short lessons arranged along a branching skill path, each
-            one a mix of exercise types — word bank, type-in, match, and speak — building toward full sentences,
-            short stories, and conversations rather than staying at isolated vocabulary.
+            one a mix of exercise types: word bank, type-in, match, and speak, building toward full sentences,
+            short stories, and conversations, rather than staying at isolated vocabulary.
           </p>
         </div>
 
@@ -37,7 +37,7 @@ export function AboutPage() {
             </li>
             <li>
               <strong>Instant, honest feedback.</strong> Typos and near-misses (a missing ZWNJ, an Arabic-vs-Persian
-              character, a spacing variant) are recognized and corrected in place rather than just marked wrong —
+              character, a spacing variant) are recognized and corrected in place, rather than just marked wrong,
               though the server always re-grades every answer, so what you see in the moment is never the final word.
             </li>
             <li>
@@ -55,9 +55,8 @@ export function AboutPage() {
         <div className={styles.section}>
           <h2>Where it's at</h2>
           <p>
-            ParsLing is in alpha. The core experience — lessons, checkpoints, streaks, friends, leagues — is built
-            and working; new accounts are closed for now while it's tested with a small group before opening more
-            broadly.
+            ParsLing is in alpha: lessons, checkpoints, streaks, friends, and leagues are built and working, but
+            new accounts are closed for now, while it's tested with a small group before opening more broadly.
           </p>
         </div>
 

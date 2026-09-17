@@ -38,7 +38,7 @@ export function LoginPage() {
       await login(email, password);
       navigate(from, { replace: true });
     } catch (err) {
-      setError(errorMessage(err, "Couldn't sign in — check your email and password."));
+      setError(errorMessage(err, "Couldn't sign in: check your email and password."));
     } finally {
       setIsSubmitting(false);
     }
@@ -49,7 +49,7 @@ export function LoginPage() {
       <div className={styles.card}>
         <div className={styles.brand}>ParsLing</div>
         {isClosed && (
-          <RegistrationClosedNotice message="ParsLing is in alpha. Sign-ups are closed for now — if you've been given an account, sign in below." />
+          <RegistrationClosedNotice message="ParsLing is in alpha. Sign-ups are closed for now: if you've been given an account, sign in below." />
         )}
         {error && <ErrorBanner message={error} />}
         <form className={styles.form} onSubmit={handleSubmit}>
