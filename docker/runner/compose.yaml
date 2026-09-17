@@ -1,0 +1,37 @@
+name: qamooscheh-web-runner
+
+# Standalone GitHub Actions self-hosted runner for THIS repo's deploy.yml
+# (`runs-on: [self-hosted, parsling-web]`). Mirrors Qamooscheh's own
+# docker/runner/compose.yaml -- see that repo for the full rationale on
+# every choice below (DooD via the mounted socket, why the runner's whole
+# work tree needs a real host path, why APP_ENV_FILE has to match exactly).
+#
+# A SEPARATE runner container from Qamooscheh's, on the same host: a
+# self-hosted runner registers against exactly one repo (REPO_URL/
+# RUNNER_SCOPE: repo below), so one runner can't serve two repositories.
+#
+# No custom image needed -- unlike Qamooscheh's runner, this repo has no
+# git-lfs content, so the base image is used directly rather than through a
+# Dockerfile.
+
+services:
+  runner:
+    image: myoung34/github-runner:ubuntu-noble
+    restart: unless-stopped
+    environment:
+      REPO_URL: https://github.com/EpicNicks/Qamooscheh-Web
+      ACCESS_TOKEN: ${GH_RUNNER_PAT}
+      RUNNER_SCOPE: repo
+      RUNNER_NAME: parsling-web-prod
+      LABELS: parsling-web
+      RUNNER_WORKDIR: ${RUNNER_WORK_HOST_DIR}
+      DISABLE_AUTO_UPDATE: "true"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${RUNNER_WORK_HOST_DIR}:${RUNNER_WORK_HOST_DIR}
+      - ${APP_ENV_FILE}:${APP_ENV_FILE}:ro
+    # See Qamooscheh's docker/runner/compose.yaml comment: lets the runner's
+    # non-root user use the mounted socket. Same host as that repo's runner,
+    # so the same DOCKER_GID value applies here too.
+    group_add:
+      - "${DOCKER_GID}"

@@ -1,0 +1,55 @@
+name: Deploy
+
+# Fires after CI finishes on master -- mirrors Qamooscheh's own deploy.yml.
+# Runs on this repo's OWN self-hosted runner (docker/runner/), separate from
+# Qamooscheh's -- a self-hosted runner registers against exactly one repo,
+# so its runner can't pick up this repo's jobs.
+on:
+  workflow_run:
+    workflows: ["CI"]
+    branches: [master]
+    types: [completed]
+
+jobs:
+  deploy:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: [self-hosted, parsling-web]
+    # This repo's real .env.docker (VITE_* build args) -- lives outside this
+    # job's own disposable checkout, at a fixed path also bind-mounted into
+    # the runner container itself (docker/runner/compose.yaml's
+    # APP_ENV_FILE). Update both if this ever moves.
+    env:
+      ENV_FILE: /home/nicholas/qamooscheh/qamooscheh-web/.env.docker
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Build image
+        run: docker compose --env-file "$ENV_FILE" build
+
+      - name: Apply
+        run: docker compose --env-file "$ENV_FILE" up -d
+
+      # Probes web's OWN network namespace via `docker compose exec`, not
+      # 127.0.0.1 on this job's own host -- this job runs INSIDE the
+      # dockerized runner container, which has its own loopback entirely
+      # separate from the actual host's. See Qamooscheh's own deploy.yml for
+      # the full explanation of why curling a published host port from here
+      # doesn't work.
+      - name: Wait for health
+        run: |
+          for i in $(seq 1 30); do
+            if docker compose --env-file "$ENV_FILE" exec -T web wget -qO- http://localhost:8080/_health > /dev/null 2>&1; then
+              echo "web healthy after ${i} check(s)."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "web did not become healthy after deploy." >&2
+          docker compose --env-file "$ENV_FILE" logs --tail=100 web >&2
+          exit 1
+
+      - name: Prune old images
+        if: always()
+        run: docker image prune -f
