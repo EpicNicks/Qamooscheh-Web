@@ -4,6 +4,8 @@ import { useAuth } from "../auth/useAuth";
 import { Button } from "../components/common/Button";
 import { ErrorBanner } from "../components/common/ErrorBanner";
 import { GoogleSignInButton } from "../components/auth/GoogleSignInButton";
+import { RegistrationClosedNotice } from "../components/auth/RegistrationClosedNotice";
+import { useRegistrationStatus } from "../hooks/useRegistrationStatus";
 import { GOOGLE_CLIENT_ID } from "../config";
 import { errorMessage } from "../lib/errors";
 import styles from "./AuthPage.module.css";
@@ -15,6 +17,12 @@ export function RegisterPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // isPending (no cached answer yet, first load this session): render
+  // neither the form nor the closed-notice, rather than flash the form open
+  // and immediately hide it if the answer turns out to be "closed".
+  const registrationStatus = useRegistrationStatus();
+  const isClosed = registrationStatus.data?.enabled === false;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -37,42 +45,52 @@ export function RegisterPage() {
     <div className={styles.wrap}>
       <div className={styles.card}>
         <div className={styles.brand}>Qamooscheh</div>
-        {error && <ErrorBanner message={error} />}
-        <form className={styles.form} onSubmit={handleSubmit}>
-          <div className={styles.field}>
-            <label htmlFor="email">Email</label>
-            <input
-              id="email"
-              type="email"
-              required
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
-          <div className={styles.field}>
-            <label htmlFor="password">Password</label>
-            <input
-              id="password"
-              type="password"
-              required
-              autoComplete="new-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Creating account…" : "Create account"}
-          </Button>
-        </form>
-        {GOOGLE_CLIENT_ID && (
+
+        {isClosed && (
+          <RegistrationClosedNotice message="Qamooscheh is in alpha and closed to new sign-ups right now. Already have an account? Sign in below." />
+        )}
+
+        {!isClosed && !registrationStatus.isPending && (
           <>
-            <div className={styles.divider}>or</div>
-            <div className={styles.googleWrap}>
-              <GoogleSignInButton />
-            </div>
+            {error && <ErrorBanner message={error} />}
+            <form className={styles.form} onSubmit={handleSubmit}>
+              <div className={styles.field}>
+                <label htmlFor="email">Email</label>
+                <input
+                  id="email"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+              <div className={styles.field}>
+                <label htmlFor="password">Password</label>
+                <input
+                  id="password"
+                  type="password"
+                  required
+                  autoComplete="new-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Creating account…" : "Create account"}
+              </Button>
+            </form>
+            {GOOGLE_CLIENT_ID && (
+              <>
+                <div className={styles.divider}>or</div>
+                <div className={styles.googleWrap}>
+                  <GoogleSignInButton />
+                </div>
+              </>
+            )}
           </>
         )}
+
         <p className={styles.switch}>
           Already have an account? <Link to="/login">Sign in</Link>
         </p>

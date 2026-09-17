@@ -2,7 +2,14 @@
 // `anonymous: true` so httpClient never attaches a (possibly stale) bearer
 // token or tries to refresh on a 401 from these endpoints.
 import { apiFetch } from "./httpClient";
-import type { AuthResponse } from "../types/api";
+import type { AuthResponse, RegistrationStatusResponse } from "../types/api";
+
+export function getRegistrationStatus(): Promise<RegistrationStatusResponse> {
+  return apiFetch<RegistrationStatusResponse>("/v1/auth/registration-status", {
+    method: "GET",
+    anonymous: true,
+  });
+}
 
 export function register(email: string, password: string): Promise<AuthResponse> {
   return apiFetch<AuthResponse>("/v1/auth/register", {

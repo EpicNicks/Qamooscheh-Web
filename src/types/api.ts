@@ -41,6 +41,10 @@ export interface AuthResponse {
   accessTokenExpiresAt: string;
 }
 
+export interface RegistrationStatusResponse {
+  enabled: boolean;
+}
+
 // ---------------------------------------------------------------------------
 // v1/bootstrap (Bootstrap/BootstrapContracts.cs)
 // ---------------------------------------------------------------------------
