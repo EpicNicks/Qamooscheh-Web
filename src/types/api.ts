@@ -319,7 +319,8 @@ export interface UpdatePrefsRequest {
   autoplayAudio: boolean;
   keyboardMode: KeyboardMode;
   desiredRetention: number;
-  dailyGoalMinutes: number;
+  /** Duolingo-style: a daily XP target, not a time measurement — see GET /v1/activity's own `xp`, which is what this is actually compared against on the client (domain/proficiency.ts). */
+  dailyGoalXp: number;
 }
 
 export type PrefsResponse = UpdatePrefsRequest;

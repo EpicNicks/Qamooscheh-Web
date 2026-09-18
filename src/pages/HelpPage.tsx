@@ -49,6 +49,30 @@ const FAQ: FaqEntry[] = [
     answer: <p>Showing a translation on screen while you're being asked for it would give the answer away. Use the vocabulary review screen (from any lesson's Start popover) to look words up ahead of time instead.</p>,
   },
   {
+    id: "review-intensity",
+    question: "What does \"Review intensity\" in Settings actually change?",
+    answer: (
+      <>
+        <p>
+          ParsLing schedules your reviews with FSRS (Free Spaced Repetition Scheduler), an algorithm that predicts
+          how likely you are to still remember a card and times your next review around that prediction — instead
+          of a fixed "every 3 days" schedule, cards you find easy drift further apart and ones you miss come back
+          sooner.
+        </p>
+        <p>
+          "Review intensity" sets FSRS's target: how confident it tries to keep you before it's willing to let a
+          review lapse.
+        </p>
+        <ul>
+          <li><strong>Relaxed</strong> (85%) — fewer reviews, and you'll forget a few more cards along the way.</li>
+          <li><strong>Balanced</strong> (90%) — FSRS's own recommended default.</li>
+          <li><strong>Thorough</strong> (94%) — more frequent reviews, in exchange for forgetting less.</li>
+        </ul>
+        <p>Changing it recalculates every card's next review date the moment you save — it isn't retroactive, but it takes effect immediately, not just for cards you review from then on.</p>
+      </>
+    ),
+  },
+  {
     id: "skip-vs-test-out",
     question: "What's the difference between the red × and \"Skip\" on a lesson?",
     answer: (

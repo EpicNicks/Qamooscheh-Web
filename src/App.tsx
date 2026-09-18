@@ -16,7 +16,7 @@ import { StoryPage } from "./pages/StoryPage";
 import { PracticePage } from "./pages/PracticePage";
 import { CheckpointPage } from "./pages/CheckpointPage";
 import { ProfilePage } from "./pages/ProfilePage";
-import { SettingsPage } from "./pages/SettingsPage";
+import { SettingsPage } from "./pages/settings/SettingsPage";
 import { HelpPage } from "./pages/HelpPage";
 import { FriendsPage } from "./pages/FriendsPage";
 import { LeaguesPage } from "./pages/LeaguesPage";

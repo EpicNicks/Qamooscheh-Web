@@ -77,6 +77,37 @@ export interface LocalAppPrefs {
    * whether onboarding's tutorial ran at all.
    */
   seenLessonOverlay: { wordBank: boolean; typeIn: boolean };
+  /**
+   * The last local calendar day (`YYYY-MM-DD`, this device's own clock — not
+   * user_prefs' server-side day_start_hour bucketing, which PathPage's
+   * DailyGoalRing has no reason to duplicate for a purely cosmetic
+   * first-time-per-day celebration) the daily-XP-goal celebration was shown,
+   * or null if never. Local rather than synced: it gates an animation, not a
+   * fact about the learner's study — the same reasoning suppressSkipWarning
+   * stays local.
+   */
+  lastGoalCelebrationDay: string | null;
+  /** Whether the daily-XP-goal completion animation plays at all — a learner who finds it distracting can turn it off without losing the goal/progress tracking itself. Defaults on. */
+  goalCelebrationEnabled: boolean;
+  /**
+   * Per-script font choice (domain/fonts.ts) — `family: null` means "use the
+   * built-in fallback stack", same convention resolveFontStack itself uses.
+   * Local, not a synced user_prefs column: which font renders best on THIS
+   * device/OS is a per-device fact (a font installed on a work laptop may
+   * not be on a phone), not an account-level study setting. `custom` is
+   * "pro mode": hand-entered font names, persisted so they reappear as
+   * regular choices next session. `latin` applies app-wide (English UI text
+   * and romanized/Latin course text alike) rather than per-course, since
+   * code and language coincide 1:1 today (domain/language.ts's own caveat)
+   * — there is no scenario yet where two different-language courses would
+   * need independent Latin choices.
+   */
+  fontPrefs: Record<
+    "fa" | "ja" | "latin",
+    { family: string | null; sizePct: number; custom: string[] }
+  >;
+  /** True once the learner has ticked "Don't ask me again" on the remove-custom-font confirmation (Settings -> Appearance). */
+  suppressRemoveFontWarning: boolean;
 }
 
 const DEFAULTS: LocalAppPrefs = {
@@ -87,6 +118,14 @@ const DEFAULTS: LocalAppPrefs = {
   showTranslationHints: false,
   nativeTextAlign: "left",
   seenLessonOverlay: { wordBank: false, typeIn: false },
+  lastGoalCelebrationDay: null,
+  goalCelebrationEnabled: true,
+  fontPrefs: {
+    fa: { family: null, sizePct: 100, custom: [] },
+    ja: { family: null, sizePct: 100, custom: [] },
+    latin: { family: null, sizePct: 100, custom: [] },
+  },
+  suppressRemoveFontWarning: false,
 };
 
 function storageKey(userId: string): string {

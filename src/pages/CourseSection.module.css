@@ -1,3 +1,10 @@
+/** PathPage's own row, above every unit section — currently just the daily-goal ring, but its own class rather than reusing .section so it never inherits that class's sticky-title behavior. */
+.headerRow {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--space-4);
+}
+
 .section {
   margin-bottom: var(--space-5);
   display: flex;
