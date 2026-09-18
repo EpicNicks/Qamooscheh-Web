@@ -15,6 +15,7 @@ export function RegisterPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -27,9 +28,17 @@ export function RegisterPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    // Caught here rather than left to the server round trip: the API's own
+    // check (AuthContracts.cs's RegisterRequest.Validate) exists to guard
+    // against a client that skips this, not to be this form's first line of
+    // feedback.
+    if (password !== confirmPassword) {
+      setError("Passwords don't match.");
+      return;
+    }
     setIsSubmitting(true);
     try {
-      await register(email, password);
+      await register(email, password, confirmPassword);
       // Not /path: a brand-new account is enrolled in nothing (registration
       // stopped implicitly provisioning a default course), so /path would only
       // bounce through RequireOnboarded to get here anyway.
@@ -74,6 +83,17 @@ export function RegisterPage() {
                   autoComplete="new-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+              <div className={styles.field}>
+                <label htmlFor="confirmPassword">Confirm password</label>
+                <input
+                  id="confirmPassword"
+                  type="password"
+                  required
+                  autoComplete="new-password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
                 />
               </div>
               <Button type="submit" disabled={isSubmitting}>

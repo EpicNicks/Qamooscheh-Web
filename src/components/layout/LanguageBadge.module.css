@@ -27,8 +27,14 @@
     0 1px 1px rgba(0, 0, 0, 0.85);
 }
 
-/* FlagBadge's real-image rendering — fills the badge exactly the way the
-   gradient fallback's background-image used to. */
+/* FlagBadge's real-image rendering. Cancels .badge's text padding — a flag
+   image should fill the chip edge to edge, not sit inset the way the
+   two-letter text fallback needs to be to stay readable — so every flag
+   fills the exact same box and scales/crops consistently with the others. */
+.imageBadge {
+  padding: 0;
+}
+
 .flagImage {
   width: 100%;
   height: 100%;

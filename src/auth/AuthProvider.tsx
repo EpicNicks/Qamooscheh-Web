@@ -42,8 +42,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // leaving every page stuck on "couldn't load" until a manual reload.
   useEffect(() => onSessionCleared(() => setSession(null)), []);
 
-  const register = useCallback(async (email: string, password: string) => {
-    const auth = await authApi.register(email, password);
+  const register = useCallback(async (email: string, password: string, confirmPassword: string) => {
+    const auth = await authApi.register(email, password, confirmPassword);
     resetCachedUserData();
     setSession(persist(auth));
   }, []);

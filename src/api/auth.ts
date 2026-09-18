@@ -11,10 +11,10 @@ export function getRegistrationStatus(): Promise<RegistrationStatusResponse> {
   });
 }
 
-export function register(email: string, password: string): Promise<AuthResponse> {
+export function register(email: string, password: string, confirmPassword: string): Promise<AuthResponse> {
   return apiFetch<AuthResponse>("/v1/auth/register", {
     method: "POST",
-    body: { email, password },
+    body: { email, password, confirmPassword },
     anonymous: true,
   });
 }

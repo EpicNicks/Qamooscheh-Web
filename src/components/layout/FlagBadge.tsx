@@ -58,15 +58,16 @@ export function FlagBadge({ courseCode, className }: FlagBadgeProps) {
     setImageFailed(false);
   }
 
-  const classes = [styles.badge, className].filter(Boolean).join(" ");
-
   if (flagUrl && !imageFailed) {
+    const imageClasses = [styles.badge, styles.imageBadge, className].filter(Boolean).join(" ");
     return (
-      <span className={classes} aria-hidden="true">
+      <span className={imageClasses} aria-hidden="true">
         <img src={flagUrl} alt="" className={styles.flagImage} onError={() => setImageFailed(true)} />
       </span>
     );
   }
+
+  const classes = [styles.badge, className].filter(Boolean).join(" ");
 
   const style = info
     ? { backgroundImage: `linear-gradient(to bottom, ${info.flagColors.join(", ")})` }
