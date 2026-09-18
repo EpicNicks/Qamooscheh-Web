@@ -47,16 +47,24 @@
      --header-height (the same variable Sidebar.module.css sticks itself to)
      and .stickyHeader's own measured height (PathPage's ResizeObserver) —
      while its unit's road is in view, the same way a section header stays
-     put in a long list. Background matches the page so scrolled-past nodes
-     don't show through underneath it, and the padding gives it a visible
-     strip rather than sitting flush against the header above. Below
-     .stickyHeader's z-index (6): that wrapper floats above everything, this
-     only floats above the road. Without the two `top` terms here, this
-     sticks at the very top of the viewport instead, underneath both of them,
-     so it's invisible until scrolled past rather than actually sticky. */
+     put in a long list. Below .stickyHeader's z-index (6): that wrapper
+     floats above everything, this only floats above the road. Without the
+     two `top` terms here, this sticks at the very top of the viewport
+     instead, underneath both of them, so it's invisible until scrolled past
+     rather than actually sticky.
+     A rounded chip sized to its own text — not a full-width bar — for the
+     same reason .stickyHeader lost its background: a plain edge-to-edge
+     opaque strip only needed by a few words of text read as a stray white
+     rectangle laid over the road once .stickyHeader above it went
+     transparent, instead of one continuous painted band. align-self
+     overrides .section's flex stretch, which would otherwise force this back
+     to full width regardless of `display`. */
+  align-self: flex-start;
   position: sticky;
   top: calc(var(--header-height, 0px) + var(--sticky-header-height, 0px));
   z-index: 4;
-  background: var(--color-bg);
-  padding: var(--space-2) 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
 }
