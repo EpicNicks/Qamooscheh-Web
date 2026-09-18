@@ -16,8 +16,6 @@ interface LanguageInfo {
   language: Language;
   displayName: string;
   direction: WritingDirection;
-  /** Font stack for that language's native script — no external font loading, just broad-coverage system fonts. */
-  nativeFontStack: string;
   /** BCP-47 tag for the Web Speech API (domain/tts.ts) — picks a language-appropriate voice/pronunciation, not just a font. */
   speechLang: string;
   /** The language's own endonym, in its own script — e.g. "فارسی", "日本語". Doubles as the worked example on the script-mode toggle (components/lesson/languageSettings/), since it's a word every learner already recognizes by the time they'd look for that setting. */
@@ -41,7 +39,6 @@ const COURSE_CODE_TO_LANGUAGE: Record<string, LanguageInfo> = {
     language: "fa",
     displayName: "Persian",
     direction: "rtl",
-    nativeFontStack: "'Vazirmatn', 'Noto Naskh Arabic', Tahoma, 'Segoe UI', sans-serif",
     speechLang: "fa-IR",
     nativeName: "فارسی",
     romanizedName: "Farsi",
@@ -52,7 +49,6 @@ const COURSE_CODE_TO_LANGUAGE: Record<string, LanguageInfo> = {
     language: "ja",
     displayName: "Japanese",
     direction: "ltr",
-    nativeFontStack: "'Noto Sans JP', 'Yu Gothic', 'Hiragino Sans', 'Meiryo', sans-serif",
     speechLang: "ja-JP",
     nativeName: "日本語",
     romanizedName: "Nihongo",
@@ -87,7 +83,7 @@ const ARABIC_SCRIPT_PATTERN = /[؀-ۿ]/;
  * Persian text with its English translation (composite exercise tiles, a
  * multi-word Persian phrase) — without an explicit `dir` matching this,
  * plain RTL text still displays correctly as one continuous run, but the
- * moment it's split across multiple inline-block elements (RomanizedWord's
+ * moment it's split across multiple inline-block elements (AnnotatedWord's
  * hover-hint wrapper) the browser reorders those pieces by the *container's*
  * base direction instead of following the script.
  */

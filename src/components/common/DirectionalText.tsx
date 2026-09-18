@@ -16,8 +16,16 @@ interface DirectionalTextProps {
  */
 export function DirectionalText({ courseCode, children, block, className }: DirectionalTextProps) {
   const info = getLanguageInfo(courseCode);
+  // The CSS variable (theme/FontProvider.tsx writes it) rather than a
+  // hardcoded stack — it already resolves to the same fallback chain by
+  // default, plus a learner's chosen font in front of it when there is one.
   const style: CSSProperties = info
-    ? { direction: info.direction, fontFamily: info.nativeFontStack, unicodeBidi: "isolate" }
+    ? {
+        direction: info.direction,
+        fontFamily: `var(--font-script-${info.language})`,
+        fontSize: `var(--font-size-script-${info.language})`,
+        unicodeBidi: "isolate",
+      }
     : {};
 
   const Tag = block ? "div" : "span";

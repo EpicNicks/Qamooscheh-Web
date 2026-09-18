@@ -219,7 +219,10 @@ function usePersianPhoneticEngine(params: {
           className={`${styles.input} ${styles.mirror}`}
           aria-hidden="true"
           dir={languageInfo?.direction}
-          style={languageInfo ? { fontFamily: languageInfo.nativeFontStack } : undefined}
+          // Must match the visible input's own font exactly (TypeInExercise's
+          // own style prop) — a learner's chosen font (theme/FontProvider.tsx),
+          // not the hardcoded default, or this mirror measures the wrong glyphs.
+          style={languageInfo ? { fontFamily: `var(--font-script-${languageInfo.language})` } : undefined}
         >
           <span>{text.slice(0, -1)}</span>
           <span ref={lastCharRef}>{text.slice(-1) || "​"}</span>
