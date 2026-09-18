@@ -65,6 +65,8 @@ interface ExerciseSessionScreenProps<TItem extends ExerciseSessionItem, TFeedbac
    * wrapper element the overlay needs to query inside.
    */
   overlay?: (targets: { item: TItem; topRowEl: HTMLElement | null; exerciseEl: HTMLElement | null }) => ReactNode;
+  /** Lessons only — lets the learner re-open the first-lesson walkthrough from the lesson-settings cog. */
+  onReplayTutorial?: () => void;
 }
 
 export function ExerciseSessionScreen<TItem extends ExerciseSessionItem, TFeedback extends ExerciseSessionFeedback>({
@@ -76,22 +78,23 @@ export function ExerciseSessionScreen<TItem extends ExerciseSessionItem, TFeedba
   title,
   feedbackXp,
   overlay,
+  onReplayTutorial,
 }: ExerciseSessionScreenProps<TItem, TFeedback>) {
-  const { skip, confirmation, hintSettings, courseHintMap, keyboardMode, autoplayAudio } = session;
+  const { skip, confirmation, textSettings, courseHintMap, keyboardMode, autoplayAudio } = session;
   const [topRowEl, setTopRowEl] = useState<HTMLDivElement | null>(null);
   const [exerciseEl, setExerciseEl] = useState<HTMLDivElement | null>(null);
 
   /** Whether this exercise has any native-script text worth hovering — see gateLexemeHintMap's own conditions. */
   const hintMapFor = (exercise: ExerciseArtifact) =>
     gateLexemeHintMap(courseHintMap, {
-      settings: hintSettings,
+      settings: textSettings,
       exerciseScriptMode: exercise.scriptMode,
     });
 
   const topRow = (ref?: (el: HTMLDivElement | null) => void) => (
     <div ref={ref} className={styles.topRow}>
       <SessionProgressBar completed={progress.completed} total={progress.total} />
-      <LanguageSettingsButton courseCode={courseCode} />
+      <LanguageSettingsButton courseCode={courseCode} onReplayTutorial={onReplayTutorial} />
       <CloseLessonButton isConfirming={skip.isConfirming} onClick={skip.requestSkip} />
     </div>
   );
@@ -114,7 +117,7 @@ export function ExerciseSessionScreen<TItem extends ExerciseSessionItem, TFeedba
           answerIsTokenized={answeredItem.exercise.type === "word_bank" || answeredItem.exercise.type === "match"}
           submittedText={feedback.submittedText}
           hintMap={hintMap}
-          hintSettings={hintSettings}
+          textSettings={textSettings}
           reportContext={{ exerciseTags: answeredItem.exercise.tags, prompt: answeredItem.exercise.prompt }}
         />
         <ExerciseRenderer
@@ -127,7 +130,7 @@ export function ExerciseSessionScreen<TItem extends ExerciseSessionItem, TFeedba
           keyboardMode={keyboardMode}
           autoplayAudio={autoplayAudio}
           hintMap={hintMap}
-          hintSettings={hintSettings}
+          textSettings={textSettings}
           advance={{ label: "Continue", onAdvance: confirmation.confirm }}
         />
         {skipModal}
@@ -152,7 +155,7 @@ export function ExerciseSessionScreen<TItem extends ExerciseSessionItem, TFeedba
       keyboardMode={keyboardMode}
       autoplayAudio={autoplayAudio}
       hintMap={hintMapFor(current.exercise)}
-      hintSettings={hintSettings}
+      textSettings={textSettings}
     />
   );
 

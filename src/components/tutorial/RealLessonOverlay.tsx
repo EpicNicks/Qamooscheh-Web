@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { TutorialOverlay, type TutorialStep } from "./TutorialOverlay";
 import { useLessonOverlaySeen, type LessonOverlayKind } from "../../hooks/useLessonOverlaySeen";
 import type { ExerciseType } from "../../domain/enums";
@@ -10,6 +11,18 @@ interface RealLessonOverlayProps {
   exerciseEl: HTMLElement | null;
   /** Only word_bank and type_in get a walkthrough — match/speak aren't in scope, and this renders nothing for either. */
   renderType: ExerciseType;
+  /**
+   * Whether this is a lesson position the walkthrough is allowed to
+   * auto-trigger on at all — the very first standard position of the
+   * course (see domain/pathProgress.ts's isFirstStandardPosition). A learner
+   * who reaches word_bank/type_in for the first time on a LATER lesson (say,
+   * because their first lesson was all word_bank and the type_in kind is
+   * still unseen) must not get the walkthrough sprung on them there instead.
+   */
+  allowAutoTrigger: boolean;
+  /** Set true (by the lesson-settings "replay walkthrough" control) to show it regardless of allowAutoTrigger/already-seen. Caller clears it once shown. */
+  forceShow?: boolean;
+  onForceShowHandled?: () => void;
 }
 
 const KIND_BY_RENDER_TYPE: Partial<Record<ExerciseType, LessonOverlayKind>> = {
@@ -31,11 +44,32 @@ const KIND_BY_RENDER_TYPE: Partial<Record<ExerciseType, LessonOverlayKind>> = {
  * ref-callback props through WordBankExercise/TypeInExercise — those
  * components have no other reason to know a tutorial exists.
  */
-export function RealLessonOverlay({ topRowEl, exerciseEl, renderType }: RealLessonOverlayProps) {
+export function RealLessonOverlay({ topRowEl, exerciseEl, renderType, allowAutoTrigger, forceShow, onForceShowHandled }: RealLessonOverlayProps) {
   const kind = KIND_BY_RENDER_TYPE[renderType];
   const overlay = useLessonOverlaySeen(kind ?? "wordBank");
+  const shouldShow = !!kind && !!exerciseEl && (forceShow || (allowAutoTrigger && !overlay.seen));
 
-  if (!kind || overlay.seen || !exerciseEl) return null;
+  function handleDismiss() {
+    overlay.markSeen();
+    onForceShowHandled?.();
+  }
+
+  // Marks the walkthrough seen (and clears a forced replay) the moment it
+  // stops being shown for any reason — finishing it, dismissing it, or
+  // navigating/closing away from it mid-walkthrough — not only on
+  // TutorialOverlay's own onFinish. A ref (rather than depending on
+  // `handleDismiss` itself, a fresh closure every render) keeps this effect
+  // from re-firing except on the true shouldShow transition.
+  const handleDismissRef = useRef(handleDismiss);
+  useEffect(() => {
+    handleDismissRef.current = handleDismiss;
+  });
+  useEffect(() => {
+    if (!shouldShow) return;
+    return () => handleDismissRef.current();
+  }, [shouldShow]);
+
+  if (!shouldShow || !exerciseEl) return null;
 
   const promptEl = exerciseEl.querySelector<HTMLElement>(`.${CSS.escape(exerciseStyles.prompt)}`);
   const submitEl = exerciseEl.querySelector<HTMLElement>(`.${CSS.escape(exerciseStyles.actions)}`);
@@ -53,5 +87,5 @@ export function RealLessonOverlay({ topRowEl, exerciseEl, renderType }: RealLess
     { targetEl: submitEl, title: "Submit", description: "Once your answer looks right, submit it to check." },
   ];
 
-  return <TutorialOverlay resetKey={kind} steps={steps} onFinish={overlay.markSeen} onRepeatedOutsideClick={overlay.markSeen} />;
+  return <TutorialOverlay resetKey={kind} steps={steps} onFinish={handleDismiss} onRepeatedOutsideClick={handleDismiss} />;
 }

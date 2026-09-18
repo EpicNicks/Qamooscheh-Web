@@ -2,6 +2,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useCheckpoint } from "../hooks/useCheckpoint";
 import { usePrefs } from "../hooks/usePrefs";
 import { ExerciseRenderer } from "../components/lesson/ExerciseRenderer";
+import { SessionProgressBar } from "../components/lesson/SessionProgressBar";
 import { LanguageSettingsButton } from "../components/lesson/languageSettings/LanguageSettingsButton";
 import { Spinner } from "../components/common/Spinner";
 import { ErrorBanner } from "../components/common/ErrorBanner";
@@ -51,9 +52,7 @@ export function CheckpointPage() {
   return (
     <div className={screenStyles.wrap}>
       <div className={screenStyles.topRow}>
-        <p>
-          Question {checkpoint.index + 1} of {checkpoint.instances.length}
-        </p>
+        <SessionProgressBar completed={checkpoint.index} total={checkpoint.instances.length} />
         <LanguageSettingsButton courseCode={checkpoint.courseCode} />
       </div>
       <ExerciseRenderer

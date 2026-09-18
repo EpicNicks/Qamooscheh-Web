@@ -30,7 +30,13 @@ const LANGUAGE_SETTINGS: Partial<Record<Language, ComponentType<LanguageSettings
  * leaving the lesson. Renders nothing when the course's language has no
  * panel in LANGUAGE_SETTINGS above.
  */
-export function LanguageSettingsButton({ courseCode }: { courseCode: string | null | undefined }) {
+interface LanguageSettingsButtonProps {
+  courseCode: string | null | undefined;
+  /** Only LessonPage passes this — the popover grows a "Replay the lesson walkthrough" section when it's present, even for a language with no script panel above. */
+  onReplayTutorial?: () => void;
+}
+
+export function LanguageSettingsButton({ courseCode, onReplayTutorial }: LanguageSettingsButtonProps) {
   const language = getLanguageInfo(courseCode)?.language;
   const SettingsPanel = language ? LANGUAGE_SETTINGS[language] : undefined;
 
@@ -44,27 +50,43 @@ export function LanguageSettingsButton({ courseCode }: { courseCode: string | nu
   const translationHints = useShowTranslationHints();
   const nativeTextAlign = useNativeTextAlign();
 
-  if (!SettingsPanel) return null;
+  if (!SettingsPanel && !onReplayTutorial) return null;
 
   return (
     <>
-      <button ref={setButtonEl} type="button" className={styles.cog} aria-label="Script settings" onClick={() => setOpen((o) => !o)}>
+      <button ref={setButtonEl} type="button" className={styles.cog} aria-label="Lesson settings" onClick={() => setOpen((o) => !o)}>
         <SettingsIcon size="1.25rem" />
       </button>
       {open && prefs.data && (
         <LanguageSettingsPopover anchorEl={buttonEl} onClose={() => setOpen(false)}>
-          <SettingsPanel
-            scriptMode={prefs.data.scriptMode}
-            onChangeScriptMode={(scriptMode) => updatePrefs.mutate({ ...prefs.data!, scriptMode })}
-            showFurigana={furigana.enabled}
-            onChangeShowFurigana={furigana.setShowFurigana}
-            showRomanizationHints={romanizationHints.enabled}
-            onChangeShowRomanizationHints={romanizationHints.setShowRomanizationHints}
-            showTranslationHints={translationHints.enabled}
-            onChangeShowTranslationHints={translationHints.setShowTranslationHints}
-            nativeTextAlign={nativeTextAlign.align}
-            onChangeNativeTextAlign={nativeTextAlign.setNativeTextAlign}
-          />
+          {SettingsPanel && (
+            <SettingsPanel
+              scriptMode={prefs.data.scriptMode}
+              onChangeScriptMode={(scriptMode) => updatePrefs.mutate({ ...prefs.data!, scriptMode })}
+              showFurigana={furigana.enabled}
+              onChangeShowFurigana={furigana.setShowFurigana}
+              showRomanizationHints={romanizationHints.enabled}
+              onChangeShowRomanizationHints={romanizationHints.setShowRomanizationHints}
+              showTranslationHints={translationHints.enabled}
+              onChangeShowTranslationHints={translationHints.setShowTranslationHints}
+              nativeTextAlign={nativeTextAlign.align}
+              onChangeNativeTextAlign={nativeTextAlign.setNativeTextAlign}
+            />
+          )}
+          {onReplayTutorial && (
+            <div className={styles.tutorialSection}>
+              <button
+                type="button"
+                className={styles.replayButton}
+                onClick={() => {
+                  onReplayTutorial();
+                  setOpen(false);
+                }}
+              >
+                Replay the lesson walkthrough
+              </button>
+            </div>
+          )}
         </LanguageSettingsPopover>
       )}
     </>

@@ -243,6 +243,30 @@ const RELATIVE_TIME_ENTRY: GlossaryEntry = {
   ],
 };
 
+const COLORS_ENTRY: GlossaryEntry = {
+  id: "colors",
+  title: "Colors",
+  note:
+    "A color follows its noun with ezafe, like any other adjective: ماشین قرمز (māshin-e ghermez, \"red car\"). Several colors — نارنجی، صورتی، طلایی، نقره‌ای، خاکستری — are themselves nouns (orange the fruit, silver the metal, ...) with the ی suffix that turns a noun into \"of/like [that thing]\", the same pattern نارنج (nāranj, bitter orange) → نارنجی follows.",
+  terms: [
+    { term: "قرمز", romanization: "ghermez", definition: "red" },
+    { term: "آبی", romanization: "ābi", definition: "blue" },
+    { term: "سبز", romanization: "sabz", definition: "green" },
+    { term: "سفید", romanization: "sefid", definition: "white" },
+    { term: "سیاه", romanization: "siāh", definition: "black" },
+    { term: "زرد", romanization: "zard", definition: "yellow" },
+    { term: "بنفش", romanization: "banafsh", definition: "purple" },
+    { term: "قهوه‌ای", romanization: "ghahve-i", definition: "brown (literally: \"coffee-colored\")" },
+    { term: "نارنجی", romanization: "nārenji", definition: "orange" },
+    { term: "صورتی", romanization: "surati", definition: "pink" },
+    { term: "خاکستری", romanization: "khākestari", definition: "gray" },
+    { term: "طلایی", romanization: "talāyi", definition: "gold" },
+    { term: "نقره‌ای", romanization: "noghre-i", definition: "silver" },
+    { term: "روشن", romanization: "roshan", definition: "light (as in \"light blue\", آبی روشن)" },
+    { term: "تیره", romanization: "tire", definition: "dark (as in \"dark green\", سبز تیره)" },
+  ],
+};
+
 const GLOSSARY_BY_COURSE: Record<string, GlossaryEntry[]> = {
   fa: [
     {
@@ -255,6 +279,7 @@ const GLOSSARY_BY_COURSE: Record<string, GlossaryEntry[]> = {
       title: "Time",
       children: [HOURS_MINUTES_ENTRY, TIME_EXPRESSIONS_ENTRY, RELATIVE_TIME_ENTRY],
     },
+    COLORS_ENTRY,
   ],
 };
 

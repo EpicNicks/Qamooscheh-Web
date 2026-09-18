@@ -145,6 +145,44 @@ export function findNextStandardTarget(path: PathUnit[]): PositionKey | null {
   return null;
 }
 
+/**
+ * The (unitKey, skillKey) of the NEXT unit's own first standard position —
+ * distinct from findNextStandardTarget, which finds the position immediately
+ * after the cursor within its current progression and so can still be
+ * several positions short of a unit boundary. This is specifically "skip the
+ * rest of the current unit and test into the next one" (GitHub #4), offered
+ * only for the single next unit rather than any future one: an arbitrarily
+ * distant target would sum every intervening skill's exercises into one
+ * placement test (CheckpointService.SampleDepth applies per skill in the
+ * whole tested range), which is unbounded and untested for a span that
+ * large. Returns null when the cursor's unit is the last one, or (same as
+ * findNextStandardTarget) no unit after it has a standard position at all.
+ */
+export function findNextUnitEntryTarget(path: PathUnit[]): PositionKey | null {
+  const currentUnitIndex = path.findIndex((unit) => unit.standardPositions.some((p) => p.status === "current"));
+  if (currentUnitIndex < 0) return null;
+
+  for (let nextUnitIndex = currentUnitIndex + 1; nextUnitIndex < path.length; nextUnitIndex++) {
+    const firstPosition = path[nextUnitIndex].standardPositions[0];
+    if (firstPosition) return { unitKey: path[nextUnitIndex].unitKey, skillKey: firstPosition.skills[0].skillKey };
+  }
+  return null;
+}
+
+/**
+ * Whether `target` is the very first standard position of the very first
+ * unit in the course — the one place the real-lesson walkthrough
+ * (RealLessonOverlay) should ever auto-trigger. Matches by skill key against
+ * every alternate at that position, since a fork's alternates are
+ * interchangeable entry points into the course.
+ */
+export function isFirstStandardPosition(path: PathUnit[], target: PositionKey): boolean {
+  const firstUnit = path[0];
+  if (!firstUnit || firstUnit.unitKey !== target.unitKey) return false;
+  const firstPosition = firstUnit.standardPositions[0];
+  return firstPosition?.skills.some((s) => s.skillKey === target.skillKey) ?? false;
+}
+
 /** A run of skills sharing one `arc`, or a lone skill belonging to none. */
 export interface ArcGroup {
   key: string;

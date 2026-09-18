@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLessonEngine, type SubmitAnswerResult, type LessonExerciseInstance } from "../hooks/useLessonEngine";
 import { useExerciseSession } from "../hooks/useExerciseSession";
+import { useBootstrap } from "../hooks/useBootstrap";
+import { useCoursePath } from "../hooks/useCourseContent";
+import { isFirstStandardPosition } from "../domain/pathProgress";
 import { xpForAnswer } from "../domain/xp";
 import { ExerciseSessionScreen } from "../components/lesson/ExerciseSessionScreen";
 import { RealLessonOverlay } from "../components/tutorial/RealLessonOverlay";
@@ -24,6 +27,17 @@ export function LessonPage() {
   const session = useExerciseSession<LessonExerciseInstance, SubmitAnswerResult>(engine.course);
   const { confirmation } = session;
   const [lastUsedHint, setLastUsedHint] = useState(false);
+  const [forceShowTutorial, setForceShowTutorial] = useState(false);
+
+  // The real-lesson walkthrough is only allowed to auto-trigger on the
+  // course's very first standard position — see RealLessonOverlay's
+  // allowAutoTrigger doc. bootstrap/useCoursePath are already cached by
+  // react-query (every other screen reads the same queries), so this costs
+  // no extra network round-trip.
+  const bootstrap = useBootstrap();
+  const { path } = useCoursePath(bootstrap.data?.course ?? null, bootstrap.data?.position ?? null);
+  const allowTutorialAutoTrigger =
+    !!engine.current && path.length > 0 && isFirstStandardPosition(path, { unitKey: engine.current.unitKey, skillKey: engine.current.skillKey });
 
   // Restart the engine's latency clock exactly when an exercise becomes
   // visible — i.e. once the previous answer's feedback has been dismissed
@@ -127,8 +141,16 @@ export function LessonPage() {
       onSubmit={handleSubmit}
       feedbackXp={(feedback) => xpForAnswer(feedback.verdict, feedback.attempt, lastUsedHint)}
       overlay={({ item, topRowEl, exerciseEl }) => (
-        <RealLessonOverlay topRowEl={topRowEl} exerciseEl={exerciseEl} renderType={item.renderType} />
+        <RealLessonOverlay
+          topRowEl={topRowEl}
+          exerciseEl={exerciseEl}
+          renderType={item.renderType}
+          allowAutoTrigger={allowTutorialAutoTrigger}
+          forceShow={forceShowTutorial}
+          onForceShowHandled={() => setForceShowTutorial(false)}
+        />
       )}
+      onReplayTutorial={() => setForceShowTutorial(true)}
     />
   );
 }

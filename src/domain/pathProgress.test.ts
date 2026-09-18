@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computePathProgress, findNextStandardTarget, groupByArc } from "./pathProgress";
+import { computePathProgress, findNextStandardTarget, findNextUnitEntryTarget, groupByArc, isFirstStandardPosition } from "./pathProgress";
 import type { PathUnitInput, SkillStatus } from "./pathProgress";
 
 function standard(skillKey: string) {
@@ -157,6 +157,32 @@ describe("findNextStandardTarget", () => {
   });
 });
 
+describe("findNextUnitEntryTarget", () => {
+  it("targets the next unit's first standard position, even mid-unit", () => {
+    // Cursor at a1, the FIRST position of unit 1 — findNextStandardTarget
+    // would return b1 (still inside unit 1); this should skip straight to
+    // unit 2's own first position regardless.
+    const path = computePathProgress(courseFixture(), { unitKey: "u1", skillKey: "a1" });
+    expect(findNextUnitEntryTarget(path)).toEqual({ unitKey: "u2", skillKey: "d1" });
+  });
+
+  it("returns null when the cursor's unit is the last one", () => {
+    const path = computePathProgress(courseFixture(), { unitKey: "u2", skillKey: "e1" });
+    expect(findNextUnitEntryTarget(path)).toBeNull();
+  });
+
+  it("skips over a unit with no standard positions at all", () => {
+    const units = courseFixture();
+    units.splice(1, 0, { unitKey: "u-interlude", title: "Interlude", standardPositions: [], otherSkills: [story("s3")] });
+    const path = computePathProgress(units, { unitKey: "u1", skillKey: "a1" });
+    expect(findNextUnitEntryTarget(path)).toEqual({ unitKey: "u2", skillKey: "d1" });
+  });
+
+  it("returns null when nothing is current", () => {
+    expect(findNextUnitEntryTarget(computePathProgress(courseFixture(), null))).toBeNull();
+  });
+});
+
 describe("groupByArc", () => {
   it("collects skills sharing an arc into one group, at the first member's spot", () => {
     const path = computePathProgress(
@@ -181,5 +207,29 @@ describe("groupByArc", () => {
 
   it("returns no groups for no skills", () => {
     expect(groupByArc([])).toEqual([]);
+  });
+});
+
+describe("isFirstStandardPosition", () => {
+  it("is true for the first unit's first position, including any alternate", () => {
+    const path = computePathProgress(courseFixture(), { unitKey: "u1", skillKey: "a1" });
+    expect(isFirstStandardPosition(path, { unitKey: "u1", skillKey: "a1" })).toBe(true);
+  });
+
+  it("is false for a later position in the first unit", () => {
+    const path = computePathProgress(courseFixture(), { unitKey: "u1", skillKey: "b1" });
+    expect(isFirstStandardPosition(path, { unitKey: "u1", skillKey: "b1" })).toBe(false);
+    expect(isFirstStandardPosition(path, { unitKey: "u1", skillKey: "b2" })).toBe(false);
+  });
+
+  it("is false for the first position of a later unit", () => {
+    const path = computePathProgress(courseFixture(), { unitKey: "u2", skillKey: "d1" });
+    expect(isFirstStandardPosition(path, { unitKey: "u2", skillKey: "d1" })).toBe(false);
+  });
+
+  it("is false for an unknown skill key or an empty path", () => {
+    const path = computePathProgress(courseFixture(), { unitKey: "u1", skillKey: "a1" });
+    expect(isFirstStandardPosition(path, { unitKey: "u1", skillKey: "nope" })).toBe(false);
+    expect(isFirstStandardPosition([], { unitKey: "u1", skillKey: "a1" })).toBe(false);
   });
 });
