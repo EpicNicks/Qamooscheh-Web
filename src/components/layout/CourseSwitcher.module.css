@@ -94,3 +94,14 @@
   font-size: 0.8rem;
   color: var(--color-danger);
 }
+
+/* keep in sync with src/theme/breakpoints.ts */
+@media (max-width: 768px) {
+  .panel {
+    max-width: calc(100vw - var(--space-3) * 2);
+  }
+
+  .row {
+    padding: var(--space-3);
+  }
+}

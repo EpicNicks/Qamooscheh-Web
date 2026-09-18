@@ -19,6 +19,14 @@ export interface RoadLayoutConfig {
   branchSpread: number;
   /** The coordinate space x is computed in; SkillRoad renders it as `viewBox="0 0 logicalWidth H"`. */
   logicalWidth: number;
+  /**
+   * Half a node's width, in logical units — so a fork's spread can't push one
+   * off the edge. No default: a skin that changes `logicalWidth` without
+   * restating this would silently break the clamp with no compiler
+   * complaint, so every theme has to say what its own node card is half as
+   * wide as, in this same coordinate space.
+   */
+  nodeHalfWidth: number;
 }
 
 export interface RoadNode {
@@ -43,22 +51,19 @@ export interface RoadLayout {
   totalHeight: number;
 }
 
-/** Half a node's width in logical units, so a fork's spread can't push one off the edge. */
-const NODE_HALF_WIDTH = 42;
-
 /**
  * @param positionSkillCounts how many skills sit at each position, in order —
  *   `[1, 2, 1]` is "one skill, then a two-way fork, then one skill".
  */
 export function computeRoadLayout(positionSkillCounts: number[], config: RoadLayoutConfig): RoadLayout {
-  const { rowHeight, branchSpread, logicalWidth } = config;
+  const { rowHeight, branchSpread, logicalWidth, nodeHalfWidth } = config;
   const centre = logicalWidth / 2;
   const topPadding = rowHeight / 2;
 
   // Clamped so no node can overhang the viewBox at either edge however a
   // theme has tuned branchSpread.
-  const minX = NODE_HALF_WIDTH;
-  const maxX = logicalWidth - NODE_HALF_WIDTH;
+  const minX = nodeHalfWidth;
+  const maxX = logicalWidth - nodeHalfWidth;
   const clamp = (x: number) => Math.min(maxX, Math.max(minX, x));
 
   // Every position is centred on the same vertical axis: a singleton sits

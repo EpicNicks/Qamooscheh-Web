@@ -19,12 +19,15 @@ const FLIP_HYSTERESIS_PX = 24;
 interface LessonStartPopoverProps {
   /** The tapped node itself — its position is re-measured on every scroll/resize so the popover tracks it instead of freezing at click-time coordinates. */
   anchorRef: RefObject<HTMLElement | null>;
-  /** "Start lesson" for the current skill, "Practice" for a past one being revisited — see SkillNode. */
+  /** "Start lesson" for the current skill, "Practice" for a past one being revisited, "Take the placement test" for a future unit's entry node (SkillNode's placement variant) — see SkillNode. */
   primaryLabel: string;
   onPrimary: () => void;
   /** Only ever offered on the current skill, and only when there's a position ahead to test into — see domain/pathProgress.ts's findNextStandardTarget. A skill already passed has nothing left to test out of. */
   onSkip?: () => void;
-  onReviewVocabulary: () => void;
+  /** Omitted by the placement variant: a locked future unit's node offers only the one placement-test action, not Start/Practice/Review-vocab. */
+  onReviewVocabulary?: () => void;
+  /** A line of explanatory copy above the buttons — the placement variant's only use, since jumping past a whole unit on one attempt (no retries) deserves a beat of "here's what happens" before the tap that starts it. */
+  description?: string;
   onClose: () => void;
 }
 
@@ -54,6 +57,7 @@ export function LessonStartPopover({
   onPrimary,
   onSkip,
   onReviewVocabulary,
+  description,
   onClose,
 }: LessonStartPopoverProps) {
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -169,15 +173,18 @@ export function LessonStartPopover({
 
   return createPortal(
     <div ref={popoverRef} className={styles.popover} style={style} role="dialog" aria-label={primaryLabel}>
+      {description && <p className={styles.description}>{description}</p>}
       <Button onClick={onPrimary}>{primaryLabel}</Button>
       {onSkip && (
         <Button variant="secondary" onClick={onSkip} title="Complete a shorter quiz instead of the full lesson to advance">
           Test out
         </Button>
       )}
-      <Button variant="secondary" onClick={onReviewVocabulary}>
-        Review vocabulary
-      </Button>
+      {onReviewVocabulary && (
+        <Button variant="secondary" onClick={onReviewVocabulary}>
+          Review vocabulary
+        </Button>
+      )}
     </div>,
     document.body,
   );

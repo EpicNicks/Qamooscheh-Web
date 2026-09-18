@@ -41,7 +41,27 @@
   border-bottom-color: var(--color-primary);
 }
 
+.navIcon {
+  display: none;
+  font-size: 1.5rem;
+}
+
+.drawerToggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
 .syncBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--color-current);
@@ -49,6 +69,76 @@
   padding: var(--space-1) var(--space-2);
   border-radius: 999px;
   white-space: nowrap;
+}
+
+.syncDot {
+  display: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-current);
+}
+
+/* keep in sync with src/theme/breakpoints.ts */
+@media (max-width: 768px) {
+  .brand,
+  .signOut {
+    display: none;
+  }
+
+  .header {
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .main {
+    padding: var(--space-3); /* reclaims road width from the desktop rail's padding */
+  }
+
+  .drawerToggle {
+    display: inline-flex;
+  }
+
+  .nav {
+    justify-content: space-evenly;
+    gap: 0;
+  }
+
+  .navLabel {
+    display: none;
+  }
+
+  .navIcon {
+    display: block;
+  }
+
+  .link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0;
+  }
+
+  .syncText {
+    display: none;
+  }
+
+  .syncDot {
+    display: block;
+  }
+
+  .syncBadge {
+    padding: var(--space-2);
+    background: none;
+  }
+}
+
+@media (min-width: 769px) {
+  .drawerToggle {
+    display: none;
+  }
 }
 
 .signOut {

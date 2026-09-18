@@ -1,0 +1,44 @@
+/*
+ * Stacked-deck affordance: two pseudo-element cards peeking out from behind
+ * the real one, so a collapsed fork reads as "there are more behind this"
+ * rather than as an ordinary single-lesson node.
+ */
+.group {
+  position: relative;
+}
+
+.group::before,
+.group::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: var(--radius-md);
+  border: 2px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.group::before {
+  transform: translate(4px, 4px);
+}
+
+.group::after {
+  transform: translate(8px, 8px);
+}
+
+.countPill {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: var(--color-primary-contrast, #fff);
+  font-size: 0.65rem;
+  font-weight: 700;
+}

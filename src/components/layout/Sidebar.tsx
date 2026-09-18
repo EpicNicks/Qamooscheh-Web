@@ -19,7 +19,7 @@ const CATEGORY_LABEL: Record<Exclude<SkillCategory, "standard">, string> = {
  * hardcoded Story/Conversation/Song list that would show empty entries for
  * a course that hasn't authored one of those yet.
  */
-export function Sidebar() {
+export function Sidebar({ variant = "rail" }: { variant?: "rail" | "drawer" }) {
   const bootstrap = useBootstrap();
   const { path } = useCoursePath(bootstrap.data?.course ?? null, bootstrap.data?.position ?? null);
   const hasGlossary = glossaryForCourse(bootstrap.data?.course?.code).length > 0;
@@ -32,7 +32,7 @@ export function Sidebar() {
   }
 
   return (
-    <nav className={styles.sidebar}>
+    <nav className={variant === "drawer" ? `${styles.sidebar} ${styles.drawer}` : styles.sidebar}>
       <NavLink to="/path" className={({ isActive }) => (isActive ? `${styles.link} ${styles.active}` : styles.link)}>
         Journey
       </NavLink>

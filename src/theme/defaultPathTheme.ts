@@ -12,6 +12,12 @@ export interface PathTheme {
   /** Scopes the --path-* custom properties; applied to the wrapper PathThemeProvider renders. */
   className: string;
   layout: RoadLayoutConfig;
+  /**
+   * Road metrics for the phone/tablet-portrait breakpoint
+   * (theme/breakpoints.ts). Optional: a skin that doesn't supply one just
+   * uses `layout` everywhere.
+   */
+  mobileLayout?: RoadLayoutConfig;
   /** What each skill category's node shows. Previously a hardcoded map inside SkillNode. */
   icons: Record<SkillCategory, ReactNode>;
   /**
@@ -29,10 +35,18 @@ export interface PathTheme {
 }
 
 /**
- * Tuned to SkillNode's 84px card inside a 320-unit logical width:
- * `branchSpread` is small enough that no node's centre comes within 42
- * logical units of either edge, so computeRoadLayout's clamp never actually
- * has to fire for this theme.
+ * Tuned to SkillNode's 84px card (--skill-node-width, defaultPathTheme.module.css)
+ * inside a 320-unit logical width: `branchSpread` is small enough that no
+ * node's centre comes within 42 logical units of either edge, so
+ * computeRoadLayout's clamp never actually has to fire for this theme.
+ *
+ * `mobileLayout` only lowers `rowHeight` (more of the road fits above the
+ * fold on a phone) — `logicalWidth` is a coordinate space, not a size, so
+ * changing it alone would change nothing visually; only the RATIOS
+ * `branchSpread/logicalWidth` and `nodeHalfWidth/logicalWidth` matter, and
+ * those stay the same as the desktop layout. `branchSpread`/`nodeHalfWidth`
+ * are restated (not omitted) so a future skin can't lose them by forgetting
+ * `mobileLayout` inherits nothing from `layout`.
  */
 export const defaultPathTheme: PathTheme = {
   id: "default",
@@ -41,6 +55,13 @@ export const defaultPathTheme: PathTheme = {
     rowHeight: 190,
     branchSpread: 110,
     logicalWidth: 320,
+    nodeHalfWidth: 42,
+  },
+  mobileLayout: {
+    rowHeight: 150,
+    branchSpread: 108,
+    logicalWidth: 320,
+    nodeHalfWidth: 42,
   },
   icons: {
     standard: "●",

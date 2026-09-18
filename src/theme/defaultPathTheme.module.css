@@ -11,4 +11,10 @@
   --path-stroke-current: var(--color-current);
   --path-stroke-width: 6px;
   --path-arc-rail-color: var(--color-border);
+  /* SkillNode's card width — a skin can resize the node without touching a
+     line of TypeScript. Must match defaultPathTheme.ts's `nodeHalfWidth: 42`
+     (this ÷ 2, in logical units, which happen to equal real px here since
+     logicalWidth is also 320) and SkillRoad.tsx's nodeLeft(), both of which
+     read this custom property rather than a duplicated constant. */
+  --skill-node-width: 84px;
 }

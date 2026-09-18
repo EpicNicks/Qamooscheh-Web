@@ -13,6 +13,23 @@
   overflow-y: auto;
 }
 
+/* keep in sync with src/theme/breakpoints.ts */
+.drawer {
+  position: static; /* cancels the rail's sticky */
+  top: auto;
+  width: auto;
+  max-height: none;
+  flex: 1; /* the link list takes the space between header and Sign out */
+  min-height: 0;
+  overflow-y: auto;
+  border-right: none;
+}
+
+.drawer .link {
+  padding: var(--space-3); /* >=44px touch targets */
+  font-size: 1.05rem;
+}
+
 .link {
   text-decoration: none;
   color: var(--color-text-muted);

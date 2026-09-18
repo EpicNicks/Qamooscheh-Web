@@ -25,6 +25,21 @@
   --space-5: 32px;
 
   --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /*
+   * Per-script NATIVE-text font overrides (theme/FontProvider.tsx writes
+   * these from a learner's chosen font, hooks/useFontPrefs.ts) — the
+   * defaults here are domain/language.ts's own nativeFontStack values,
+   * unchanged from before this preference existed. --font-sans itself is
+   * what a chosen Latin/English font overrides (FontProvider sets it
+   * directly), which is why body's font-family below already reads it.
+   */
+  --font-script-fa: "Vazirmatn", "Noto Naskh Arabic", Tahoma, "Segoe UI", sans-serif;
+  --font-script-ja: "Noto Sans JP", "Yu Gothic", "Hiragino Sans", "Meiryo", sans-serif;
+  /* Per-script font SIZE (DirectionalText only — see its own comment on why
+     TypeInExercise/SpeakExercise's <input> don't read this). */
+  --font-size-script-fa: 100%;
+  --font-size-script-ja: 100%;
+  --font-size-script-latin: 100%;
 
   color-scheme: light;
 }
@@ -53,8 +68,16 @@ body,
   height: 100%;
 }
 
+/* Kills Chrome Android's horizontal overscroll-to-navigate and guarantees no
+   horizontal scroller competes with the mobile nav drawer's own left-edge
+   swipe-to-open drag (useMobileDrawer.ts). */
+html {
+  overscroll-behavior-x: none;
+}
+
 body {
   margin: 0;
+  overflow-x: hidden;
   font-family: var(--font-sans);
   background: var(--color-bg);
   color: var(--color-text);

@@ -1,27 +1,30 @@
 import { computeRoadLayout } from "../../domain/roadLayout";
 import type { PathPosition, PositionKey } from "../../domain/pathProgress";
 import { usePathTheme } from "../../theme/PathThemeContext";
+import { useIsMobile } from "../../hooks/useMediaQuery";
 import { SkillNode } from "./SkillNode";
+import { SkillGroupNode } from "./SkillGroupNode";
 import styles from "./SkillRoad.module.css";
-
-/** SkillNode's card width, and half of it — nodes are centred on their layout x. */
-const NODE_WIDTH_PX = 84;
-const NODE_HALF_WIDTH_PX = NODE_WIDTH_PX / 2;
 
 /**
  * `left` for a node centred at `pct`% of the container.
  *
  * The clamp is the load-bearing part, and it has to happen in CSS rather than
- * in computeRoadLayout: the layout's own clamp keeps a node's centre 42
- * LOGICAL units from the edge, but 42 logical units is 13.1% of the logical
- * width, and 13.1% of a container narrower than 320px is fewer than the 42
- * REAL pixels this offset subtracts. Mixing the two on a small phone pushes
- * `left` negative and hangs the card off the edge. min()/max() resolve
- * against the actual used width, whatever it turns out to be, so this stays
- * correct without SkillRoad ever measuring the container.
+ * in computeRoadLayout: the layout's own clamp keeps a node's centre a fixed
+ * number of LOGICAL units from the edge, but that many logical units is a
+ * fraction of the logical width, and that same fraction of a container
+ * narrower than the logical width is fewer REAL pixels than this offset
+ * subtracts. Mixing the two on a small phone pushes `left` negative and hangs
+ * the card off the edge. min()/max() resolve against the actual used width,
+ * whatever it turns out to be, so this stays correct without SkillRoad ever
+ * measuring the container.
+ *
+ * `--skill-node-width` (defaultPathTheme.module.css) is the one place the
+ * node's real px width is stated — no JS constant duplicates it here, so a
+ * skin can resize the card without touching this file.
  */
 function nodeLeft(pct: number): string {
-  return `max(0px, min(calc(100% - ${NODE_WIDTH_PX}px), calc(${pct}% - ${NODE_HALF_WIDTH_PX}px)))`;
+  return `max(0px, min(calc(100% - var(--skill-node-width)), calc(${pct}% - var(--skill-node-width) / 2)))`;
 }
 
 /**
@@ -34,14 +37,36 @@ function nodeLeft(pct: number): string {
  * — the SVG through its viewBox, the nodes through percentage `left` values —
  * and stay aligned at any container width without measuring anything.
  */
-export function SkillRoad({ positions, nextSkipTarget }: { positions: PathPosition[]; nextSkipTarget: PositionKey | null }) {
+export function SkillRoad({
+  positions,
+  nextSkipTarget,
+  placementTarget = null,
+}: {
+  positions: PathPosition[];
+  nextSkipTarget: PositionKey | null;
+  /** The single locked node (a future unit's own first standard position) that's clickable anyway, offering a placement test into it — see domain/pathProgress.ts's findNextUnitEntryTarget. Every other locked node stays plain/inert. */
+  placementTarget?: PositionKey | null;
+}) {
   const theme = usePathTheme();
-  const { logicalWidth } = theme.layout;
+  const isMobile = useIsMobile();
+  // The phone variant when the theme supplies one; a skin that doesn't is
+  // simply the same road at every width, which is a legitimate answer for a
+  // skin. Picked here, not in PathThemeProvider — the provider's job is to
+  // supply a theme value, and returning a different object per viewport
+  // would break identity comparisons on an exported const.
+  const layoutConfig = (isMobile && theme.mobileLayout) || theme.layout;
+  const { logicalWidth } = layoutConfig;
   const Motif = theme.motif;
 
+  // On a phone a forked position renders as ONE composite node
+  // (SkillGroupNode) — an 84px card can't show real lesson titles legibly
+  // for more than one skill on a narrow screen. The geometry module needs no
+  // opinion about why: a collapsed fork is arithmetically a singleton, so it
+  // is simply asked for one node at that position instead of N.
+  const collapseForks = isMobile;
   const layout = computeRoadLayout(
-    positions.map((p) => p.skills.length),
-    theme.layout,
+    positions.map((p) => (collapseForks ? 1 : p.skills.length)),
+    layoutConfig,
   );
 
   if (positions.length === 0) return null;
@@ -74,17 +99,28 @@ export function SkillRoad({ positions, nextSkipTarget }: { positions: PathPositi
       </svg>
 
       {layout.nodes.map((node) => {
-        const skill = positions[node.positionIndex].skills[node.skillIndex];
+        const position = positions[node.positionIndex];
+        const isGroup = collapseForks && position.skills.length > 1;
+        const skill = position.skills[node.skillIndex];
         return (
           <div
-            key={`${skill.unitKey}/${skill.skillKey}`}
+            // Position-based, not skill-based: a group node has no single
+            // skill key, and a skill-keyed list would remount the entire
+            // road when the breakpoint is crossed.
+            key={`${position.skills[0].unitKey}#${node.positionIndex}#${node.skillIndex}`}
             className={styles.nodeWrap}
             style={{ left: nodeLeft(pct(node.x)), top: `${node.y}px` }}
-            // Marks the one node PathPage scrolls to on load — there's at
-            // most one "current" standard skill across the whole journey.
-            data-current-node={skill.status === "current" ? "" : undefined}
+            // From the POSITION's status, not the skill's — there's at most
+            // one "current" standard position across the whole journey, and
+            // a collapsed fork has no per-skill node for PathPage's
+            // scroll-to-current effect to find otherwise.
+            data-current-node={position.status === "current" ? "" : undefined}
           >
-            <SkillNode skill={skill} nextSkipTarget={nextSkipTarget} />
+            {isGroup ? (
+              <SkillGroupNode position={position} nextSkipTarget={nextSkipTarget} />
+            ) : (
+              <SkillNode skill={skill} nextSkipTarget={nextSkipTarget} placementTarget={placementTarget} />
+            )}
           </div>
         );
       })}
