@@ -5,16 +5,10 @@ import { useEnrollCourse, useSwitchActiveCourse } from "../../hooks/useEnrollmen
 import { getLanguageInfo } from "../../domain/language";
 import { CourseCatalogModal } from "../course/CourseCatalogModal";
 import { DirectionalText } from "../common/DirectionalText";
+import { FlagBadge } from "./FlagBadge";
 import { errorMessage } from "../../lib/errors";
 import badgeStyles from "./LanguageBadge.module.css";
 import styles from "./CourseSwitcher.module.css";
-
-function flagStyle(courseCode: string) {
-  const info = getLanguageInfo(courseCode);
-  return info
-    ? { backgroundImage: `linear-gradient(to bottom, ${info.flagColors.join(", ")})` }
-    : { background: "var(--color-locked)" };
-}
 
 /**
  * The top-right course switcher — what a learner enrolled in more than one
@@ -98,15 +92,14 @@ export function CourseSwitcher() {
       <button
         ref={triggerRef}
         type="button"
-        className={`${badgeStyles.badge} ${styles.trigger}`}
-        style={flagStyle(activeCode)}
+        className={styles.trigger}
         onClick={() => setIsOpen((open) => !open)}
         aria-haspopup="menu"
         aria-expanded={isOpen}
         aria-label={`Current language: ${activeInfo?.displayName ?? activeCode}. Change language.`}
         title={activeInfo?.displayName ?? activeCode}
       >
-        {activeInfo?.flagCode ?? activeCode.toUpperCase()}
+        <FlagBadge courseCode={activeCode} />
       </button>
 
       {isOpen && (
@@ -160,9 +153,7 @@ export function CourseSwitcher() {
                   else switchActive.mutate(code, { onSuccess: () => setIsOpen(false) });
                 }}
               >
-                <span className={badgeStyles.badge} style={flagStyle(code)} aria-hidden="true">
-                  {info?.flagCode ?? code.toUpperCase()}
-                </span>
+                <FlagBadge courseCode={code} />
                 <span className={styles.names}>
                   {entry && (
                     <DirectionalText courseCode={code} className={styles.nativeName}>

@@ -108,6 +108,16 @@ export interface LocalAppPrefs {
   >;
   /** True once the learner has ticked "Don't ask me again" on the remove-custom-font confirmation (Settings -> Appearance). */
   suppressRemoveFontWarning: boolean;
+  /**
+   * Which Iranian flag represents the Persian course's badge (CourseSwitcher,
+   * CourseCatalogList) — "pahlavi" is the pre-1979 lion-and-sun tricolour
+   * (assets/flags/flag-ir-lion.svg), "iri" is the current Islamic Republic
+   * flag (flag-icons' `ir`). Local rather than a synced user_prefs column,
+   * same reasoning as fontPrefs: which flag a learner wants to see is a
+   * per-device display choice, not a fact about how they study. Defaults to
+   * "pahlavi".
+   */
+  persianFlag: "pahlavi" | "iri";
 }
 
 const DEFAULTS: LocalAppPrefs = {
@@ -126,6 +136,7 @@ const DEFAULTS: LocalAppPrefs = {
     latin: { family: null, sizePct: 100, custom: [] },
   },
   suppressRemoveFontWarning: false,
+  persianFlag: "pahlavi",
 };
 
 function storageKey(userId: string): string {

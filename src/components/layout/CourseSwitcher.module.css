@@ -7,9 +7,12 @@
 }
 
 .trigger {
+  display: inline-flex;
   cursor: pointer;
-  /* .badge (LanguageBadge.module.css) supplies the size, radius, border and
-     text treatment; a <button> just needs its own chrome cleared. */
+  /* FlagBadge (its own .badge class) supplies the size, radius, border and
+     text/image treatment; a <button> just needs its own chrome cleared. */
+  padding: 0;
+  border: none;
   background-color: transparent;
   font-family: inherit;
 }

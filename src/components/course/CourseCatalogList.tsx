@@ -1,13 +1,12 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { useCourseCatalog } from "../../hooks/useCourseCatalog";
 import { useListNavigation } from "../../hooks/useListNavigation";
-import { getLanguageInfo } from "../../domain/language";
 import { Button } from "../common/Button";
 import { DirectionalText } from "../common/DirectionalText";
 import { ErrorBanner } from "../common/ErrorBanner";
 import { Spinner } from "../common/Spinner";
+import { FlagBadge } from "../layout/FlagBadge";
 import { errorMessage } from "../../lib/errors";
-import badgeStyles from "../layout/LanguageBadge.module.css";
 import styles from "./CourseCatalogList.module.css";
 
 interface CourseCatalogListProps {
@@ -144,7 +143,6 @@ export function CourseCatalogList({
       <div id={listId} ref={listRef} className={styles.list} role="listbox" aria-label="Languages">
         {filtered.length === 0 && <p className={styles.empty}>No languages match “{query.trim()}”.</p>}
         {filtered.map((course, index) => {
-          const info = getLanguageInfo(course.code);
           const isEnrolled = enrolled.has(course.code);
           const isSelected = selected.includes(course.code);
           const classes = [
@@ -168,17 +166,7 @@ export function CourseCatalogList({
               onMouseMove={() => nav.setActiveIndex(index)}
               onClick={() => select(index)}
             >
-              <span
-                className={badgeStyles.badge}
-                style={
-                  info
-                    ? { backgroundImage: `linear-gradient(to bottom, ${info.flagColors.join(", ")})` }
-                    : { background: "var(--color-locked)" }
-                }
-                aria-hidden="true"
-              >
-                {info?.flagCode ?? course.code.toUpperCase()}
-              </span>
+              <FlagBadge courseCode={course.code} />
               <DirectionalText courseCode={course.code} className={styles.nativeName}>
                 {course.nativeName}
               </DirectionalText>

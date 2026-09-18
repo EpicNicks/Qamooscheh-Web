@@ -1,5 +1,6 @@
 import { getLanguageInfo } from "../../domain/language";
 import { FontPicker } from "../../components/settings/FontPicker";
+import { PersianFlagPicker } from "../../components/settings/PersianFlagPicker";
 import type { SettingsSectionProps } from "./SettingsSectionProps";
 import styles from "./SettingsPage.module.css";
 
@@ -23,6 +24,8 @@ export function AppearanceSection({ courseCode }: SettingsSectionProps) {
 
       {info && <FontPicker script={info.language} label={`${info.displayName} font`} dir={info.direction} />}
       <FontPicker script="latin" label="English / Latin font" dir="ltr" />
+
+      {info?.language === "fa" && <PersianFlagPicker />}
     </div>
   );
 }
