@@ -27,3 +27,20 @@
   color: inherit;
   opacity: 0.7;
 }
+
+/* Same shape as AnnotatedText.module.css's .rt — this toggle's "Both" option
+   demonstrates the real ruby markup that mode renders. */
+.rt {
+  font-size: 0.6em;
+  font-weight: 400;
+  opacity: 0.75;
+  font-family: var(--font-sans);
+  unicode-bidi: isolate;
+}
+
+.caption {
+  margin: 0;
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+  text-align: center;
+}

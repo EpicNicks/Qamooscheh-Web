@@ -13,9 +13,10 @@ import styles from "./Exercise.module.css";
  * of blocking the lesson on unbuilt infrastructure. Replace the input with
  * real audio capture once that pipeline is decided.
  */
-export function SpeakExercise({ exercise, onSubmit, disabled, courseCode, autoplayAudio, hintMap, hintSettings, advance }: ExerciseProps) {
+export function SpeakExercise({ exercise, onSubmit, disabled, courseCode, autoplayAudio, hintMap, textSettings, advance }: ExerciseProps) {
   const [text, setText] = useState("");
   const languageInfo = getLanguageInfo(courseCode);
+  const isNativeScript = exercise.scriptMode === "native";
 
   function submit() {
     onSubmit(text);
@@ -24,7 +25,7 @@ export function SpeakExercise({ exercise, onSubmit, disabled, courseCode, autopl
 
   return (
     <div className={styles.wrap}>
-      <ExercisePrompt text={exercise.prompt} courseCode={courseCode} autoplayAudio={autoplayAudio} hintMap={hintMap} hintSettings={hintSettings} />
+      <ExercisePrompt text={exercise.prompt} courseCode={courseCode} autoplayAudio={autoplayAudio} hintMap={hintMap} textSettings={textSettings} />
       <p className={styles.note}>Speech capture isn't wired up yet — type what you'd say.</p>
       <input
         className={styles.input}
@@ -32,9 +33,12 @@ export function SpeakExercise({ exercise, onSubmit, disabled, courseCode, autopl
         onChange={(e) => setText(e.target.value)}
         disabled={disabled}
         autoFocus
-        dir={languageInfo?.direction}
-        style={languageInfo ? { fontFamily: languageInfo.nativeFontStack } : undefined}
+        dir={isNativeScript ? languageInfo?.direction : "ltr"}
+        // Font-family only — see TypeInExercise's identical input for why
+        // the font-size variable doesn't apply here too.
+        style={isNativeScript && languageInfo ? { fontFamily: `var(--font-script-${languageInfo.language})` } : undefined}
       />
+      {languageInfo && !isNativeScript && <p className={styles.note}>Type this one in Latin letters (romanized), not the native script.</p>}
       {advance ? (
         <Button onClick={advance.onAdvance}>{advance.label}</Button>
       ) : (

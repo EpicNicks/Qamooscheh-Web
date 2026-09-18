@@ -11,16 +11,17 @@ interface ScriptModeToggleProps {
 }
 
 /**
- * A visual, self-demonstrating version of the native/romanized choice
- * Settings' plain <select> also offers (user_prefs.scriptMode). Built on the
- * shared SegmentedToggle (sliding pill, springy easing) rather than its own
- * copy of that mechanic — this is just custom label content: each option
- * shows the language's own name rendered the way THAT option would render
- * it (e.g. "فارسی" vs "Farsi"), with a small "Native"/"Latin" subtitle
- * naming the script itself. "both" (Settings-only) isn't offered here;
- * picking either option here writes straight to "native" or "romanized" —
- * a `value` of "both" (set from the full Settings page) falls back to
- * showing "native" selected, same as before this used SegmentedToggle.
+ * A visual, self-demonstrating version of the native/both/romanized choice
+ * (user_prefs.scriptMode) — built on the shared SegmentedToggle (sliding
+ * pill, springy easing) rather than its own copy of that mechanic. Each
+ * option demonstrates the actual on-screen RENDERING that choice produces
+ * (see AnnotatedText.tsx/domain/annotation.ts's resolveScriptDisplay), not
+ * just the option's name: "Native" shows the language's own name in its own
+ * script, "Both" shows that same name with a real `<ruby>` reading above it
+ * (exactly the markup AnnotatedWord renders in "both" display), "Latin"
+ * shows the romanized name alone. Ordered as a spectrum — native, both,
+ * romanized — rather than native/romanized/native, so the middle option
+ * reads as a midpoint rather than an afterthought.
  *
  * `language` doubles as its own courseCode for getLanguageInfo/
  * DirectionalText — code and language coincide for fa/ja today (see
@@ -33,7 +34,7 @@ export function ScriptModeToggle({ language, value, onChange }: ScriptModeToggle
     <div className={styles.wrap}>
       <p className={styles.heading}>Text Mode</p>
       <SegmentedToggle
-        value={value === "romanized" ? "romanized" : "native"}
+        value={value}
         onChange={onChange}
         options={[
           {
@@ -48,6 +49,22 @@ export function ScriptModeToggle({ language, value, onChange }: ScriptModeToggle
             ),
           },
           {
+            value: "both",
+            label: (
+              <>
+                <DirectionalText courseCode={language} className={styles.example}>
+                  <ruby>
+                    {info.nativeName}
+                    <rt className={styles.rt} dir="ltr">
+                      {info.romanizedName}
+                    </rt>
+                  </ruby>
+                </DirectionalText>
+                <span className={styles.subtitle}>Both</span>
+              </>
+            ),
+          },
+          {
             value: "romanized",
             label: (
               <>
@@ -58,6 +75,7 @@ export function ScriptModeToggle({ language, value, onChange }: ScriptModeToggle
           },
         ]}
       />
+      <p className={styles.caption}>Applies to the text on screen right away, and to which exercises you get next.</p>
     </div>
   );
 }

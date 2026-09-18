@@ -1,11 +1,12 @@
-import { getLanguageInfo, detectScriptDirection } from "../../domain/language";
+import { getLanguageInfo } from "../../domain/language";
+import { displayDirection } from "../../domain/annotation";
 import { usePhraseAudio } from "../../hooks/usePhraseAudio";
 import { useVoiceAvailability } from "../../hooks/useVoiceAvailability";
 import { useNativeTextAlign } from "../../hooks/useNativeTextAlign";
 import { PlayAudioButton } from "./PlayAudioButton";
 import { NoVoiceButton } from "./NoVoiceButton";
-import { RomanizedText } from "./RomanizedText";
-import { EMPTY_HINT_MAP, NO_HINTS, type HintSettings, type WordHint } from "../../domain/romanization";
+import { AnnotatedText } from "./AnnotatedText";
+import { EMPTY_HINT_MAP, PLAIN_TEXT, type TextDisplaySettings, type WordHint } from "../../domain/romanization";
 import styles from "./Exercise.module.css";
 
 interface ExercisePromptProps {
@@ -13,10 +14,10 @@ interface ExercisePromptProps {
   courseCode?: string | null;
   /** user_prefs.autoplay_audio — plays this prompt once, the moment it's shown, when true. */
   autoplayAudio?: boolean;
-  /** Native word -> hover hint (domain/romanization.ts), pre-gated by the caller — non-empty only when this prompt is itself in the target language (a reading/story exercise) and at least one hint toggle is on. Words with no entry render plain, so an empty map is the same as omitting this. */
+  /** Native word -> hover hint (domain/romanization.ts), pre-gated by the caller — non-empty only when this prompt is itself in the target language (a reading/story exercise) and at least one hint toggle is on, or its display isn't plain "native". Words with no entry render plain, so an empty map is the same as omitting this. */
   hintMap?: ReadonlyMap<string, WordHint>;
-  /** Which of a word's hints are enabled — see domain/romanization.ts's HintSettings. */
-  hintSettings?: HintSettings;
+  /** How the base text renders, and which of a word's hints are enabled — see domain/romanization.ts's TextDisplaySettings. */
+  textSettings?: TextDisplaySettings;
 }
 
 /**
@@ -35,14 +36,17 @@ export function ExercisePrompt({
   courseCode,
   autoplayAudio,
   hintMap = EMPTY_HINT_MAP,
-  hintSettings = NO_HINTS,
+  textSettings = PLAIN_TEXT,
 }: ExercisePromptProps) {
   const languageInfo = getLanguageInfo(courseCode);
   const speechLang = languageInfo?.speechLang ?? null;
   const voiceAvailable = useVoiceAvailability(speechLang);
+  // usePhraseAudio keeps the original native `text` regardless of display —
+  // TTS reads the actual language, not whatever "romanized" substitutes on
+  // screen.
   const audio = usePhraseAudio({ text, speechLang, autoplay: autoplayAudio && voiceAvailable });
   const { align } = useNativeTextAlign();
-  const direction = detectScriptDirection(text);
+  const direction = displayDirection(text, textSettings.display);
 
   return (
     <div className={styles.promptRow}>
@@ -50,7 +54,7 @@ export function ExercisePrompt({
           localAppPrefs.ts's NativeTextAlign — an LTR prompt keeps its
           natural browser default either way. */}
       <p className={styles.prompt} dir={direction} style={direction === "rtl" ? { textAlign: align } : undefined}>
-        <RomanizedText text={text} hintMap={hintMap} settings={hintSettings} />
+        <AnnotatedText text={text} hintMap={hintMap} settings={textSettings} />
       </p>
       {speechLang &&
         (voiceAvailable ? (

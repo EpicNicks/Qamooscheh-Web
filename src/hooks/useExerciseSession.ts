@@ -20,9 +20,12 @@ import { usePrefs } from "./usePrefs";
 import { useLexemeIndex } from "./useCourseContent";
 import { useShowRomanizationHints } from "./useShowRomanizationHints";
 import { useShowTranslationHints } from "./useShowTranslationHints";
+import { useShowFurigana } from "./useShowFurigana";
 import { useSkipConfirmation, type SkipConfirmation } from "./useSkipConfirmation";
 import { useAnswerConfirmation, type AnswerConfirmation } from "./useAnswerConfirmation";
-import { buildLexemeHintMap, type HintSettings, type WordHint } from "../domain/romanization";
+import { buildLexemeHintMap, type TextDisplaySettings, type WordHint } from "../domain/romanization";
+import { resolveScriptDisplay } from "../domain/annotation";
+import { getLanguageInfo } from "../domain/language";
 import type { KeyboardMode } from "../domain/enums";
 import type { CourseRef } from "../types/api";
 
@@ -31,8 +34,8 @@ export interface ExerciseSession<TItem, TFeedback> {
   keyboardMode: KeyboardMode | undefined;
   /** user_prefs.autoplay_audio — plays a prompt aloud the moment it's shown. */
   autoplayAudio: boolean | undefined;
-  /** The learner's two local hint toggles, in the shape RomanizedText reads. */
-  hintSettings: HintSettings;
+  /** What the base text shows (native/both/romanized — domain/annotation.ts's resolveScriptDisplay) plus the learner's two local hint toggles, in the shape AnnotatedText reads. */
+  textSettings: TextDisplaySettings;
   /** Course-wide word -> hint map, UNGATED — pass through gateLexemeHintMap with the exercise at hand before handing it to a component. */
   courseHintMap: ReadonlyMap<string, WordHint>;
   skip: SkipConfirmation;
@@ -52,16 +55,23 @@ export function useExerciseSession<TItem, TFeedback>(
   const lexemeIndex = useLexemeIndex(course);
   const romanizationHints = useShowRomanizationHints();
   const translationHints = useShowTranslationHints();
+  const furigana = useShowFurigana();
   const courseHintMap = useMemo(() => buildLexemeHintMap(lexemeIndex.data), [lexemeIndex.data]);
   const skip = useSkipConfirmation();
   // Enter confirms the answer — unless the skip modal is up, which claims
   // Enter/Escape for itself.
   const confirmation = useAnswerConfirmation<TItem, TFeedback>(skip.isConfirming);
 
+  const display = resolveScriptDisplay({
+    scriptMode: prefs.data?.scriptMode,
+    language: getLanguageInfo(course?.code)?.language,
+    showFurigana: furigana.enabled,
+  });
+
   return {
     keyboardMode: prefs.data?.keyboardMode,
     autoplayAudio: prefs.data?.autoplayAudio,
-    hintSettings: { translationEnabled: translationHints.enabled, romanizationEnabled: romanizationHints.enabled },
+    textSettings: { display, translationEnabled: translationHints.enabled, romanizationEnabled: romanizationHints.enabled },
     courseHintMap,
     skip,
     confirmation,

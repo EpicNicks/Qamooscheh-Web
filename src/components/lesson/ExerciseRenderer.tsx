@@ -1,5 +1,5 @@
 import type { ExerciseType, KeyboardMode } from "../../domain/enums";
-import type { HintSettings, WordHint } from "../../domain/romanization";
+import type { TextDisplaySettings, WordHint } from "../../domain/romanization";
 import type { ExerciseArtifact } from "../../types/content";
 import { WordBankExercise } from "./WordBankExercise";
 import { TypeInExercise } from "./TypeInExercise";
@@ -25,8 +25,8 @@ export interface ExerciseProps {
    * just render it unconditionally.
    */
   hintMap?: ReadonlyMap<string, WordHint>;
-  /** Which of a word's hints (translation, phonetic reading) are actually enabled right now — see domain/romanization.ts's HintSettings. */
-  hintSettings?: HintSettings;
+  /** Which of a word's hints (translation, phonetic reading) are actually enabled right now — see domain/romanization.ts's TextDisplaySettings. */
+  textSettings?: TextDisplaySettings;
   /**
    * Set once this exercise has been answered and is waiting on the learner
    * to explicitly confirm before the lesson moves on — every exercise
@@ -53,7 +53,7 @@ export function ExerciseRenderer({
   keyboardMode,
   autoplayAudio,
   hintMap,
-  hintSettings,
+  textSettings,
   advance,
 }: ExerciseProps & { renderType: ExerciseType }) {
   switch (renderType) {
@@ -66,7 +66,7 @@ export function ExerciseRenderer({
           courseCode={courseCode}
           autoplayAudio={autoplayAudio}
           hintMap={hintMap}
-          hintSettings={hintSettings}
+          textSettings={textSettings}
           advance={advance}
         />
       );
@@ -80,7 +80,7 @@ export function ExerciseRenderer({
           keyboardMode={keyboardMode}
           autoplayAudio={autoplayAudio}
           hintMap={hintMap}
-          hintSettings={hintSettings}
+          textSettings={textSettings}
           advance={advance}
         />
       );
@@ -93,7 +93,7 @@ export function ExerciseRenderer({
           courseCode={courseCode}
           autoplayAudio={autoplayAudio}
           hintMap={hintMap}
-          hintSettings={hintSettings}
+          textSettings={textSettings}
           advance={advance}
         />
       );
@@ -106,7 +106,7 @@ export function ExerciseRenderer({
           courseCode={courseCode}
           autoplayAudio={autoplayAudio}
           hintMap={hintMap}
-          hintSettings={hintSettings}
+          textSettings={textSettings}
           advance={advance}
         />
       );

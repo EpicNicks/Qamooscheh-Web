@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { XpBurst } from "./XpBurst";
 import { ReportIssue } from "./ReportIssue";
-import { RomanizedText } from "./RomanizedText";
-import { detectScriptDirection } from "../../domain/language";
-import { EMPTY_HINT_MAP, NO_HINTS, type HintSettings, type WordHint } from "../../domain/romanization";
+import { AnnotatedText } from "./AnnotatedText";
+import { displayDirection } from "../../domain/annotation";
+import { EMPTY_HINT_MAP, PLAIN_TEXT, type TextDisplaySettings, type WordHint } from "../../domain/romanization";
 import styles from "./AnswerFeedback.module.css";
 
 export interface AnswerFeedbackProps {
@@ -25,8 +25,8 @@ export interface AnswerFeedbackProps {
   submittedText?: string;
   /** Native word -> hover hint (domain/romanization.ts), pre-gated by the caller — see ExerciseProps.hintMap's own doc. Words with no entry render plain, so an empty/omitted map is the same as plain text. */
   hintMap?: ReadonlyMap<string, WordHint>;
-  /** Which of a word's hints are enabled — see domain/romanization.ts's HintSettings. */
-  hintSettings?: HintSettings;
+  /** How the base text renders, and which of a word's hints are enabled — see domain/romanization.ts's TextDisplaySettings. */
+  textSettings?: TextDisplaySettings;
   /** Cites which lesson part a report is about — omit to hide the Report control entirely. */
   reportContext?: { exerciseTags: string[]; prompt: string };
 }
@@ -46,7 +46,7 @@ export function AnswerFeedback({
   answerIsTokenized = false,
   submittedText,
   hintMap = EMPTY_HINT_MAP,
-  hintSettings = NO_HINTS,
+  textSettings = PLAIN_TEXT,
   reportContext,
 }: AnswerFeedbackProps) {
   const [revealed, setRevealed] = useState(false);
@@ -67,12 +67,12 @@ export function AnswerFeedback({
       <div className={`${styles.incorrect} ${styles.shake}`} role="status">
         {revealed ? (
           <div className={styles.revealed}>
-            <span className={styles.verdict} dir={answer ? detectScriptDirection(answer.join(" ")) : undefined}>
+            <span className={styles.verdict} dir={answer ? displayDirection(answer.join(" "), textSettings.display) : undefined}>
               {answer && (
-                <RomanizedText
+                <AnnotatedText
                   text={answerIsTokenized ? answer.join(" ") : answer.join(" / ")}
                   hintMap={hintMap}
-                  settings={hintSettings}
+                  settings={textSettings}
                 />
               )}
             </span>

@@ -29,7 +29,7 @@ function isInteractiveTarget(target: EventTarget | null, except: HTMLElement | n
  * this component asks for — see keyboard/scriptEngines.tsx. Adding a new
  * keyboard kind means writing one engine there; nothing here changes.
  */
-export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keyboardMode, autoplayAudio, hintMap, hintSettings, advance }: ExerciseProps) {
+export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keyboardMode, autoplayAudio, hintMap, textSettings, advance }: ExerciseProps) {
   const [text, setText] = useState("");
   const [usedHint, setUsedHint] = useState(false);
   const [hintShown, setHintShown] = useState(false);
@@ -42,6 +42,11 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
   const inputWrapRef = useRef<HTMLDivElement>(null);
 
   const languageInfo = getLanguageInfo(courseCode);
+  // A "romanized" exercise is answered in Latin script regardless of the
+  // course's own direction/font — only "native" exercises get the course's
+  // RTL direction and native font stack (see WordBankExercise's tileCourseCode
+  // for the same gate applied to tiles).
+  const isNativeScript = exercise.scriptMode === "native";
   // Still read here (rather than inside the engine) because it also decides
   // which engine to ask for in the first place.
   const fa = useKeyboardInputMethod("fa");
@@ -171,7 +176,7 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
 
   return (
     <div className={styles.wrap}>
-      <ExercisePrompt text={exercise.prompt} courseCode={courseCode} autoplayAudio={autoplayAudio} hintMap={hintMap} hintSettings={hintSettings} />
+      <ExercisePrompt text={exercise.prompt} courseCode={courseCode} autoplayAudio={autoplayAudio} hintMap={hintMap} textSettings={textSettings} />
       <div className={styles.inputWrap} ref={inputWrapRef}>
         <input
           ref={inputRef}
@@ -180,11 +185,18 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
           onChange={(e) => updateText(() => e.target.value)}
           disabled={disabled}
           autoFocus
-          dir={languageInfo?.direction}
-          style={languageInfo ? { fontFamily: languageInfo.nativeFontStack } : undefined}
+          dir={isNativeScript ? languageInfo?.direction : "ltr"}
+          // Font-family only, not the per-script font-SIZE variable —
+          // unlike DirectionalText (which wraps arbitrary inline content),
+          // this element already has its own base size from
+          // Exercise.module.css's .input, and a percentage font-size here
+          // would resolve against the inherited size instead of scaling that
+          // base, discarding it rather than adjusting it.
+          style={isNativeScript && languageInfo ? { fontFamily: `var(--font-script-${languageInfo.language})` } : undefined}
         />
         {engine.overlayNode}
       </div>
+      {languageInfo && !isNativeScript && <p className={styles.note}>Type this one in Latin letters (romanized), not the native script.</p>}
       {arabicVariantHits.length > 0 && (
         // API_SPEC.md's Persian-invariants note: "the frontend rejects and
         // teaches" Arabic-only codepoints — a nudge, not a hard block, since

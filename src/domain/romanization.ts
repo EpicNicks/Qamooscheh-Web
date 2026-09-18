@@ -10,11 +10,20 @@
 // lexemeIndex fetch and reused across every exercise on screen.
 import type { LexemeIndex } from "../types/content";
 import type { ExerciseScriptMode } from "./enums";
+import type { ScriptDisplay } from "./annotation";
 
-/** What a hovered/focused word can offer — its meaning and, when the source lexeme has one, a phonetic reading. Which of the two actually renders is up to the viewing component's own HintSettings, not this data. */
+/**
+ * What a hovered/focused word can offer, plus what an annotated rendering
+ * needs to show a reading above (or substitute for) the native surface.
+ * Which of these actually renders is up to the viewing component's own
+ * TextDisplaySettings, not this data.
+ */
 export interface WordHint {
   translation: string;
+  /** Latin transliteration. The tooltip's phonetic line, and the on-screen base text in "romanized" display. */
   romanization: string | null;
+  /** The small text printed above this surface in "both" display: Japanese kana furigana where authored, otherwise the Latin romanization. Persian has no separate reading, so for fa these are always the same string. */
+  ruby: string | null;
 }
 
 export function buildLexemeHintMap(lexemeIndex: LexemeIndex | null | undefined): Map<string, WordHint> {
@@ -31,6 +40,7 @@ export function buildLexemeHintMap(lexemeIndex: LexemeIndex | null | undefined):
     map.set(surface, {
       translation: existing?.translation ?? entry.gloss,
       romanization: existing?.romanization ?? entry.romanization,
+      ruby: existing?.ruby ?? entry.reading ?? entry.romanization,
     });
   }
   return map;
@@ -39,56 +49,62 @@ export function buildLexemeHintMap(lexemeIndex: LexemeIndex | null | undefined):
 /** Shared empty instance for "hints are off/not applicable right now" — avoids allocating a fresh Map every render just to disable the feature. */
 export const EMPTY_HINT_MAP: ReadonlyMap<string, WordHint> = new Map();
 
-/** Shared "nothing enabled" instance for components whose caller omitted `HintSettings` entirely — kept beside EMPTY_HINT_MAP since the two defaults are a matched pair (an empty map with settings enabled, or vice versa, would still correctly show nothing, but every component here defaults both together). */
-export const NO_HINTS: HintSettings = { translationEnabled: false, romanizationEnabled: false };
+/** Shared "nothing enabled, native display" instance for components whose caller omitted `TextDisplaySettings` entirely — kept beside EMPTY_HINT_MAP since the two defaults are a matched pair (an empty map with settings enabled, or vice versa, would still correctly show nothing, but every component here defaults both together). */
+export const PLAIN_TEXT: TextDisplaySettings = { display: "native", translationEnabled: false, romanizationEnabled: false };
 
 /**
- * Which of a word's two possible hints (translation, phonetic reading) a
- * hovered word should actually offer — the learner's two independent local
- * toggles (hooks/useShowTranslationHints.ts, hooks/useShowRomanizationHints.ts).
- * Threaded down to RomanizedWord/RomanizedText alongside the hint map itself
- * so the tooltip-assembly logic in components/lesson/RomanizedText.tsx can
- * decide per-word what to include, rather than this module pre-formatting
+ * Everything that decides how a word/tile/prompt actually renders: which
+ * script is the base line (and whether a reading is printed above it —
+ * `display`, from user_prefs.scriptMode plus ja's local showFurigana via
+ * domain/annotation.ts's resolveScriptDisplay), and the learner's two
+ * independent local hover-hint toggles (hooks/useShowTranslationHints.ts,
+ * hooks/useShowRomanizationHints.ts). Threaded down to
+ * AnnotatedWord/AnnotatedText alongside the hint map itself so the rendering
+ * and tooltip-assembly logic in components/lesson/AnnotatedText.tsx can
+ * decide per-word what to show, rather than this module pre-formatting
  * strings for it.
  */
-export interface HintSettings {
+export interface TextDisplaySettings {
+  display: ScriptDisplay;
   translationEnabled: boolean;
   romanizationEnabled: boolean;
 }
 
 /**
  * Whether the course-wide hint map should actually be handed to this
- * exercise's components, or the shared empty one instead — two independent
- * reasons to hide it: both local hint toggles are off (nothing to show
- * either way), or this specific exercise's own scriptMode isn't "native" (a
+ * exercise's components, or the shared empty one instead. Two independent
+ * reasons it's needed: the learner's hover-hint toggles (translation and/or
+ * romanization), or a non-native `display` (romanized substitution or ruby
+ * annotation both need the map to know what to show/substitute). Either way
+ * it's moot when this specific exercise's own scriptMode isn't "native" (a
  * "romanized"-authored exercise's own tiles/prompt are already Latin —
- * ExerciseArtifact's own doc, so there is no native-script text to hover).
- * Centralized here so every page gates the same way instead of each
- * re-deriving the check.
+ * ExerciseArtifact's own doc, so there is no native-script text to annotate
+ * or hover). Centralized here so every page gates the same way instead of
+ * each re-deriving the check.
  *
- * <b>Deliberately NOT gated on the learner's own scriptMode preference
- * (user_prefs.script_mode).</b> That preference is what a lesson's session
- * plan uses to pick which exercises to serve, but it names no such filter for
- * stories/conversations/songs — useSkillWalkthrough reads a skill's
- * exercises straight through, in authored order, regardless of the learner's
- * preference (see its own doc). A "romanized" preference therefore does NOT
- * mean "no native-script text is ever on screen" — a Persian story authored
- * `scriptMode: "native"` still shows native text to a learner who prefers
- * Latin, and that text still deserves a hover hint. Whether native text is
- * actually present is a fact about THIS exercise, not about the learner's
- * preference, so `exerciseScriptMode` is the only thing this checks.
+ * <b>Deliberately NOT gated on the learner's own scriptMode preference for
+ * whether native text is PRESENT.</b> That preference is what a lesson's
+ * session plan uses to pick which exercises to serve, but it names no such
+ * filter for stories/conversations/songs — useSkillWalkthrough reads a
+ * skill's exercises straight through, in authored order, regardless of the
+ * learner's preference (see its own doc). A "romanized" `display` therefore
+ * does NOT mean "no native-script text is ever on screen" — a Persian story
+ * authored `scriptMode: "native"` still shows native text by default, and
+ * this function is what makes the learner's display preference actually
+ * apply to it (substituting/annotating that text) rather than being a
+ * no-op. Whether native text is actually present is a fact about THIS
+ * exercise, not about the learner's preference, so `exerciseScriptMode` is
+ * the only thing this checks for eligibility.
  */
 export function gateLexemeHintMap(
   courseMap: ReadonlyMap<string, WordHint>,
   opts: {
-    settings: HintSettings;
+    settings: TextDisplaySettings;
     exerciseScriptMode: ExerciseScriptMode;
   },
 ): ReadonlyMap<string, WordHint> {
-  if (
-    (!opts.settings.translationEnabled && !opts.settings.romanizationEnabled) ||
-    opts.exerciseScriptMode !== "native"
-  ) {
+  const nothingToShow = !opts.settings.translationEnabled && !opts.settings.romanizationEnabled && opts.settings.display === "native";
+  if (nothingToShow || opts.exerciseScriptMode !== "native") {
     return EMPTY_HINT_MAP;
   }
   return courseMap;

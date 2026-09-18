@@ -83,6 +83,8 @@ export interface LexemeIndexEntry {
   register: Register | null;
   romanization: string | null;
   romanizationIsAuthored: boolean;
+  /** The reading printed ABOVE this surface in "both" script display: Japanese kana furigana. No course publishes this yet, so a missing property means null, same as `ExerciseArtifact.hint` — callers fall back to `romanization` (see domain/romanization.ts's buildLexemeHintMap). */
+  reading?: string | null;
 }
 
 /** lexemes.json itself: a flat tag -> entry map. */

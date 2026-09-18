@@ -9,11 +9,11 @@ import { useEffect, useRef } from "react";
 import { ExerciseRenderer } from "./ExerciseRenderer";
 import { SessionProgressBar } from "./SessionProgressBar";
 import { AnswerFeedback } from "./AnswerFeedback";
-import { RomanizedText } from "./RomanizedText";
+import { AnnotatedText } from "./AnnotatedText";
 import { SkipLessonModal } from "./SkipLessonModal";
 import { CloseLessonButton } from "./CloseLessonButton";
 import { LanguageSettingsButton } from "./languageSettings/LanguageSettingsButton";
-import { detectScriptDirection } from "../../domain/language";
+import { displayDirection } from "../../domain/annotation";
 import { gateLexemeHintMap } from "../../domain/romanization";
 import { useNativeTextAlign } from "../../hooks/useNativeTextAlign";
 import type { ExerciseSession } from "../../hooks/useExerciseSession";
@@ -45,17 +45,18 @@ export function StoryTranscript({
   title,
   onSubmit,
 }: StoryTranscriptProps) {
-  const { skip, confirmation, hintSettings, courseHintMap, keyboardMode, autoplayAudio } = session;
+  const { skip, confirmation, textSettings, courseHintMap, keyboardMode, autoplayAudio } = session;
   const activeRef = useRef<HTMLDivElement>(null);
   const { align: nativeTextAlign } = useNativeTextAlign();
 
   const hintMapFor = (exercise: ExerciseArtifact) =>
-    gateLexemeHintMap(courseHintMap, { settings: hintSettings, exerciseScriptMode: exercise.scriptMode });
+    gateLexemeHintMap(courseHintMap, { settings: textSettings, exerciseScriptMode: exercise.scriptMode });
 
   // The alignment setting only applies to RTL blocks (localAppPrefs.ts's
   // NativeTextAlign) — an LTR line keeps its natural browser default either
-  // way.
-  const alignStyleFor = (text: string) => (detectScriptDirection(text) === "rtl" ? { textAlign: nativeTextAlign } : undefined);
+  // way. displayDirection, not detectScriptDirection: in "romanized" display
+  // the rendered base line is Latin regardless of the source script.
+  const alignStyleFor = (text: string) => (displayDirection(text, textSettings.display) === "rtl" ? { textAlign: nativeTextAlign } : undefined);
 
   const { answeredItem, feedback } = confirmation;
   // Everything before this ordinal has been answered AND confirmed — the
@@ -103,14 +104,18 @@ export function StoryTranscript({
                   <div className={styles.pastLineBody}>
                     <p
                       className={styles.pastPrompt}
-                      dir={detectScriptDirection(instance.exercise.prompt)}
+                      dir={displayDirection(instance.exercise.prompt, textSettings.display)}
                       style={alignStyleFor(instance.exercise.prompt)}
                     >
-                      <RomanizedText text={instance.exercise.prompt} hintMap={hintMap} settings={hintSettings} />
+                      <AnnotatedText text={instance.exercise.prompt} hintMap={hintMap} settings={textSettings} />
                     </p>
                     {answerText && (
-                      <p className={styles.pastCorrectAnswer} dir={detectScriptDirection(answerText)} style={alignStyleFor(answerText)}>
-                        <RomanizedText text={answerText} hintMap={hintMap} settings={hintSettings} />
+                      <p
+                        className={styles.pastCorrectAnswer}
+                        dir={displayDirection(answerText, textSettings.display)}
+                        style={alignStyleFor(answerText)}
+                      >
+                        <AnnotatedText text={answerText} hintMap={hintMap} settings={textSettings} />
                       </p>
                     )}
                     {result && !result.correct && (
@@ -134,7 +139,7 @@ export function StoryTranscript({
                   answerIsTokenized={answeredItem.exercise.type === "word_bank" || answeredItem.exercise.type === "match"}
                   submittedText={feedback.submittedText}
                   hintMap={hintMap}
-                  hintSettings={hintSettings}
+                  textSettings={textSettings}
                   reportContext={{ exerciseTags: answeredItem.exercise.tags, prompt: answeredItem.exercise.prompt }}
                 />
                 <ExerciseRenderer
@@ -146,7 +151,7 @@ export function StoryTranscript({
                   keyboardMode={keyboardMode}
                   autoplayAudio={autoplayAudio}
                   hintMap={hintMap}
-                  hintSettings={hintSettings}
+                  textSettings={textSettings}
                   advance={{ label: "Continue", onAdvance: confirmation.confirm }}
                 />
               </div>
@@ -165,7 +170,7 @@ export function StoryTranscript({
                   keyboardMode={keyboardMode}
                   autoplayAudio={autoplayAudio}
                   hintMap={hintMapFor(current.exercise)}
-                  hintSettings={hintSettings}
+                  textSettings={textSettings}
                 />
               </div>
             );
