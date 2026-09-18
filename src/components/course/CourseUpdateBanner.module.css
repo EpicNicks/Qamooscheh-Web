@@ -1,7 +1,6 @@
+/* Positioning is CourseSection.module.css's .stickyHeader's job — this banner
+   is one of that wrapper's flow children, not independently sticky. */
 .banner {
-  position: sticky;
-  top: calc(var(--header-height, 0px) + var(--space-3));
-  z-index: 5;
   display: flex;
   align-items: center;
   justify-content: center;

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { useBootstrap } from "../hooks/useBootstrap";
 import { useCoursePath } from "../hooks/useCourseContent";
 import { findNextStandardTarget, findNextUnitEntryTarget } from "../domain/pathProgress";
@@ -25,6 +25,28 @@ export function PathPage() {
   // findNextUnitEntryTarget's own doc on why).
   const nextUnitEntryTarget = findNextUnitEntryTarget(path);
 
+  const pageRef = useRef<HTMLDivElement>(null);
+  const stickyHeaderRef = useRef<HTMLDivElement>(null);
+
+  // Each unit's own sticky title (.title) sticks right below this wrapper,
+  // not underneath it — but CSS sticky positioning has no idea about a
+  // sibling's height, so .title's own `top` needs this wrapper's real
+  // rendered height (it varies: the update banner is only sometimes there,
+  // and the ring's row can wrap on a narrow screen) added to --header-height.
+  // Mirrors AppShell.tsx's own --header-height measurement for the same
+  // reason: a ResizeObserver, not a one-off read, since content changing
+  // after mount (the banner appearing/disappearing) has to keep it in sync.
+  useLayoutEffect(() => {
+    const header = stickyHeaderRef.current;
+    const container = pageRef.current;
+    if (!header || !container) return;
+    const observer = new ResizeObserver(() => {
+      container.style.setProperty("--sticky-header-height", `${header.offsetHeight}px`);
+    });
+    observer.observe(header);
+    return () => observer.disconnect();
+  }, [isLoading, isError]);
+
   // Genuinely synchronizing with an external system (the browser's scroll
   // position), not deriving render output — a real effect, not a render-time
   // adjustment. `scrollIntoView({block: "center"})` already does exactly the
@@ -43,13 +65,15 @@ export function PathPage() {
   // Explicit rather than relying on PathThemeContext's default, so the point
   // where a culture-specific skin would be swapped in is visible in the tree.
   return (
-    <PathThemeProvider>
-      <div className={styles.headerRow}>
-        <DailyGoalRing courseCode={bootstrap.data?.course?.code} />
+    <PathThemeProvider containerRef={pageRef}>
+      <div ref={stickyHeaderRef} className={styles.stickyHeader}>
+        <div className={styles.headerRow}>
+          <DailyGoalRing courseCode={bootstrap.data?.course?.code} />
+        </div>
+        {bootstrap.data?.update && bootstrap.data.course && (
+          <CourseUpdateBanner course={bootstrap.data.course} update={bootstrap.data.update} />
+        )}
       </div>
-      {bootstrap.data?.update && bootstrap.data.course && (
-        <CourseUpdateBanner course={bootstrap.data.course} update={bootstrap.data.update} />
-      )}
       {path.map((unit) => (
         <section key={unit.unitKey} className={styles.section}>
           <h2 className={styles.title}>{unit.title}</h2>
