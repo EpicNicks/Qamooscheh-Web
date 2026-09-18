@@ -45,29 +45,6 @@
   color: var(--color-text-muted);
 }
 
-/*
- * A locked node that's clickable anyway (the one future-unit entry point a
- * learner can test into — domain/pathProgress.ts's findNextUnitEntryTarget).
- * Reads as "reachable, but not the normal way" rather than either plain
- * locked (grey, inert) or unlocked (implies it's already earned): a dashed
- * border instead of .unlocked's solid one, full-colour icon despite still
- * sitting on .locked's muted background.
- */
-.placement {
-  cursor: pointer;
-  border-style: dashed;
-  border-color: var(--color-primary);
-}
-
-.placement .icon {
-  filter: none;
-  color: var(--color-primary);
-}
-
-.placement .title {
-  color: var(--color-text);
-}
-
 .unlocked {
   border-color: var(--color-primary);
 }

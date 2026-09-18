@@ -40,12 +40,9 @@ function nodeLeft(pct: number): string {
 export function SkillRoad({
   positions,
   nextSkipTarget,
-  placementTarget = null,
 }: {
   positions: PathPosition[];
   nextSkipTarget: PositionKey | null;
-  /** The single locked node (a future unit's own first standard position) that's clickable anyway, offering a placement test into it — see domain/pathProgress.ts's findNextUnitEntryTarget. Every other locked node stays plain/inert. */
-  placementTarget?: PositionKey | null;
 }) {
   const theme = usePathTheme();
   const isMobile = useIsMobile();
@@ -119,7 +116,7 @@ export function SkillRoad({
             {isGroup ? (
               <SkillGroupNode position={position} nextSkipTarget={nextSkipTarget} />
             ) : (
-              <SkillNode skill={skill} nextSkipTarget={nextSkipTarget} placementTarget={placementTarget} />
+              <SkillNode skill={skill} nextSkipTarget={nextSkipTarget} />
             )}
           </div>
         );

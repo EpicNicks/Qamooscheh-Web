@@ -1,0 +1,29 @@
+/*
+ * Deliberately not a variant of SkillNode's own status classes: this node
+ * never shares a look with locked, unlocked, or current, since it's the only
+ * node that behaves unlike every other locked one (clickable despite the
+ * unit ahead not being reached yet). --color-placement (index.css) is its own
+ * hue for exactly that reason.
+ */
+.wrap {
+  margin-bottom: var(--space-2);
+}
+
+.node {
+  border-style: dashed;
+  border-color: var(--color-placement);
+  background: color-mix(in srgb, var(--color-placement) 14%, var(--color-surface));
+}
+
+.node .icon {
+  filter: none;
+  color: var(--color-placement);
+}
+
+.node .title {
+  color: var(--color-placement);
+}
+
+.node:hover {
+  background: color-mix(in srgb, var(--color-placement) 22%, var(--color-surface));
+}

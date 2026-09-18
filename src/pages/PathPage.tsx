@@ -3,6 +3,7 @@ import { useBootstrap } from "../hooks/useBootstrap";
 import { useCoursePath } from "../hooks/useCourseContent";
 import { findNextStandardTarget, findNextUnitEntryTarget } from "../domain/pathProgress";
 import { SkillRoad } from "../components/path/SkillRoad";
+import { PlacementTestNode } from "../components/path/PlacementTestNode";
 import { DailyGoalRing } from "../components/path/DailyGoalRing";
 import { CourseUpdateBanner } from "../components/course/CourseUpdateBanner";
 import { PathThemeProvider } from "../theme/PathThemeProvider";
@@ -52,7 +53,8 @@ export function PathPage() {
       {path.map((unit) => (
         <section key={unit.unitKey} className={styles.section}>
           <h2 className={styles.title}>{unit.title}</h2>
-          <SkillRoad positions={unit.standardPositions} nextSkipTarget={nextSkipTarget} placementTarget={nextUnitEntryTarget} />
+          {nextUnitEntryTarget?.unitKey === unit.unitKey && <PlacementTestNode target={nextUnitEntryTarget} />}
+          <SkillRoad positions={unit.standardPositions} nextSkipTarget={nextSkipTarget} />
         </section>
       ))}
     </PathThemeProvider>

@@ -13,6 +13,8 @@
   --color-success-bg: #eaffdf;
   --color-locked: #cfcfd6;
   --color-current: #1cb0f6;
+  /** The "skip ahead" placement-test node (PlacementTestNode, GitHub #4) — deliberately its own hue, shared with neither .locked's grey nor .current's blue, so the one node that behaves unlike every other locked node also reads as visually distinct rather than a locked node with a dashed border. */
+  --color-placement: #ff9600;
 
   --radius-sm: 8px;
   --radius-md: 14px;
