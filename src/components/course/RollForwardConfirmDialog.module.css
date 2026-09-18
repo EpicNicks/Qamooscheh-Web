@@ -1,4 +1,8 @@
 .overlay {
+  /* Rendered under CourseSection.module.css's .stickyHeader, which turns off
+     pointer-events on itself so the road can be tapped through its own empty
+     space — this full-screen fixed overlay needs it back explicitly. */
+  pointer-events: auto;
   position: fixed;
   inset: 0;
   z-index: 100;

@@ -1,6 +1,11 @@
 /* Positioning is CourseSection.module.css's .stickyHeader's job — this banner
-   is one of that wrapper's flow children, not independently sticky. */
+   is one of that wrapper's flow children, not independently sticky.
+   pointer-events: auto opts back in to clicks: the wrapper turns them off
+   over its own transparent empty space so the road can still be tapped
+   through it, but this banner (Update/dismiss buttons) has to stay
+   clickable. */
 .banner {
+  pointer-events: auto;
   display: flex;
   align-items: center;
   justify-content: center;

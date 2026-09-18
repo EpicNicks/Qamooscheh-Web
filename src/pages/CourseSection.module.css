@@ -5,6 +5,15 @@
  * offset from the other's height, which would have to be kept in sync by
  * hand every time either row's content changes. Above .title's z-index (4)
  * so a unit's sticky title tucks underneath this instead of overlapping it.
+ *
+ * Deliberately no background here, unlike .title below: the ring only
+ * occupies a small corner of this row's full width, and an opaque bar
+ * spanning the rest would blank out a chunk of the road scrolling underneath
+ * it for no reason. `pointer-events: none` follows from the same
+ * transparency — otherwise this row's empty space would sit on top of the
+ * road, invisibly eating clicks on whatever node happens to scroll under it.
+ * Re-enabled per element that's actually meant to be clickable (the update
+ * banner — CourseUpdateBanner.module.css's own .banner).
  */
 .stickyHeader {
   position: sticky;
@@ -14,7 +23,7 @@
   flex-direction: column;
   gap: var(--space-3);
   padding: var(--space-2) 0 var(--space-4);
-  background: var(--color-bg);
+  pointer-events: none;
 }
 
 /** Just the daily-goal ring's own row — its own class rather than reusing .section so it never inherits that class's sticky-title behavior. */
