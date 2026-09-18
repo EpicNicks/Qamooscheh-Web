@@ -99,7 +99,7 @@ export function CourseSwitcher() {
         aria-label={`Current language: ${activeInfo?.displayName ?? activeCode}. Change language.`}
         title={activeInfo?.displayName ?? activeCode}
       >
-        <FlagBadge courseCode={activeCode} />
+        <FlagBadge courseCode={activeCode} className={styles.triggerBadge} />
       </button>
 
       {isOpen && (

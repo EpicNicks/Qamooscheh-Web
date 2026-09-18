@@ -13,6 +13,10 @@
   padding: 0 var(--space-2);
   border-radius: var(--radius-sm);
   border: 1px solid rgba(0, 0, 0, 0.15);
+  /* Clips .flagImage to the badge's own rounded corners — a plain <img>,
+     unlike a background-image, isn't clipped by its parent's border-radius
+     on its own. */
+  overflow: hidden;
   font-size: 0.7rem;
   font-weight: 800;
   letter-spacing: 0.02em;
@@ -21,4 +25,12 @@
   text-shadow:
     0 0 3px rgba(0, 0, 0, 0.85),
     0 1px 1px rgba(0, 0, 0, 0.85);
+}
+
+/* FlagBadge's real-image rendering — fills the badge exactly the way the
+   gradient fallback's background-image used to. */
+.flagImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }

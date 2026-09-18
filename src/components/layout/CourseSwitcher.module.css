@@ -17,6 +17,15 @@
   font-family: inherit;
 }
 
+/* The header trigger is the one flag a learner looks at constantly, unlike
+   the panel rows/catalog list below it, which are only on screen while
+   actively choosing — so it gets a larger badge than .badge's default. */
+.triggerBadge {
+  min-width: 48px;
+  height: 32px;
+  font-size: 0.85rem;
+}
+
 .panel {
   position: absolute;
   top: calc(100% + var(--space-2));

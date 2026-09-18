@@ -109,13 +109,8 @@ export interface LocalAppPrefs {
   /** True once the learner has ticked "Don't ask me again" on the remove-custom-font confirmation (Settings -> Appearance). */
   suppressRemoveFontWarning: boolean;
   /**
-   * Which Iranian flag represents the Persian course's badge (CourseSwitcher,
-   * CourseCatalogList) — "pahlavi" is the pre-1979 lion-and-sun tricolour
-   * (assets/flags/flag-ir-lion.svg), "iri" is the current Islamic Republic
-   * flag (flag-icons' `ir`). Local rather than a synced user_prefs column,
-   * same reasoning as fontPrefs: which flag a learner wants to see is a
-   * per-device display choice, not a fact about how they study. Defaults to
-   * "pahlavi".
+   * Which flag represents the Persian course's badge (CourseSwitcher,
+   * CourseCatalogList)
    */
   persianFlag: "pahlavi" | "iri";
 }
@@ -178,7 +173,10 @@ export function loadLocalAppPrefs(userId: string): LocalAppPrefs {
   return prefs;
 }
 
-export function saveLocalAppPrefs(userId: string, patch: Partial<LocalAppPrefs>): void {
+export function saveLocalAppPrefs(
+  userId: string,
+  patch: Partial<LocalAppPrefs>,
+): void {
   const next = { ...loadLocalAppPrefs(userId), ...patch };
   cache.set(userId, next);
   safeStorage.setItem(storageKey(userId), JSON.stringify(next));
@@ -195,7 +193,9 @@ export function saveLocalAppPrefs(userId: string, patch: Partial<LocalAppPrefs>)
 // change from any one of them is visible everywhere immediately.
 const listeners = new Set<() => void>();
 
-export function subscribeLocalAppPrefsListener(listener: () => void): () => void {
+export function subscribeLocalAppPrefsListener(
+  listener: () => void,
+): () => void {
   listeners.add(listener);
   return () => listeners.delete(listener);
 }
