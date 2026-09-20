@@ -1,4 +1,4 @@
-import { getLanguageInfo } from "../../domain/language";
+import { getLanguageInfo, getSpeechLang } from "../../domain/language";
 import { displayDirection } from "../../domain/annotation";
 import { usePhraseAudio } from "../../hooks/usePhraseAudio";
 import { useVoiceAvailability } from "../../hooks/useVoiceAvailability";
@@ -39,7 +39,11 @@ export function ExercisePrompt({
   textSettings = PLAIN_TEXT,
 }: ExercisePromptProps) {
   const languageInfo = getLanguageInfo(courseCode);
-  const speechLang = languageInfo?.speechLang ?? null;
+  // Picked from the actual text, not just the course — a translation
+  // exercise's prompt isn't always in the course's own language (e.g.
+  // "Translate to Japanese: dog" prompts in English), so this can resolve to
+  // "en-US" even under a Japanese/Persian course.
+  const speechLang = getSpeechLang(courseCode, text);
   const voiceAvailable = useVoiceAvailability(speechLang);
   // usePhraseAudio keeps the original native `text` regardless of display —
   // TTS reads the actual language, not whatever "romanized" substitutes on
@@ -60,7 +64,7 @@ export function ExercisePrompt({
         (voiceAvailable ? (
           <PlayAudioButton status={audio.status} onClick={audio.play} />
         ) : (
-          <NoVoiceButton languageName={languageInfo!.displayName} />
+          <NoVoiceButton languageName={speechLang === languageInfo!.speechLang ? languageInfo!.displayName : "English"} />
         ))}
     </div>
   );

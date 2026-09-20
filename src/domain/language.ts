@@ -77,6 +77,32 @@ export function getWritingDirection(courseCode: string | null | undefined): Writ
 // translated into English tiles, or vice versa) and don't vary word-by-word.
 const ARABIC_SCRIPT_PATTERN = /[؀-ۿ]/;
 
+// Hiragana+Katakana (U+3040-30FF), CJK Unified Ideographs (U+3400-9FFF, which
+// covers kanji), and the halfwidth katakana block (U+FF66-FF9F) — enough to
+// tell "this text has Japanese in it" apart from plain English.
+const JAPANESE_SCRIPT_PATTERN = /[぀-ヿ㐀-鿿ｦ-ﾟ]/;
+
+function hasNativeScript(language: Language, text: string): boolean {
+  if (language === "fa") return ARABIC_SCRIPT_PATTERN.test(text);
+  if (language === "ja") return JAPANESE_SCRIPT_PATTERN.test(text);
+  return false;
+}
+
+/**
+ * Which BCP-47 tag to actually speak a piece of text in. A translation
+ * exercise's prompt isn't always in the course's own language (e.g. an
+ * English-to-Japanese exercise prompts in English), so trusting the course's
+ * speechLang unconditionally reads whichever side is English through a
+ * Japanese/Persian voice, mangling it. Falls back to English when the text
+ * carries none of the course language's native script; null only when the
+ * course's language isn't known at all (nothing to speak in either case).
+ */
+export function getSpeechLang(courseCode: string | null | undefined, text: string): string | null {
+  const info = getLanguageInfo(courseCode);
+  if (!info) return null;
+  return hasNativeScript(info.language, text) ? info.speechLang : "en-US";
+}
+
 /**
  * Which way a specific piece of text should flow, independent of the
  * course's own overall direction. Needed anywhere a container mixes native
