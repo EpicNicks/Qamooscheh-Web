@@ -30,6 +30,10 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
+  /* Matches .answerRow's min-height below: once every tile has been dragged
+     out, an empty bank would otherwise collapse to zero height and have no
+     droppable area left to drag a tile back into. */
+  min-height: 44px;
 }
 
 .tile {
@@ -44,6 +48,10 @@
      row, so the tile has to be able to break internally. */
   max-width: 100%;
   overflow-wrap: anywhere;
+  /* Tiles are press-and-hold draggable (WordBankExercise); without this the
+     browser's own touch-scroll gesture competes with dnd-kit's pointer
+     tracking during the hold, on the same touch. */
+  touch-action: none;
 }
 
 .tile:disabled {
