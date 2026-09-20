@@ -45,10 +45,18 @@ export function ExercisePrompt({
   // "en-US" even under a Japanese/Persian course.
   const speechLang = getSpeechLang(courseCode, text);
   const voiceAvailable = useVoiceAvailability(speechLang);
+  // isForeignLanguageText is what autoplay gates on beyond just "there's a
+  // voice for it" — this prompt might resolve to "en-US" (see getSpeechLang
+  // above) when it's actually an English-side prompt/answer under a foreign
+  // course, and autoplaying THAT the instant an exercise loads is noise, not
+  // help: the learner already reads English fluently and didn't ask to hear
+  // it read back. The manual play button still works regardless — this only
+  // narrows the automatic, unrequested case.
+  const isForeignLanguageText = !!languageInfo && speechLang === languageInfo.speechLang;
   // usePhraseAudio keeps the original native `text` regardless of display —
   // TTS reads the actual language, not whatever "romanized" substitutes on
   // screen.
-  const audio = usePhraseAudio({ text, speechLang, autoplay: autoplayAudio && voiceAvailable });
+  const audio = usePhraseAudio({ text, speechLang, autoplay: autoplayAudio && voiceAvailable && isForeignLanguageText });
   const { align } = useNativeTextAlign();
   const direction = displayDirection(text, textSettings.display);
 
