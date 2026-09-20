@@ -185,6 +185,15 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
           onChange={(e) => updateText(() => e.target.value)}
           disabled={disabled}
           autoFocus
+          // A keyboardKind means an on-screen keyboard (engine.keyboardNode)
+          // is already doing the typing — the phone's own keyboard popping
+          // up on top of it would eat the screen space that keyboard needs
+          // and offers no way to type the native script anyway. "none" keeps
+          // the input focusable/editable (letters still land here via the
+          // handlers above) without triggering the OS keyboard; a plain
+          // romanized exercise has no on-screen keyboard, so it keeps the
+          // normal one.
+          inputMode={keyboardKind ? "none" : undefined}
           dir={isNativeScript ? languageInfo?.direction : "ltr"}
           // Font-family only, not the per-script font-SIZE variable —
           // unlike DirectionalText (which wraps arbitrary inline content),
