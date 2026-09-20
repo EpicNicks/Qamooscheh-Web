@@ -83,6 +83,9 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  /* min-width: 0 lets the column shrink; a course's native name still needs
+     to be able to break inside it. */
+  overflow-wrap: anywhere;
 }
 
 .nativeName {

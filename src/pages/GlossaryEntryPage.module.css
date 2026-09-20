@@ -10,8 +10,13 @@
   line-height: 1.5;
 }
 
+/* A deliberate horizontal scroller: a three-column glossary table can't
+   usefully compress to phone width. `contain` keeps a swipe that runs off the
+   end of the table from chaining out to the page (and, on Android Chrome, to
+   the back-navigation gesture). */
 .tableScroll {
   overflow-x: auto;
+  overscroll-behavior-x: contain;
 }
 
 .table {

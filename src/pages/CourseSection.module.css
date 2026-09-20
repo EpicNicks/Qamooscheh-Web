@@ -60,6 +60,10 @@
      overrides .section's flex stretch, which would otherwise force this back
      to full width regardless of `display`. */
   align-self: flex-start;
+  /* align-self sizes the chip to its own content, which for an authored unit
+     title with no wrap opportunity can be wider than the column. */
+  max-width: 100%;
+  overflow-wrap: anywhere;
   position: sticky;
   top: calc(var(--header-height, 0px) + var(--sticky-header-height, 0px));
   z-index: 4;

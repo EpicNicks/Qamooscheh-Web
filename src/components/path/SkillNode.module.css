@@ -20,6 +20,10 @@
   font-size: 0.75rem;
   text-align: center;
   color: var(--color-text-muted);
+  /* The card is only --skill-node-width (84px) wide and a lesson title is
+     authored content — one long word would otherwise spill out of the card
+     and, for the rightmost node on the road, past the page edge. */
+  overflow-wrap: anywhere;
 }
 
 /*

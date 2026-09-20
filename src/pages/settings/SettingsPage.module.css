@@ -22,6 +22,28 @@
   flex-shrink: 0;
 }
 
+@media (max-width: 480px) {
+  /* Below this, 140px fixed + the form's own min content leaves too little
+     room for either — stack the nav as a horizontal scroller above the form
+     instead of squeezing both into a cramped side-by-side row. */
+  .layout {
+    flex-direction: column;
+  }
+
+  .nav {
+    flex-direction: row;
+    width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    padding-bottom: var(--space-1);
+  }
+
+  .navItem {
+    flex: none;
+    white-space: nowrap;
+  }
+}
+
 .navItem {
   text-align: left;
   background: none;
@@ -121,12 +143,15 @@
 .customGoalRow {
   display: flex;
   align-items: center;
+  flex-wrap: wrap; /* "Daily XP goal" + a 90px number field is wider than the settings column on a phone */
   gap: var(--space-2);
   font-weight: 400;
 }
 
 .customGoalRow input {
   width: 90px;
+  max-width: 100%;
+  flex: none;
 }
 
 .linkButton {

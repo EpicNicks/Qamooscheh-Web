@@ -19,6 +19,7 @@
 
 .topRow > *:first-child {
   flex: 1;
+  min-width: 0; /* the bar/title has to be able to shrink, or it pushes the skip control off a narrow screen */
 }
 
 .chapterTitle {

@@ -28,13 +28,25 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  /* Accept + Decline alone are ~220px; with a user-supplied display name
+     beside them the row can't fit on a phone, so let it wrap to two lines
+     rather than run past the viewport. */
+  flex-wrap: wrap;
+  gap: var(--space-2);
   padding: var(--space-3);
   border-radius: var(--radius-sm);
   background: var(--color-surface);
 }
 
+/* The display name — user-supplied, so it may have no wrap opportunity. */
+.row > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .actions {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
 }
 

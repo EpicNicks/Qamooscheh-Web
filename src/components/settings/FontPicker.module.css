@@ -30,6 +30,9 @@
   align-items: center;
   gap: var(--space-1);
   min-width: 96px;
+  /* A custom font's name is typed by the learner (.customInput below), so
+     this tile's content length is unbounded — cap it at the row width. */
+  max-width: 100%;
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-sm);
   border: 2px solid var(--color-border);
@@ -53,13 +56,21 @@
 
 .preview {
   font-size: 1.1rem;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .optionLabel {
   font-size: 0.65rem;
   color: var(--color-text-muted);
   font-family: var(--font-sans);
+  /* Kept on one line, but truncated rather than allowed to stretch the tile
+     — a long custom font name would otherwise make .option wider than the
+     settings column. */
   white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .remove {
@@ -96,6 +107,10 @@
 
 .customInput {
   flex: 1;
+  /* An <input>'s automatic minimum size is its intrinsic (`size`) width, so
+     without this it can't shrink and pushes the Add button out of the
+     narrow settings column. */
+  min-width: 0;
   padding: var(--space-2);
   border-radius: var(--radius-sm);
   border: 2px solid var(--color-border);

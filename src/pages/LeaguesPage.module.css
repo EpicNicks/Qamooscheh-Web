@@ -16,7 +16,10 @@
 .row,
 .me {
   display: grid;
-  grid-template-columns: 32px 1fr auto;
+  /* minmax(0, 1fr), not 1fr: a bare 1fr track has an automatic minimum of
+     its content's min-content width, so one long display name widens the
+     whole row past the viewport instead of wrapping inside its cell. */
+  grid-template-columns: 32px minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-3);
@@ -33,7 +36,13 @@
   font-weight: 700;
 }
 
+/* Display names are user-supplied and can be one unbroken run of characters. */
+.name {
+  overflow-wrap: anywhere;
+}
+
 .points {
   font-weight: 700;
   color: var(--color-primary);
+  white-space: nowrap;
 }

@@ -39,7 +39,11 @@
 .option {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  /* Flag + native name + latin name + a nowrap "Already learning" tag add up
+     to more than the modal's content width on a phone; wrap instead of
+     overflowing the list. */
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-sm);
   border: 2px solid transparent;
@@ -66,10 +70,14 @@
 .nativeName {
   font-size: 1.1rem;
   font-weight: 700;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .latinName {
   color: var(--color-text-muted);
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .tag {

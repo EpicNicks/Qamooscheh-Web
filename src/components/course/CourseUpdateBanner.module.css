@@ -5,6 +5,7 @@
    through it, but this banner (Update/dismiss buttons) has to stay
    clickable. */
 .banner {
+  position: relative;
   pointer-events: auto;
   display: flex;
   align-items: center;

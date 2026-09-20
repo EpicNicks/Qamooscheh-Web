@@ -9,7 +9,10 @@
   position: absolute;
   bottom: 100%;
   left: 50%;
-  transform: translate(-50%, 2px);
+  /* --tooltip-shift-x (AnnotatedText.tsx's clampToViewport) nudges this off
+     dead-center only when centering it on the word would run it past the
+     viewport's edge — 0px the rest of the time. */
+  transform: translate(calc(-50% + var(--tooltip-shift-x, 0px)), 2px);
   margin-bottom: 4px;
   padding: 2px 6px;
   border-radius: var(--radius-sm);
@@ -47,7 +50,7 @@
 :focus-visible > .wrap .tooltip {
   opacity: 1;
   visibility: visible;
-  transform: translate(-50%, 0);
+  transform: translate(calc(-50% + var(--tooltip-shift-x, 0px)), 0);
 }
 
 /*

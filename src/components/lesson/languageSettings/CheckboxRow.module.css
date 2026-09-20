@@ -1,7 +1,14 @@
+/* No `white-space: nowrap` here (it used to be): these labels are the widest
+   thing in LanguageSettingsPopover, and forcing them onto one line made the
+   popover wider than a 320px viewport. They wrap now; the checkbox itself
+   still never shrinks. */
 .row {
   display: flex;
   align-items: center;
   gap: var(--space-2);
   font-size: 0.9rem;
-  white-space: nowrap;
+}
+
+.row input {
+  flex: none;
 }

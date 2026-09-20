@@ -1,5 +1,11 @@
 .popover {
   z-index: 50;
+  /* Portalled to <body> and position: fixed, so a percentage here resolves
+     against the viewport (and, unlike 100vw, excludes the scrollbar gutter).
+     Its widest content — "Hover a word for its romanization" — is within a
+     hair of a 320px screen, and it's right-anchored to the cog, so without a
+     cap it runs off the LEFT edge. */
+  max-width: calc(100% - var(--space-3) * 2);
   padding: var(--space-4);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);

@@ -16,6 +16,31 @@ const VERTICAL_OFFSET_PX = 12;
  */
 const FLIP_HYSTERESIS_PX = 24;
 
+/** Must match LessonStartPopover.module.css's `.popover` max-width. */
+const MAX_WIDTH_PX = 240;
+
+/** Breathing room kept between the popover and either side of the viewport. */
+const EDGE_GUTTER_PX = 8;
+
+/**
+ * The popover is centred on its node (`translateX(-50%)`), and a node parked
+ * at the right-hand end of the road sits close enough to the edge that half
+ * the popover would hang off it — invisible, since it's `position: fixed` and
+ * so can't be scrolled to. Clamping the centre point to a band half a
+ * max-width in from each side keeps the whole popover on screen at any
+ * viewport width. MAX_WIDTH_PX is used rather than the measured width so this
+ * needs no extra layout pass; a popover narrower than the cap simply ends up
+ * slightly further from the edge than it strictly had to be.
+ */
+function clampedCenterX(center: number): number {
+  const half = MAX_WIDTH_PX / 2 + EDGE_GUTTER_PX;
+  const rightLimit = window.innerWidth - half;
+  // On a viewport too narrow for even the clamped band, centring is the least
+  // bad answer — `max` would otherwise push it off the right instead.
+  if (rightLimit <= half) return window.innerWidth / 2;
+  return Math.min(Math.max(center, half), rightLimit);
+}
+
 interface LessonStartPopoverProps {
   /** The tapped node itself — its position is re-measured on every scroll/resize so the popover tracks it instead of freezing at click-time coordinates. */
   anchorRef: RefObject<HTMLElement | null>;
@@ -156,17 +181,18 @@ export function LessonStartPopover({
   // directly: either lets the browser grow the popover away from a fixed
   // point, so it always ends up flush against the node with the same gap
   // regardless of how many buttons it renders.
+  const centerX = clampedCenterX(anchorRect.left + anchorRect.width / 2);
   const style: CSSProperties =
     placement === "above"
       ? {
           position: "fixed",
-          left: anchorRect.left + anchorRect.width / 2,
+          left: centerX,
           bottom: window.innerHeight - anchorRect.top + VERTICAL_OFFSET_PX,
           transform: "translateX(-50%)",
         }
       : {
           position: "fixed",
-          left: anchorRect.left + anchorRect.width / 2,
+          left: centerX,
           top: anchorRect.bottom + VERTICAL_OFFSET_PX,
           transform: "translateX(-50%)",
         };

@@ -26,6 +26,11 @@
   display: flex;
   gap: var(--space-3);
   flex: 1;
+  /* Without this the nav's automatic minimum size is the sum of its links'
+     own minimums (five 44px touch targets on mobile = 220px), which the
+     header can't shrink below — on a 320-375px phone that pushes the course
+     switcher and the header's right edge past the viewport. */
+  min-width: 0;
 }
 
 .link {
@@ -102,6 +107,18 @@
   .nav {
     justify-content: space-evenly;
     gap: 0;
+    /* The five links keep their full 44px touch targets rather than being
+       squeezed below the minimum tap size; when they genuinely don't fit
+       (the narrowest phones) they scroll WITHIN the nav instead of widening
+       the header past the viewport. `contain` keeps that scroll from
+       chaining out to the page/drawer gesture. */
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+
+  .nav::-webkit-scrollbar {
+    display: none;
   }
 
   .navLabel {

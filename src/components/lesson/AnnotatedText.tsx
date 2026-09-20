@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { segmentAnnotatedText } from "../../domain/annotation";
 import type { TextDisplaySettings, WordHint } from "../../domain/romanization";
 import styles from "./AnnotatedText.module.css";
@@ -64,7 +64,32 @@ interface AnnotatedWordProps {
  * on the enclosing control's own focus instead — see AnnotatedText.module.css's
  * `:focus-visible > .wrap` rule.
  */
+const TOOLTIP_VIEWPORT_MARGIN = 8;
+
 export function AnnotatedWord({ word, hint, settings, focusable = true }: AnnotatedWordProps) {
+  const tooltipRef = useRef<HTMLSpanElement>(null);
+  // How far to nudge the tooltip off its default centered position so it
+  // stays on screen — recomputed each time it's about to show rather than
+  // tracked continuously, since a hidden tooltip's position never matters and
+  // most words on a page are never hovered at all. `visibility: hidden`
+  // (not `display: none`) means the element is still laid out and
+  // measurable before it's shown, so this has an answer ready before the
+  // fade-in transition starts.
+  const [shiftPx, setShiftPx] = useState(0);
+
+  function clampToViewport() {
+    const el = tooltipRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    if (rect.left < TOOLTIP_VIEWPORT_MARGIN) {
+      setShiftPx(TOOLTIP_VIEWPORT_MARGIN - rect.left);
+    } else if (rect.right > window.innerWidth - TOOLTIP_VIEWPORT_MARGIN) {
+      setShiftPx(window.innerWidth - TOOLTIP_VIEWPORT_MARGIN - rect.right);
+    } else {
+      setShiftPx(0);
+    }
+  }
+
   const lines = hint
     ? assembleTooltipLines([
         { include: settings.translationEnabled, text: hint.translation },
@@ -93,9 +118,19 @@ export function AnnotatedWord({ word, hint, settings, focusable = true }: Annota
   if (lines.length === 0) return <>{content}</>;
 
   return (
-    <span className={styles.wrap} tabIndex={focusable ? 0 : undefined}>
+    <span
+      className={styles.wrap}
+      tabIndex={focusable ? 0 : undefined}
+      onMouseEnter={clampToViewport}
+      onFocus={clampToViewport}
+    >
       {content}
-      <span className={styles.tooltip} role="tooltip">
+      <span
+        ref={tooltipRef}
+        className={styles.tooltip}
+        role="tooltip"
+        style={shiftPx !== 0 ? ({ "--tooltip-shift-x": `${shiftPx}px` } as CSSProperties) : undefined}
+      >
         {lines.map((line, i) => (
           <span key={i} className={styles.tooltipLine}>
             {line}

@@ -7,6 +7,10 @@
 .prompt {
   font-size: 1.4rem;
   font-weight: 700;
+  /* A prompt is arbitrary course content — a long unbroken Persian/Japanese
+     run or a long compound has no wrap opportunity, and at 1.4rem it only
+     takes a handful of characters to pass a 320px viewport. */
+  overflow-wrap: anywhere;
 }
 
 .promptRow {
@@ -17,6 +21,9 @@
 
 .promptRow .prompt {
   flex: 1;
+  /* Without this the text's min-content width floors the flex item and the
+     play/no-voice button beside it gets pushed off the right edge. */
+  min-width: 0;
 }
 
 .tiles {
@@ -32,6 +39,11 @@
   background: var(--color-bg);
   font-size: 1.1rem;
   cursor: pointer;
+  /* A single word-bank token can be a whole long word; wrapping the row
+     (.tiles/.answerRow) doesn't help when one tile is itself wider than the
+     row, so the tile has to be able to break internally. */
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .tile:disabled {
@@ -72,6 +84,10 @@
   border: 2px solid var(--color-border);
   background: var(--color-bg);
   color: var(--color-text);
+  /* An <input>'s default intrinsic width (`size`) plus this padding can be
+     wider than a 320px column; cap it rather than letting it set the page's
+     scroll width. */
+  max-width: 100%;
 }
 
 /* Positioning context for the floating Persian candidate picker — sized to
@@ -80,6 +96,7 @@
 .inputWrap {
   position: relative;
   display: inline-block;
+  max-width: 100%;
 }
 
 /* An invisible twin of the input (same class, same font metrics) used only
@@ -98,6 +115,11 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  /* Hint link + Submit button side by side leave no slack on a narrow
+     phone once either label grows; let the pair drop to two lines rather
+     than run off the edge. */
+  flex-wrap: wrap;
+  gap: var(--space-2);
 }
 
 /* The advance ("Continue") button replaces the hint+Check pair entirely

@@ -14,6 +14,9 @@
   flex-direction: column;
   gap: var(--space-1);
   min-width: 0;
+  /* min-width: 0 lets the column shrink; this lets the words inside it
+     actually break, which native-script terms and glosses often can't. */
+  overflow-wrap: anywhere;
 }
 
 .surface {
