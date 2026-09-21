@@ -54,13 +54,26 @@ function tileIndexFromId(id: string | number): number {
 // tile's — including while aiming at the middle of a row to drop BETWEEN
 // two tiles — so it would constantly win over the tile actually under the
 // pointer and force every drop to the row's end. Preferring an
-// under-the-pointer TILE collision, and only falling back to the row
-// (`closestCenter`, so an empty/underfull row can still be targeted) when
-// the pointer isn't over any tile, keeps drops landing where the pointer
-// actually is.
+// under-the-pointer TILE collision fixes that, but ONLY discarding a
+// container-level pointerWithin hit when an item hit also exists — not
+// unconditionally, the way an earlier version of this did: over EMPTY space
+// inside a row (nothing there to occupy the tier above it), there is no
+// item hit to prefer, so discarding the container hit too left nothing but
+// `closestCenter`'s rect-center comparison, which compares the DRAGGED
+// tile's rect against every droppable's center — including the other row's
+// tiles. Since the bank's remaining tiles pack toward its left edge, that
+// made hovering the LEFT half of the (mostly empty) answer row resolve to
+// the bank instead, because a nearby bank tile's center was geometrically
+// closer than the answer row's own center; the right half had no such
+// competition and worked. Falling back to the raw pointerWithin container
+// hit (still correct — the pointer genuinely is inside that row) before
+// ever reaching `closestCenter` fixes it.
 const collisionDetection: CollisionDetection = (args) => {
-  const pointerCollisions = pointerWithin(args).filter((collision) => collision.id !== "bank" && collision.id !== "answer");
-  return pointerCollisions.length > 0 ? pointerCollisions : closestCenter(args);
+  const pointerCollisions = pointerWithin(args);
+  const itemCollisions = pointerCollisions.filter((collision) => collision.id !== "bank" && collision.id !== "answer");
+  if (itemCollisions.length > 0) return itemCollisions;
+  if (pointerCollisions.length > 0) return pointerCollisions;
+  return closestCenter(args);
 };
 
 // The tile rows are flex-wrap, so "before" vs "after" the hovered tile isn't
