@@ -1,15 +1,19 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import {
   DndContext,
+  DragOverlay,
   PointerSensor,
   closestCenter,
   pointerWithin,
   useDroppable,
   useSensor,
   useSensors,
+  type Active,
   type CollisionDetection,
   type DragEndEvent,
   type DragOverEvent,
+  type DragStartEvent,
+  type Over,
 } from "@dnd-kit/core";
 import { SortableContext, arrayMove, rectSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -59,6 +63,20 @@ const collisionDetection: CollisionDetection = (args) => {
   return pointerCollisions.length > 0 ? pointerCollisions : closestCenter(args);
 };
 
+// The tile rows are flex-wrap, so "before" vs "after" the hovered tile isn't
+// a single axis: two tiles on the same wrapped line differ mostly in x,
+// while a tile on the next line down differs mostly in y. Comparing y first
+// (with a half-row-height tolerance for "same line") and falling back to x
+// approximates left-to-right, top-to-bottom reading order either way.
+function isAfterOverItem(active: Active, over: Over): boolean {
+  const activeRect = active.rect.current.translated;
+  if (!activeRect) return false;
+  const activeCenter = { x: activeRect.left + activeRect.width / 2, y: activeRect.top + activeRect.height / 2 };
+  const overCenter = { x: over.rect.left + over.rect.width / 2, y: over.rect.top + over.rect.height / 2 };
+  const sameRow = Math.abs(activeCenter.y - overCenter.y) < over.rect.height / 2;
+  return sameRow ? activeCenter.x > overCenter.x : activeCenter.y > overCenter.y;
+}
+
 // Reinserts a tile dropped back into the bank via TAP (not drag) at the
 // position it would have occupied in the original shuffle, so a tapped
 // tile reappears where the learner last saw it rather than jumping to
@@ -87,10 +105,10 @@ interface SortableTileProps {
 
 function SortableTile({ tileIndex, container, text, disabled, courseCode, hintMap, textSettings, onActivate }: SortableTileProps) {
   // PointerSensor's activationConstraint (see the DndContext below) is what
-  // makes this a press-and-hold drag: a quick tap releases before the delay
-  // elapses, no drag ever starts, and the button's own onClick fires
-  // normally — so tapping still toggles a tile exactly as before, and
-  // holding it instead picks it up.
+  // lets this button double as both a tap-target and a drag handle: a press
+  // that never moves past the distance threshold releases as a plain click,
+  // firing the button's own onClick — moving the pointer while held starts
+  // a drag instead, and suppresses that click.
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: tileId(tileIndex),
     disabled,
@@ -142,7 +160,7 @@ function DroppableRow({ id, className, dir, children }: DroppableRowProps) {
   );
 }
 
-/** Tap tiles in order to build the answer, or press-and-hold to drag them — within a row to reorder, or across rows to move them in/out of the bank. */
+/** Tap tiles in order to build the answer, or drag them — within a row to reorder, or across rows to move them in/out of the bank. */
 export function WordBankExercise({
   exercise,
   onSubmit,
@@ -167,6 +185,14 @@ export function WordBankExercise({
   const [order, setOrder] = useState<Record<ContainerId, number[]>>({ bank: originalBankOrder, answer: [] });
   const bankOrder = order.bank;
   const answerOrder = order.answer;
+  // Which tile is currently being dragged, if any — drives the DragOverlay
+  // clone below, which is what actually tracks the pointer. Without it, the
+  // "real" sortable tile is the only thing following the cursor, and every
+  // time handleDragOver re-parents it into the other container mid-drag,
+  // that move yanks the followed element itself, reading as a snap. The
+  // overlay is a separate, un-sortable element that always tracks the
+  // pointer smoothly regardless of what the underlying lists are doing.
+  const [activeTileIndex, setActiveTileIndex] = useState<number | null>(null);
 
   // PointerSensor only: dnd-kit's KeyboardSensor binds its drag-pickup
   // shortcut to Space/Enter on the focused draggable node, which would
@@ -175,7 +201,13 @@ export function WordBankExercise({
   // handler below mid-drag). Keyboard users still get the tap-to-toggle
   // path via the button's normal focus/Enter/Space activation; they just
   // can't drag-reorder with the keyboard.
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { delay: 200, tolerance: 5 } }));
+  //
+  // A DISTANCE constraint rather than a time DELAY: dragging should start
+  // the moment a held pointer actually moves, not after waiting out a
+  // timer — the small threshold (rather than 0) is only there so a
+  // stationary press-then-release still resolves to a plain click/tap
+  // (toggle) instead of a zero-distance "drag".
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
 
   // Each tile is individually RTL-wrapped via DirectionalText, but that only
   // fixes glyph shaping within a tile — the answer row's own layout is
@@ -211,6 +243,10 @@ export function WordBankExercise({
     return dataContainer === "bank" || dataContainer === "answer" ? dataContainer : undefined;
   }
 
+  function handleDragStart(event: DragStartEvent) {
+    setActiveTileIndex(tileIndexFromId(String(event.active.id)));
+  }
+
   // Moves the dragged tile across containers live, as the pointer crosses
   // into the other row — this is what lets `handleDragEnd` below treat
   // "drop over a specific tile" as a plain same-container reorder (the tile
@@ -236,9 +272,7 @@ export function WordBankExercise({
         newIndex = overItems.length;
       } else {
         const overIndex = overItems.indexOf(tileIndexFromId(overId));
-        const activeRect = active.rect.current.translated;
-        const isAfterOverItem = !!activeRect && activeRect.top > over.rect.top + over.rect.height / 2;
-        newIndex = overIndex >= 0 ? overIndex + (isAfterOverItem ? 1 : 0) : overItems.length;
+        newIndex = overIndex >= 0 ? overIndex + (isAfterOverItem(active, over) ? 1 : 0) : overItems.length;
       }
       const nextOverItems = overItems.slice();
       nextOverItems.splice(newIndex, 0, activeIndex);
@@ -246,10 +280,15 @@ export function WordBankExercise({
     });
   }
 
+  function handleDragEndOrCancel() {
+    setActiveTileIndex(null);
+  }
+
   // By the time a drag ends, any cross-container move already happened in
   // handleDragOver above — this only ever finalizes ordering WITHIN a
   // single container (the row `over` settled on).
   function handleDragEnd(event: DragEndEvent) {
+    handleDragEndOrCancel();
     const { active, over } = event;
     if (!over) return;
     const activeId = String(active.id);
@@ -293,7 +332,14 @@ export function WordBankExercise({
   });
 
   return (
-    <DndContext sensors={sensors} collisionDetection={collisionDetection} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={collisionDetection}
+      onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
+      onDragEnd={handleDragEnd}
+      onDragCancel={handleDragEndOrCancel}
+    >
       <div className={styles.wrap}>
         <ExercisePrompt text={exercise.prompt} courseCode={courseCode} autoplayAudio={autoplayAudio} hintMap={hintMap} textSettings={textSettings} />
         <DroppableRow id="answer" className={isNativeScript ? `${styles.answerRow} ${styles.answerRowRtl}` : styles.answerRow} dir="ltr">
@@ -346,6 +392,21 @@ export function WordBankExercise({
           </Button>
         )}
       </div>
+      {/* The actual pointer-following element during a drag — a plain,
+          non-sortable clone rendered in a portal, positioned purely by
+          transform from the live pointer delta. The tile left behind in the
+          list (SortableTile's isDragging opacity) never has to be the thing
+          the eye tracks, so cross-container reordering behind it doesn't
+          read as the dragged tile itself snapping around. */}
+      <DragOverlay>
+        {activeTileIndex !== null ? (
+          <DirectionalText courseCode={tileCourseCode}>
+            <div className={styles.tile} style={{ cursor: "grabbing" }}>
+              <AnnotatedText text={tiles[activeTileIndex]} hintMap={hintMap} settings={textSettings} focusable={false} />
+            </div>
+          </DirectionalText>
+        ) : null}
+      </DragOverlay>
     </DndContext>
   );
 }

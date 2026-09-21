@@ -30,10 +30,19 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
-  /* Matches .answerRow's min-height below: once every tile has been dragged
-     out, an empty bank would otherwise collapse to zero height and have no
-     droppable area left to drag a tile back into. */
-  min-height: 44px;
+  /* Taller than a single tile row and padded on all sides so the bank's
+     droppable area (a dnd-kit hit-test against this element's own rect)
+     extends visibly past the tiles themselves — dropping a tile near, not
+     just exactly on, another tile should still register as "into the
+     bank". Matches .answerRow's padding/border-bottom below so the two
+     drop targets read as the same kind of zone; the border-bottom marks
+     where the bank actually ends, since flex-wrap alone gives it no fixed
+     bottom edge to look at otherwise. Also keeps a real droppable area once
+     every tile has been dragged out, when it would otherwise collapse to
+     zero height. */
+  min-height: 84px;
+  padding: var(--space-2);
+  border-bottom: 2px solid var(--color-border);
 }
 
 .tile {
