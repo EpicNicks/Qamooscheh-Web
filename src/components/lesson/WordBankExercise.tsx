@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import {
   DndContext,
   DragOverlay,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   closestCenter,
   pointerWithin,
   useDroppable,
@@ -117,11 +118,11 @@ interface SortableTileProps {
 }
 
 function SortableTile({ tileIndex, container, text, disabled, courseCode, hintMap, textSettings, onActivate }: SortableTileProps) {
-  // PointerSensor's activationConstraint (see the DndContext below) is what
+  // The sensors' activationConstraint (see the DndContext below) is what
   // lets this button double as both a tap-target and a drag handle: a press
-  // that never moves past the distance threshold releases as a plain click,
-  // firing the button's own onClick — moving the pointer while held starts
-  // a drag instead, and suppresses that click.
+  // that never crosses the active sensor's threshold releases as a plain
+  // click, firing the button's own onClick — crossing it starts a drag
+  // instead, and suppresses that click.
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: tileId(tileIndex),
     disabled,
@@ -207,7 +208,8 @@ export function WordBankExercise({
   // pointer smoothly regardless of what the underlying lists are doing.
   const [activeTileIndex, setActiveTileIndex] = useState<number | null>(null);
 
-  // PointerSensor only: dnd-kit's KeyboardSensor binds its drag-pickup
+  // Mouse and TouchSensor only (no PointerSensor covering both, and no
+  // KeyboardSensor): dnd-kit's KeyboardSensor binds its drag-pickup
   // shortcut to Space/Enter on the focused draggable node, which would
   // hijack those keys from the tile <button>'s own native
   // click-on-Enter/Space toggle (and race the window-level Enter-to-submit
@@ -215,12 +217,23 @@ export function WordBankExercise({
   // path via the button's normal focus/Enter/Space activation; they just
   // can't drag-reorder with the keyboard.
   //
-  // A DISTANCE constraint rather than a time DELAY: dragging should start
-  // the moment a held pointer actually moves, not after waiting out a
-  // timer — the small threshold (rather than 0) is only there so a
-  // stationary press-then-release still resolves to a plain click/tap
-  // (toggle) instead of a zero-distance "drag".
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
+  // Both stay DISTANCE-based (dragging starts the moment a held pointer
+  // crosses the threshold, not after waiting out a timer) but with
+  // different thresholds, which is why they're two separate sensors rather
+  // than one PointerSensor covering both. A mouse press rarely drifts
+  // before the user means to drag, so a small threshold keeps dragging
+  // feeling instant. A touch press, by contrast, jitters by several pixels
+  // just from the finger's contact area shifting as pressure changes —
+  // that small a threshold was enough for jitter ALONE to cross it and
+  // start a "drag" on an ordinary tap, which suppressed the tap's click
+  // (dnd-kit swallows it once a drag activates) and read as the tile
+  // silently flickering (the isDragging opacity dip) instead of toggling
+  // into the answer. A larger touch threshold gives that jitter room
+  // without requiring a held pause the way a delay constraint would.
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(TouchSensor, { activationConstraint: { distance: 15 } }),
+  );
 
   // Each tile is individually RTL-wrapped via DirectionalText, but that only
   // fixes glyph shaping within a tile — the answer row's own layout is
