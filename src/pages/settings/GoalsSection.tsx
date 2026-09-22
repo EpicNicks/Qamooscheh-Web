@@ -58,7 +58,7 @@ export function GoalsSection({ form, editForm }: SettingsSectionProps) {
         {showCustomGoal && (
           <label className={styles.customGoalRow}>
             Daily XP goal
-            <input type="number" min={1} max={1000} value={form.dailyGoalXp} onChange={(e) => editForm({ dailyGoalXp: Number(e.target.value) })} />
+            <input type="number" min={100} max={2000} value={form.dailyGoalXp} onChange={(e) => editForm({ dailyGoalXp: Number(e.target.value) })} />
           </label>
         )}
         <label className={`${styles.field} ${styles.checkboxRow}`}>

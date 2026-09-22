@@ -11,16 +11,16 @@ export interface DailyGoalPreset {
 }
 
 /**
- * Named tiers, ascending. XpPolicy.ForSession's own doc puts an ordinary
- * lapse-free 15-review session near 150 XP, so these sit well under "a full
- * lesson" — a daily goal is meant to be an easy floor, not the whole
- * session — matching Duolingo's own goal sizes relative to its per-lesson XP.
+ * Named tiers, ascending. A lesson answered perfectly (first-try correct
+ * throughout, no hints — see domain/xp.ts's 10-XP-per-answer scale) is worth
+ * roughly 100 XP, so these are sized as a 5-to-15-lesson-a-day range rather
+ * than a fraction of one lesson.
  */
 export const DAILY_GOAL_PRESETS: readonly DailyGoalPreset[] = [
-  { xp: 10, label: "Casual" },
-  { xp: 20, label: "Regular" },
-  { xp: 30, label: "Serious" },
-  { xp: 50, label: "Intense" },
+  { xp: 500, label: "Casual" },
+  { xp: 750, label: "Regular" },
+  { xp: 1000, label: "Serious" },
+  { xp: 1500, label: "Intense" },
 ];
 
 /** The preset this value exactly matches, or undefined for a hand-entered custom goal. */

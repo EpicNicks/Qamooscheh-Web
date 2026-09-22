@@ -3,7 +3,7 @@ import { DAILY_GOAL_PRESETS, matchDailyGoalPreset } from "./dailyGoal";
 
 describe("matchDailyGoalPreset", () => {
   it("finds the preset an exact XP value matches", () => {
-    expect(matchDailyGoalPreset(20)).toEqual({ xp: 20, label: "Regular" });
+    expect(matchDailyGoalPreset(750)).toEqual({ xp: 750, label: "Regular" });
   });
 
   it("returns undefined for a hand-entered custom value", () => {
