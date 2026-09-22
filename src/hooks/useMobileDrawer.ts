@@ -2,8 +2,8 @@ import { useEffect, useRef, useState, type RefObject } from "react";
 
 /** A pointerdown below this x is left to iOS Safari's own back-swipe, which cannot be preventDefault'ed and which lives in roughly the first 12-16px. */
 const EDGE_DEAD_ZONE_PX = 16;
-/** …and above this it's ordinary page content, not an edge grab. */
-const EDGE_ZONE_PX = 44;
+/** …and above this it's ordinary page content, not an edge grab. Deliberately generous (well past where any OS back-gesture strip ends) so a thumb doesn't have to land precisely on a sliver to open the drawer. */
+const EDGE_ZONE_PX = 80;
 /** Movement before the gesture commits to an axis. Below this, nothing happens. */
 const DIRECTION_LOCK_PX = 8;
 /** Straight-line distance that opens/closes on release. */
