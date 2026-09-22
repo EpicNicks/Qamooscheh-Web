@@ -220,7 +220,7 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
 
       {hintShown && exercise.hint && <p className={styles.note}>{exercise.hint}</p>}
 
-      {engine.keyboardNode}
+      <div className={styles.keyboardBleed}>{engine.keyboardNode}</div>
 
       <div className={styles.actions}>
         {advance ? (

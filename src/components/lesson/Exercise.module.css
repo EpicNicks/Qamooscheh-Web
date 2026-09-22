@@ -160,6 +160,17 @@
   font-size: 0.85rem;
 }
 
+/* keep in sync with src/theme/breakpoints.ts */
+@media (max-width: 768px) {
+  /* Lets the on-screen keyboard span edge-to-edge like a phone's native
+     keyboard, breaking out of AppShell's .main side padding (var(--space-3)
+     on mobile) rather than sitting inset with the rest of the lesson. */
+  .keyboardBleed {
+    width: calc(100% + 2 * var(--space-3));
+    margin-inline: calc(-1 * var(--space-3));
+  }
+}
+
 /* The Japanese phonetic keyboard's still-buffering romaji — sits right
    after the input, inside the same inline-block wrap, so it visually reads
    as "what comes next" rather than a separate element. */
