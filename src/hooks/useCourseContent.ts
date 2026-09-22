@@ -3,11 +3,16 @@
 // essentially forever within a session.
 import { useMemo } from "react";
 import { useQueries, useQuery } from "@tanstack/react-query";
-import { getCourseManifest, getLexemeIndex, getSkillArtifact, getUnitArtifact } from "../api/content";
+import { getCourseManifest, getLexemeIndex, getSkillArtifact, getThemeIndex, getUnitArtifact } from "../api/content";
 import { computePathProgress, type PathSkillInput, type PathUnit, type PositionKey } from "../domain/pathProgress";
 import type { UnitVocab } from "../domain/courseVocabulary";
 import type { CourseRef, SkillRef } from "../types/api";
-import type { CourseManifest, ManifestRef, SkillArtifact, UnitArtifact } from "../types/content";
+import type { CourseManifest, ManifestRef, SkillArtifact, ThemeIndexArtifact, UnitArtifact } from "../types/content";
+
+/** `${unitKey}/${skillKey}`, null-safe — the shared key convention for skill-artifact maps, since a theme lesson's `unitKey` can be null. */
+export function refKey(ref: SkillRef): string {
+  return `${ref.unitKey ?? "_"}/${ref.skillKey}`;
+}
 
 export function useCourseManifest(course: CourseRef | null | undefined) {
   return useQuery({
@@ -28,6 +33,24 @@ export function useLexemeIndex(course: CourseRef | null | undefined) {
   return useQuery({
     queryKey: ["content", "lexemes", course?.code, course?.version],
     queryFn: () => getLexemeIndex(course!.code, course!.version, manifestQuery.data!.lexemeIndexPath),
+    enabled: course != null && manifestQuery.data != null,
+    staleTime: Infinity,
+  });
+}
+
+/**
+ * The theme-browsing catalog (themes.json), fetched once per course version —
+ * powers /themes, /themes/:themeId, and the "Deep Dive" bridge from a
+ * Journey lesson's recap. Every `ThemeLessonRef.path` inside it points
+ * straight at that lesson's SkillArtifact (journey or standalone alike), so
+ * this is also the sole path index for deep-dive content fetches — see
+ * useSkillArtifactsForLessonRefs below.
+ */
+export function useThemeIndex(course: CourseRef | null | undefined) {
+  const manifestQuery = useCourseManifest(course);
+  return useQuery({
+    queryKey: ["content", "themes", course?.code, course?.version],
+    queryFn: () => getThemeIndex(course!.code, course!.version, manifestQuery.data!.themeIndexPath),
     enabled: course != null && manifestQuery.data != null,
     staleTime: Infinity,
   });
@@ -329,5 +352,58 @@ export function useSkillArtifactsForRefs(
     skills,
     isLoading: manifestQuery.isLoading || unitResults.some((r) => r.isLoading) || skillResults.some((r) => r.isLoading),
     isError: manifestQuery.isError || unitResults.some((r) => r.isError) || skillResults.some((r) => r.isError),
+  };
+}
+
+/**
+ * Resolves a small set of skill refs to their SkillArtifacts via the theme
+ * index's own `path` pointers, rather than useSkillArtifactsForRefs' unit-
+ * artifact indirection — a standalone ("theme") lesson has no unit artifact
+ * to resolve through, and a journey lesson's path is equally available here,
+ * so one lookup covers both kinds uniformly. What a deep-dive session
+ * (GET /v1/sessions/for-lesson) needs its content from — see
+ * useLessonEngine's deep-dive branch. Keyed by the same `${unitKey}/${skillKey}`
+ * convention (null-safe) as useSkillArtifactsForRefs, via refKey, so callers
+ * that mix both modes don't need to know which one produced a given entry.
+ */
+export function useSkillArtifactsForLessonRefs(
+  course: CourseRef | null | undefined,
+  themeIndex: ThemeIndexArtifact | null | undefined,
+  refs: SkillRef[],
+): { skills: Map<string, SkillArtifact>; isLoading: boolean; isError: boolean } {
+  const pathByLessonKey = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const theme of themeIndex?.themes ?? []) {
+      for (const lesson of theme.lessons) map.set(lesson.id, lesson.path);
+    }
+    return map;
+  }, [themeIndex]);
+
+  const refsToFetch = refs
+    .map((ref) => {
+      const path = pathByLessonKey.get(ref.skillKey);
+      return path ? { key: refKey(ref), path } : null;
+    })
+    .filter((x): x is { key: string; path: string } => x != null);
+
+  const skillResults = useQueries({
+    queries: refsToFetch.map(({ path }) => ({
+      queryKey: ["content", "skill", course?.code, course?.version, path],
+      queryFn: () => getSkillArtifact(course!.code, course!.version, path),
+      enabled: course != null,
+      staleTime: Infinity,
+    })),
+  });
+
+  const skills = new Map<string, SkillArtifact>();
+  refsToFetch.forEach(({ key }, i) => {
+    const data = skillResults[i]?.data;
+    if (data) skills.set(key, data);
+  });
+
+  return {
+    skills,
+    isLoading: skillResults.some((r) => r.isLoading),
+    isError: skillResults.some((r) => r.isError),
   };
 }

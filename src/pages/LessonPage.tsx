@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useLessonEngine, type SubmitAnswerResult, type LessonExerciseInstance } from "../hooks/useLessonEngine";
 import { useExerciseSession } from "../hooks/useExerciseSession";
 import { useBootstrap } from "../hooks/useBootstrap";
-import { useCoursePath } from "../hooks/useCourseContent";
+import { useCoursePath, useThemeIndex } from "../hooks/useCourseContent";
 import { isFirstStandardPosition } from "../domain/pathProgress";
 import { xpForAnswer } from "../domain/xp";
 import { ExerciseSessionScreen } from "../components/lesson/ExerciseSessionScreen";
@@ -12,7 +12,14 @@ import { LessonResults } from "../components/lesson/LessonResults";
 import { Spinner } from "../components/common/Spinner";
 import { ErrorBanner } from "../components/common/ErrorBanner";
 import { Button } from "../components/common/Button";
+import type { ThemeEntry, ThemeIndexArtifact } from "../types/content";
 import styles from "./LessonPage.module.css";
+
+/** Every theme bucket (in themes.json) that lists this lesson key — a lesson typically has 1-3. */
+function themesForLesson(themeIndex: ThemeIndexArtifact | undefined, lessonKey: string): ThemeEntry[] {
+  if (!themeIndex) return [];
+  return themeIndex.themes.filter((theme) => theme.lessons.some((lesson) => lesson.id === lessonKey));
+}
 
 /**
  * A planned lesson from the learner's own cursor (API_SPEC.md §2.2). The
@@ -23,7 +30,9 @@ import styles from "./LessonPage.module.css";
  */
 export function LessonPage() {
   const navigate = useNavigate();
-  const engine = useLessonEngine();
+  const { lessonKey } = useParams();
+  const isDeepDive = lessonKey != null;
+  const engine = useLessonEngine(lessonKey);
   const session = useExerciseSession<LessonExerciseInstance, SubmitAnswerResult>(engine.course);
   const { confirmation } = session;
   const [lastUsedHint, setLastUsedHint] = useState(false);
@@ -33,11 +42,28 @@ export function LessonPage() {
   // course's very first standard position — see RealLessonOverlay's
   // allowAutoTrigger doc. bootstrap/useCoursePath are already cached by
   // react-query (every other screen reads the same queries), so this costs
-  // no extra network round-trip.
+  // no extra network round-trip. Never applies to a deep dive — it's never
+  // the learner's first lesson.
   const bootstrap = useBootstrap();
   const { path } = useCoursePath(bootstrap.data?.course ?? null, bootstrap.data?.position ?? null);
   const allowTutorialAutoTrigger =
-    !!engine.current && path.length > 0 && isFirstStandardPosition(path, { unitKey: engine.current.unitKey, skillKey: engine.current.skillKey });
+    !isDeepDive &&
+    !!engine.current &&
+    engine.current.unitKey != null &&
+    path.length > 0 &&
+    isFirstStandardPosition(path, { unitKey: engine.current.unitKey, skillKey: engine.current.skillKey });
+
+  // For the "Deep Dive" bridge on the recap below — both the ordinary
+  // cursor-driven recap and the deep-dive recap can offer it, so it's
+  // resolved unconditionally rather than only in deep-dive mode.
+  const themeIndex = useThemeIndex(engine.course);
+  const primarySkillRef = engine.sessionSkillRefs[0] ?? null;
+  const lessonThemes = primarySkillRef ? themesForLesson(themeIndex.data, primarySkillRef.skillKey) : [];
+  // Hides the bridge for a non-standard category (story/conversation/song) —
+  // those never belong in a themes.json browse bucket even when tagged
+  // (content/CLAUDE.md), and this also happens to compensate for a known
+  // backend gap where the publisher doesn't yet filter them out itself.
+  const showDeepDiveBridge = lessonThemes.length > 0 && engine.sessionSkillCategory === "standard";
 
   // Restart the engine's latency clock exactly when an exercise becomes
   // visible — i.e. once the previous answer's feedback has been dismissed
@@ -58,17 +84,33 @@ export function LessonPage() {
     return <ErrorBanner message="Couldn't load your next lesson." />;
   }
 
+  // A deep-dive lesson key that names no lesson in the caller's pinned
+  // course version — GET /v1/sessions/for-lesson's 404 (API_SPEC.md §2.11),
+  // the same "unavailable, try updating" case a stale version mismatch gets
+  // anywhere else in this app.
+  if (engine.status === "unavailable") {
+    return (
+      <div className={styles.done}>
+        <h1>This lesson isn't available</h1>
+        <p>It isn't in your current course version — try updating your course, or pick another lesson to try.</p>
+        <div className={styles.doneActions}>
+          <Button onClick={() => navigate("/themes")}>Back to browsing</Button>
+        </div>
+      </div>
+    );
+  }
+
   if (engine.status === "empty") {
     return (
       <div className={styles.done}>
-        <h1>Nothing due right now</h1>
+        <h1>{isDeepDive ? "Nothing new to practice here right now" : "Nothing due right now"}</h1>
         <p>
           Nothing's scheduled for review, but that doesn't mean you can't go through it again — practice rounds just
           don't count toward your review schedule.
         </p>
         <div className={styles.doneActions}>
-          <Button variant="secondary" onClick={() => navigate("/path")}>
-            Back to path
+          <Button variant="secondary" onClick={() => navigate(isDeepDive ? "/themes" : "/path")}>
+            {isDeepDive ? "Back to browsing" : "Back to path"}
           </Button>
           <Button onClick={engine.startPractice}>Practice anyway</Button>
         </div>
@@ -112,6 +154,7 @@ export function LessonPage() {
           <h1>Lesson complete!</h1>
           {engine.isPracticeMode && <p className={styles.practiceNote}>Practice round — doesn't count toward your review schedule.</p>}
           {engine.result && engine.result.outcome === "AlreadyProcessed" && <p>Already recorded.</p>}
+          {engine.journeyAdvanced && <p className={styles.practiceNote}>This also moved you forward in your Journey.</p>}
           <LessonResults correct={engine.score.correct} total={engine.score.total} />
           <div className={styles.doneActions}>
             <Button onClick={() => navigate("/path")}>Back to path</Button>
@@ -119,6 +162,35 @@ export function LessonPage() {
               Practice again
             </Button>
           </div>
+          {showDeepDiveBridge && primarySkillRef && (
+            <div className={styles.doneActions}>
+              {lessonThemes.length === 1 ? (
+                <Button
+                  variant="secondary"
+                  onClick={() =>
+                    navigate(`/themes/${encodeURIComponent(lessonThemes[0].id)}?from=${encodeURIComponent(primarySkillRef.skillKey)}`)
+                  }
+                >
+                  Deep Dive
+                </Button>
+              ) : (
+                <div className={styles.themeChips}>
+                  <span>Deep Dive:</span>
+                  {lessonThemes.map((theme) => (
+                    <Button
+                      key={theme.id}
+                      variant="secondary"
+                      onClick={() =>
+                        navigate(`/themes/${encodeURIComponent(theme.id)}?from=${encodeURIComponent(primarySkillRef.skillKey)}`)
+                      }
+                    >
+                      {theme.id}
+                    </Button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       );
     }

@@ -16,9 +16,11 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useBootstrap } from "./useBootstrap";
-import { useSkillArtifactsForRefs } from "./useCourseContent";
+import { useSkillArtifactsForRefs, useSkillArtifactsForLessonRefs, useThemeIndex, refKey } from "./useCourseContent";
 import { getNextSession } from "../api/sessionPlan";
+import { getSessionForLesson } from "../api/sessionForLesson";
 import { submitSessions } from "../api/sessionSubmit";
+import { ApiError } from "../api/httpClient";
 import { useAuth } from "../auth/useAuth";
 import { loadCardStates, mergeCardStates } from "../lib/cardStateStore";
 import { enqueue as enqueueOffline } from "../lib/offlineQueue";
@@ -26,7 +28,7 @@ import { checkAnswer, type AnswerVerdict } from "../domain/answerFeedback";
 import { resolveExerciseType } from "../domain/exerciseResolution";
 import type { SkillRef, SubmittedItem, SubmittedSession, SubmittedSessionResponse } from "../types/api";
 import type { ExerciseArtifact } from "../types/content";
-import type { ExerciseType } from "../domain/enums";
+import type { ExerciseType, SkillCategory } from "../domain/enums";
 
 const RETRY_DEPTH = 3;
 // attempt < MAX_RETRIES gates the requeue in submitAnswer below — 2 means a
@@ -36,7 +38,8 @@ const MAX_RETRIES = 2;
 
 export interface LessonExerciseInstance {
   key: string;
-  unitKey: string;
+  /** Null for a theme lesson with no journey position (deep-dive mode only). */
+  unitKey: string | null;
   skillKey: string;
   ordinal: number;
   exercise: ExerciseArtifact;
@@ -44,7 +47,7 @@ export interface LessonExerciseInstance {
   attempt: number;
 }
 
-export type LessonStatus = "loading" | "empty" | "ready" | "submitting" | "done" | "rejected" | "error";
+export type LessonStatus = "loading" | "empty" | "ready" | "submitting" | "done" | "rejected" | "error" | "unavailable";
 
 /**
  * A submission the server answered 200 to but explicitly refused — one or
@@ -69,7 +72,7 @@ export interface LessonRejection {
  * skill instead of attributing everything to skills[0].
  */
 interface RecordedItem {
-  unitKey: string;
+  unitKey: string | null;
   skillKey: string;
   item: SubmittedItem;
 }
@@ -86,27 +89,43 @@ export interface SubmitAnswerResult {
   submittedText: string;
 }
 
-export function useLessonEngine() {
+/**
+ * @param deepDiveLessonKey When set, this is a deep-dive session for one
+ * explicitly chosen lesson (GET /v1/sessions/for-lesson/{lessonKey}) rather
+ * than the cursor-driven "what's next" plan — the theme-browsing/"Deep Dive"
+ * counterpart (API_SPEC.md §2.11). Content is resolved via the theme
+ * index's own path pointers instead of the unit-artifact indirection the
+ * cursor path uses, since a standalone lesson has no unit artifact. Submit
+ * is otherwise identical — no special-cased path, per the feature's own
+ * design intent.
+ */
+export function useLessonEngine(deepDiveLessonKey?: string) {
   const { userId } = useAuth();
   const queryClient = useQueryClient();
+  const isDeepDive = deepDiveLessonKey != null;
 
   const bootstrap = useBootstrap();
   const course = bootstrap.data?.course ?? null;
 
   const plan = useQuery({
-    queryKey: ["sessionPlan"],
-    queryFn: getNextSession,
+    queryKey: isDeepDive ? ["sessionForLesson", deepDiveLessonKey] : ["sessionPlan"],
+    queryFn: () => (isDeepDive ? getSessionForLesson(deepDiveLessonKey) : getNextSession()),
     enabled: bootstrap.isSuccess,
+    // A lesson outside the learner's pinned version 404s (LessonNotFoundException)
+    // rather than being a transient failure — retrying it would just 404 again.
+    retry: isDeepDive ? false : undefined,
   });
 
   // The learner's current cursor, reused as the practice-mode skill whenever
   // `plan.data.skills` comes back empty — which it does whenever nothing's
   // due (§2.2: the plan lists what's due, not "whatever skill you're on"), so
   // startPractice can't just drop the due-tag filter and reuse that list the
-  // way it does when something IS due.
-  const positionRef: SkillRef | null = bootstrap.data?.position
-    ? { unitKey: bootstrap.data.position.unitKey, skillKey: bootstrap.data.position.skillKey }
-    : null;
+  // way it does when something IS due. Cursor-only concept — never applies
+  // to a deep dive, which is always about one explicitly chosen lesson.
+  const positionRef: SkillRef | null =
+    !isDeepDive && bootstrap.data?.position
+      ? { unitKey: bootstrap.data.position.unitKey, skillKey: bootstrap.data.position.skillKey }
+      : null;
 
   const skillRefsToLoad = useMemo<SkillRef[]>(() => {
     const dueRefs = plan.data?.skills ?? [];
@@ -114,12 +133,26 @@ export function useLessonEngine() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- positionRef is a fresh object each render; unitKey/skillKey are its only meaningful identity.
   }, [plan.data, positionRef?.unitKey, positionRef?.skillKey]);
 
-  const { skills: skillArtifacts, isLoading: skillsLoading, isError: skillsError } = useSkillArtifactsForRefs(
-    course,
-    skillRefsToLoad,
+  // Both content-resolution paths are called unconditionally (rules of
+  // hooks) and the active one is picked by `isDeepDive` — cheap, since
+  // useThemeIndex/useSkillArtifactsForRefs are no-ops when their inputs are
+  // empty and both share react-query's cache with every other screen.
+  const themeIndex = useThemeIndex(isDeepDive ? course : null);
+  const cursorContent = useSkillArtifactsForRefs(isDeepDive ? null : course, isDeepDive ? [] : skillRefsToLoad);
+  const deepDiveContent = useSkillArtifactsForLessonRefs(
+    isDeepDive ? course : null,
+    themeIndex.data,
+    isDeepDive ? skillRefsToLoad : [],
   );
+  const { skills: skillArtifacts, isLoading: skillsLoading, isError: skillsError } = isDeepDive
+    ? {
+        skills: deepDiveContent.skills,
+        isLoading: deepDiveContent.isLoading || themeIndex.isLoading,
+        isError: deepDiveContent.isError || themeIndex.isError,
+      }
+    : cursorContent;
 
-  const skillsReady = !!plan.data && plan.data.skills.every((ref) => skillArtifacts.has(`${ref.unitKey}/${ref.skillKey}`));
+  const skillsReady = !!plan.data && plan.data.skills.every((ref) => skillArtifacts.has(refKey(ref)));
 
   const dueTags = useMemo(() => new Set([...(plan.data?.reviewTags ?? []), ...(plan.data?.newTags ?? [])]), [plan.data]);
 
@@ -136,7 +169,7 @@ export function useLessonEngine() {
     const instances: LessonExerciseInstance[] = [];
 
     for (const ref of skillRefs) {
-      const artifact = skillArtifacts.get(`${ref.unitKey}/${ref.skillKey}`);
+      const artifact = skillArtifacts.get(refKey(ref));
       if (!artifact) continue;
       artifact.exercises.forEach((exercise, ordinal) => {
         if (dueTagsFilter && !exercise.tags.some((tag) => dueTagsFilter.has(tag))) return;
@@ -148,7 +181,7 @@ export function useLessonEngine() {
         const primaryTag = exercise.tags[0];
         const primaryCardState = (primaryTag ? localCards[primaryTag] : null) ?? null;
         instances.push({
-          key: `${ref.unitKey}/${ref.skillKey}/${ordinal}`,
+          key: `${refKey(ref)}/${ordinal}`,
           unitKey: ref.unitKey,
           skillKey: ref.skillKey,
           ordinal,
@@ -183,7 +216,24 @@ export function useLessonEngine() {
   // (or grades a review that was never actually due) but is never blocked
   // either.
   const [isPracticeMode, setIsPracticeMode] = useState(false);
+  // Snapshot of plan.data.skills taken once, when the queue is first built —
+  // retained even after the queue empties (unlike plan.data itself, which a
+  // background refetch could change). LessonPage's deep-dive recap needs this
+  // after status is "done" to resolve "Deep Dive" themes and to know
+  // whether the lesson it just finished had a journey position at all.
+  const [sessionSkillRefs, setSessionSkillRefs] = useState<SkillRef[]>([]);
+  const [sessionSkillCategory, setSessionSkillCategory] = useState<SkillCategory | null>(null);
   const shownAt = useRef<number>(performance.now());
+
+  // The learner's cursor position captured once, the first time bootstrap
+  // resolves — `undefined` means "not captured yet" (distinct from `null`,
+  // "no cursor at all"). Compared against the post-submit position below to
+  // detect a deep dive's fast-forward (API_SPEC.md §2.11), without needing
+  // any new signal from the server.
+  const startingPositionRef = useRef<{ unitKey: string; skillKey: string } | null | undefined>(undefined);
+  if (startingPositionRef.current === undefined && bootstrap.isSuccess) {
+    startingPositionRef.current = bootstrap.data?.position ?? null;
+  }
 
   // Seed local state once content resolves — a ref-guarded effect would be
   // the "proper" way, but a plain lazy check keeps this hook dependency-free
@@ -193,6 +243,9 @@ export function useLessonEngine() {
   if (queue === null && skillsReady && plan.data) {
     setQueue(initialQueue);
     setTotalCount(initialQueue.length);
+    setSessionSkillRefs(plan.data.skills);
+    const primaryRef = plan.data.skills[0];
+    setSessionSkillCategory(primaryRef ? (skillArtifacts.get(refKey(primaryRef))?.category ?? null) : null);
     shownAt.current = performance.now();
   }
 
@@ -305,7 +358,7 @@ export function useLessonEngine() {
     const occurredAt = new Date().toISOString();
     const bySkill = new Map<string, SubmittedSession>();
     for (const recorded of finalItems) {
-      const key = `${recorded.unitKey}/${recorded.skillKey}`;
+      const key = `${recorded.unitKey ?? "_"}/${recorded.skillKey}`;
       let session = bySkill.get(key);
       if (!session) {
         session = {
@@ -345,6 +398,10 @@ export function useLessonEngine() {
       }
       queryClient.invalidateQueries({ queryKey: ["bootstrap"] });
       queryClient.invalidateQueries({ queryKey: ["sessionPlan"] });
+      // Whichever lesson(s) this session covered may now be complete, in the
+      // journey or standalone — theme-browsing's grey-out relies on this
+      // being fresh.
+      queryClient.invalidateQueries({ queryKey: ["lessonsCompleted"] });
 
       // 200 does NOT mean "every session landed": §2.3 answers per session,
       // and one can come back Rejected (stale course version, not
@@ -381,16 +438,33 @@ export function useLessonEngine() {
     }
   }
 
+  const isLessonNotFound = isDeepDive && plan.error instanceof ApiError && plan.error.status === 404;
+
   const derivedStatus: LessonStatus =
     status === "submitting" || status === "done" || status === "rejected"
       ? status
-      : bootstrap.isLoading || plan.isLoading || skillsLoading
-        ? "loading"
-        : bootstrap.isError || plan.isError || skillsError
-          ? "error"
-          : queue !== null && queue.length === 0 && totalCount === 0
-            ? "empty"
-            : "ready";
+      : isLessonNotFound
+        ? "unavailable"
+        : bootstrap.isLoading || plan.isLoading || skillsLoading
+          ? "loading"
+          : bootstrap.isError || plan.isError || skillsError
+            ? "error"
+            : queue !== null && queue.length === 0 && totalCount === 0
+              ? "empty"
+              : "ready";
+
+  // Only meaningful once the deep dive is done and the completed lesson had
+  // a journey position at all — a standalone lesson can never move the
+  // cursor. See startingPositionRef's own comment for what this compares.
+  const journeyAdvanced =
+    isDeepDive &&
+    derivedStatus === "done" &&
+    sessionSkillRefs[0]?.unitKey != null &&
+    startingPositionRef.current !== undefined &&
+    bootstrap.data?.position != null &&
+    (startingPositionRef.current === null ||
+      startingPositionRef.current.unitKey !== bootstrap.data.position.unitKey ||
+      startingPositionRef.current.skillKey !== bootstrap.data.position.skillKey);
 
   return {
     status: derivedStatus,
@@ -406,5 +480,10 @@ export function useLessonEngine() {
     result,
     /** Non-null exactly when `status === "rejected"` — what the server refused, and how much of the batch. */
     rejection,
+    /** Snapshot of the plan's skills, retained after the queue empties — for resolving "Deep Dive" themes and whether this session came from a journeyed lesson. */
+    sessionSkillRefs,
+    sessionSkillCategory,
+    /** True when finishing a deep-dive lesson also moved the learner's Journey cursor forward (API_SPEC.md §2.11's fast-forward). Client-derived from a before/after position diff — no dedicated backend signal exists for this. */
+    journeyAdvanced,
   };
 }

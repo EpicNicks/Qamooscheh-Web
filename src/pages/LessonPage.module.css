@@ -23,3 +23,12 @@
   font-size: 0.85rem;
   color: var(--color-text-muted);
 }
+
+.themeChips {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}

@@ -36,6 +36,14 @@ export function Sidebar({ variant = "rail" }: { variant?: "rail" | "drawer" }) {
       <NavLink to="/path" className={({ isActive }) => (isActive ? `${styles.link} ${styles.active}` : styles.link)}>
         Journey
       </NavLink>
+      {/* Unconditional, unlike the category links below — themes are common
+          enough across courses that a sparse page is an acceptable empty
+          state, and checking themeIndex.themes.length here would mean every
+          page paint pays for fetching themes.json, which nothing else
+          currently does. */}
+      <NavLink to="/themes" className={({ isActive }) => (isActive ? `${styles.link} ${styles.active}` : styles.link)}>
+        Explore
+      </NavLink>
       {[...categories].map((category) => (
         <NavLink
           key={category}

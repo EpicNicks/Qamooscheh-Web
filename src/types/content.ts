@@ -19,6 +19,7 @@ export interface CourseManifest {
   version: number;
   units: ManifestRef[];
   lexemeIndexPath: string;
+  themeIndexPath: string;
 }
 
 /**
@@ -89,3 +90,35 @@ export interface LexemeIndexEntry {
 
 /** lexemes.json itself: a flat tag -> entry map. */
 export type LexemeIndex = Record<string, LexemeIndexEntry>;
+
+/**
+ * One lesson entry inside a theme bucket (course/{code}/v{version}/themes.json).
+ * `path` points straight at that lesson's own SkillArtifact — journey lessons
+ * at units/{unitKey}/skills/{skillKey}.json exactly as ManifestRef.path
+ * already resolves elsewhere, standalone ("theme") lessons at
+ * lessons/{lessonKey}.json, uniformly, so a client never needs to know which
+ * kind a given entry is before fetching it. No `commonUsageScore` (null) means
+ * unscored, sorted last.
+ */
+export interface ThemeLessonRef {
+  id: string;
+  path: string;
+  commonUsageScore: number | null;
+}
+
+/**
+ * One theme tag and every lesson tagged with it, pre-sorted by
+ * `commonUsageScore` descending (nulls last) — the "structured" browse bucket
+ * as-is; "random" is the client's own shuffle of the same list. There is no
+ * separate display `name` — `id` (the tag itself, e.g. "Food", "Restaurant")
+ * is the only label the backend sends.
+ */
+export interface ThemeEntry {
+  id: string;
+  lessons: ThemeLessonRef[];
+}
+
+/** course/{code}/v{version}/themes.json — the theme-browsing catalog. */
+export interface ThemeIndexArtifact {
+  themes: ThemeEntry[];
+}

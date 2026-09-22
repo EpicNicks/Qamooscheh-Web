@@ -36,6 +36,16 @@ export function useCheckpoint(targetUnitKey: string, targetSkillKey: string) {
     enabled: bootstrap.isSuccess,
   });
 
+  // Derived skip state (API_SPEC.md §2.11) — the backend now reports this
+  // explicitly rather than leaving the client to infer it from the range and
+  // its own completion history. `requiresTest: false` means every skipped
+  // position is already satisfied some other way (most often a deep dive);
+  // `instances` below then comes back naturally empty, since those positions
+  // are excluded from the plan's own exercise sampling.
+  const skippedCount = plan.data?.skippedCount ?? 0;
+  const alreadyCompletedCount = plan.data?.alreadyCompletedCount ?? 0;
+  const requiresTest = plan.data?.requiresTest ?? true;
+
   const refs = useMemo(
     () => plan.data?.skills.map((s) => ({ unitKey: s.unitKey, skillKey: s.skillKey })) ?? [],
     [plan.data],
@@ -132,6 +142,7 @@ export function useCheckpoint(targetUnitKey: string, targetSkillKey: string) {
       setSubmitResult(response);
       if (userId) mergeCardStates(userId, response.cards);
       queryClient.invalidateQueries({ queryKey: ["bootstrap"] });
+      queryClient.invalidateQueries({ queryKey: ["lessonsCompleted"] });
     } catch {
       setSubmitError("Couldn't submit your checkpoint. Check your connection and try again.");
     } finally {
@@ -151,5 +162,8 @@ export function useCheckpoint(targetUnitKey: string, targetSkillKey: string) {
     isSubmitting,
     submitError,
     submitResult,
+    skippedCount,
+    alreadyCompletedCount,
+    requiresTest,
   };
 }

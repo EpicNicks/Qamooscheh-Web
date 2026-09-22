@@ -151,8 +151,9 @@ export interface BootstrapResponse {
 // v1/sessions/next (SessionPlan/SessionPlanContracts.cs)
 // ---------------------------------------------------------------------------
 
+/** `unitKey` is null for a theme lesson with no journey position — only `GET /v1/sessions/for-lesson`'s deep-dive plan can report one; the cursor-driven `GET /v1/sessions/next` never does. */
 export interface SkillRef {
-  unitKey: string;
+  unitKey: string | null;
   skillKey: string;
 }
 
@@ -181,7 +182,8 @@ export interface SubmittedItem {
 
 export interface SubmittedSession {
   submissionId: string;
-  unitKey: string;
+  /** Null for a theme lesson with no journey position. */
+  unitKey: string | null;
   skillKey: string;
   /** Which course this session was answered in — the server grades against this course explicitly, not whichever one is currently active for the caller. */
   courseCode: string;
@@ -228,11 +230,32 @@ export interface CheckpointSkillPlan {
   exerciseOrdinals: number[];
 }
 
+/**
+ * One position between the learner's current position and the checkpoint
+ * target — grouped by (unitKey, position) rather than by lesson, since side
+ * versions (1a/1b) share a position and completing either counts as
+ * completing it everywhere else. `positionAlreadyCompleted` is true when the
+ * learner has a completion for any lesson at this position (most commonly
+ * via deep dive) — that position is excluded from the plan's exercise
+ * sampling entirely.
+ */
+export interface SkippedPosition {
+  unitKey: string;
+  position: number;
+  lessonKeys: string[];
+  positionAlreadyCompleted: boolean;
+}
+
 export interface CheckpointPlanResponse {
   courseVersion: number;
   targetUnitKey: string;
   targetSkillKey: string;
   skills: CheckpointSkillPlan[];
+  skippedLessons: SkippedPosition[];
+  skippedCount: number;
+  alreadyCompletedCount: number;
+  /** False iff every skipped position is already satisfied some other way — the plan may then carry zero skills and `submit` accepts an empty `skills` array. */
+  requiresTest: boolean;
 }
 
 export interface CheckpointSkillAnswers {
@@ -254,6 +277,24 @@ export interface CheckpointSubmitResponse {
   passed: boolean;
   score: number;
   cards: CardState[];
+  skippedLessons: SkippedPosition[];
+  skippedCount: number;
+  alreadyCompletedCount: number;
+  requiresTest: boolean;
+  /** Whether this call actually moved the cursor — false covers a failed attempt, a target with no cursor row, and "the learner already reached-or-passed the target another way." */
+  applied: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// v1/lessons (Controllers/LessonsController.cs). Raw skill_completion events
+// only — deliberately not "passed via checkpoint" or "behind the cursor",
+// which a client already has from bootstrap's Position and can derive
+// itself. Used to grey out/filter completed lessons in theme-browsing UI.
+// ---------------------------------------------------------------------------
+
+export interface CompletedLessonsResponse {
+  courseCode: string;
+  completedLessonKeys: string[];
 }
 
 // ---------------------------------------------------------------------------
