@@ -120,6 +120,7 @@ function usePersianLayoutEngine(params: {
         />
         <PersianKeyboard
           onInsert={(fragment) => updateText((prev) => prev + fragment)}
+          onZwnj={handlers.pressZwnj}
           onBackspace={handlers.backspace}
           keyboardMode={keyboardMode ?? "contextual"}
           disabled={disabled}

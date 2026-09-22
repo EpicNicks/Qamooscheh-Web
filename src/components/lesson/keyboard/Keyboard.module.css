@@ -10,23 +10,26 @@
 .keyboard {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  padding: var(--space-3);
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-md);
   background: var(--color-surface);
 }
 
+/* No wrap, no centering: every key in a row is an equal-share flex item
+   (see .key), so the row always fills its container edge-to-edge as one
+   line — never wraps into an unintended extra row on a narrow phone
+   screen, which is the whole point of a fixed row count. */
 .row {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1);
-  justify-content: center;
+  gap: 3px;
 }
 
 .key {
-  min-width: 36px;
+  flex: 1 1 0;
+  min-width: 0;
   height: 40px;
-  padding: 0 var(--space-1);
+  padding: 0 2px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
   background: var(--color-bg);
@@ -48,7 +51,7 @@
 }
 
 .wide {
-  min-width: 90px;
+  flex: 2.5 1 0;
   font-size: 0.8rem;
 }
 

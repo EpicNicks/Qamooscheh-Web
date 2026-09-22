@@ -83,7 +83,12 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
   function pressZwnj() {
     if (!engine.supportsZwnj) return;
     engine.finalize();
-    updateText((prev) => prev + ZWNJ);
+    // Toggle, not append: a ZWNJ right before the cursor almost always means
+    // the learner is un-deciding one they just added (a double-tap, or
+    // reconsidering right after Shift+Space) — a second one back-to-back has
+    // no other reasonable reading, so treat it as "take it back" rather than
+    // stacking an invisible second half-space.
+    updateText((prev) => (prev.endsWith(ZWNJ) ? prev.slice(0, -1) : prev + ZWNJ));
     inputRef.current?.focus();
   }
 

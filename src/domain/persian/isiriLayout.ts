@@ -59,6 +59,26 @@ const PUNCTUATION_CODE_CHAR: Record<string, string> = {
   Period: ".",
 };
 
+// The on-screen keyboard's virtual-only Shift layer: a handful of ISIRI
+// 9147 level-2 (Shift) letters that are genuine, distinct Persian letters —
+// not one of the Arabic-only codepoints normalize.ts's CODEPOINT_FOLD_MAP
+// silently folds away (Arabic yeh/kaf, teh marbuta, hamza-alefs), and not a
+// duplicate of a letter already reachable elsewhere on this layout. Verified
+// against the same reference isiriLayout's base rows were checked against —
+// Microsoft's kbdfar table, which mirrors ISIRI 9147's Shift level exactly:
+// KeyH -> ARABIC LETTER ALEF WITH MADDA ABOVE (0622), KeyA -> ARABIC LETTER
+// WAW WITH HAMZA ABOVE (0624), KeyS -> ARABIC LETTER YEH WITH HAMZA ABOVE
+// (0626), KeyM -> ARABIC LETTER HAMZA (0621). Deliberately NOT a physical-
+// keystroke mapping (PersianKeyboard.tsx's header comment explains why
+// physical ISIRI conversion is handled once, centrally, in TypeInExercise) —
+// this only changes what tapping the on-screen key inserts.
+export const ISIRI_SHIFT: Readonly<Record<string, number>> = {
+  KeyH: 0x0622, // alef -> alef madda (آ)
+  KeyA: 0x0624, // sheen key -> waw with hamza above (ؤ)
+  KeyS: 0x0626, // seen key -> yeh with hamza above (ئ)
+  KeyM: 0x0621, // peh key -> hamza (ء)
+};
+
 /** physicalCode ("KeyQ", "BracketLeft", ...) -> the character a real US keyboard's key sends ("q", "[", ...) — for matching a typed keystroke back to a row entry. */
 function defaultCharForPhysicalCode(code: string): string | null {
   const letterMatch = /^Key([A-Z])$/.exec(code);

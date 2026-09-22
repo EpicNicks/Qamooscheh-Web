@@ -1,17 +1,18 @@
 .keyboard {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  padding: var(--space-3);
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-md);
   background: var(--color-surface);
 }
 
+/* No wrap, no centering — see keyboard/Keyboard.module.css's .row for why:
+   every key is an equal-share flex item, so a row is always exactly one
+   line, edge-to-edge. */
 .row {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1);
-  justify-content: center;
+  gap: 3px;
 }
 
 .persianKey {
@@ -21,4 +22,11 @@
 .zwnj {
   font-size: 0.9rem;
   color: var(--color-text-muted);
+}
+
+/* The virtual Shift key while its one-shot layer is active — same treatment
+   as JapaneseKanaKeyboard.module.css's .shiftActive for its own toggle key. */
+.shiftActive {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }

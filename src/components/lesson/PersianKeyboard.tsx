@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { VirtualKey } from "./keyboard/VirtualKey";
 import { usePhysicalKeyState } from "./keyboard/usePhysicalKeyState";
-import { ISIRI_ROWS } from "../../domain/persian/isiriLayout";
+import { ISIRI_ROWS, ISIRI_SHIFT } from "../../domain/persian/isiriLayout";
 import { ZWNJ } from "../../domain/persian/normalize";
 import styles from "./PersianKeyboard.module.css";
 
@@ -18,20 +19,39 @@ import styles from "./PersianKeyboard.module.css";
  * uses the same table to convert typed Latin letters the same way — Shift+
  * Space for ZWNJ is also handled centrally there (matching real ISIRI
  * hardware), not here, so it isn't triggered twice while typing.
+ *
+ * The on-screen Shift key is virtual-only — it has no bearing on physical
+ * typing (there's no physical Shift being tracked or converted here, unlike
+ * every letter key's physicalDown correspondence). Tapping it swaps a
+ * handful of keys to a genuine second Persian letter each — see
+ * isiriLayout.ts's ISIRI_SHIFT for which ones and why only those — and, like
+ * a real mobile keyboard's Shift, applies to one keystroke before releasing
+ * itself, rather than staying latched (the same one-shot pattern
+ * JapaneseKanaKeyboard's "small" toggle already uses).
  */
 interface PersianKeyboardProps {
   onInsert: (text: string) => void;
+  onZwnj: () => void;
   onBackspace: () => void;
   /** user_prefs.keyboard_mode: 'isolated' inserts a ZWNJ after every letter so it renders disconnected from whatever's typed next — a beginner aid for reading the cursive joined script one shape at a time. 'contextual' types normally, letting Persian script join as it naturally does. */
   keyboardMode: "contextual" | "isolated";
   disabled?: boolean;
 }
 
-export function PersianKeyboard({ onInsert, onBackspace, keyboardMode, disabled }: PersianKeyboardProps) {
+export function PersianKeyboard({ onInsert, onZwnj, onBackspace, keyboardMode, disabled }: PersianKeyboardProps) {
   const physicalDown = usePhysicalKeyState();
+  const [shift, setShift] = useState(false);
 
-  function pressLetter(letter: string) {
+  function pressLetter(baseLetter: string, physicalCode: string) {
+    const shiftedPoint = shift ? ISIRI_SHIFT[physicalCode] : undefined;
+    const letter = shiftedPoint !== undefined ? String.fromCodePoint(shiftedPoint) : baseLetter;
     onInsert(keyboardMode === "isolated" ? letter + ZWNJ : letter);
+    setShift(false);
+  }
+
+  function labelFor(baseLetter: string, physicalCode: string): string {
+    const shiftedPoint = shift ? ISIRI_SHIFT[physicalCode] : undefined;
+    return shiftedPoint !== undefined ? String.fromCodePoint(shiftedPoint) : baseLetter;
   }
 
   return (
@@ -40,35 +60,52 @@ export function PersianKeyboard({ onInsert, onBackspace, keyboardMode, disabled 
     // would visually mirror the row (rightmost key first) and break the 1:1
     // correspondence with a physical QWERTY keyboard's left-to-right key
     // positions. Each key's own Persian glyph renders correctly regardless.
+    //
+    // Exactly three rows, matching the three physical ISIRI rows — Space and
+    // Backspace/ZWNJ/Shift ride along on rows two and three (which have one
+    // and three fewer letters than row one) rather than getting a fourth row
+    // of their own, so the whole keyboard stays compact end-to-end on a
+    // phone screen.
     <div className={styles.keyboard}>
       {ISIRI_ROWS.map((row, rowIndex) => (
         <div className={styles.row} key={rowIndex}>
+          {rowIndex === 2 && (
+            <VirtualKey
+              label="⇧"
+              className={`${styles.persianKey} ${shift ? styles.shiftActive : ""}`}
+              title="Shift (virtual only) — alef madda, hamza letters"
+              disabled={disabled}
+              onActivate={() => setShift((s) => !s)}
+            />
+          )}
           {row.map(([codePoint, physicalCode]) => {
-            const letter = String.fromCodePoint(codePoint);
+            const baseLetter = String.fromCodePoint(codePoint);
             return (
               <VirtualKey
                 key={physicalCode}
-                label={letter}
+                label={labelFor(baseLetter, physicalCode)}
                 className={styles.persianKey}
                 physicalDown={physicalDown.has(physicalCode)}
                 disabled={disabled}
-                onActivate={() => pressLetter(letter)}
+                onActivate={() => pressLetter(baseLetter, physicalCode)}
               />
             );
           })}
+          {rowIndex === 1 && <VirtualKey label="space" wide disabled={disabled} onActivate={() => onInsert(" ")} />}
+          {rowIndex === 2 && (
+            <>
+              <VirtualKey
+                label="⌢"
+                className={`${styles.persianKey} ${styles.zwnj}`}
+                title="Half-space (ZWNJ) — Shift+Space; tap again to remove"
+                disabled={disabled}
+                onActivate={onZwnj}
+              />
+              <VirtualKey label="⌫" disabled={disabled} onActivate={onBackspace} />
+            </>
+          )}
         </div>
       ))}
-      <div className={styles.row}>
-        <VirtualKey
-          label="⌢"
-          className={`${styles.persianKey} ${styles.zwnj}`}
-          title="Half-space (ZWNJ) — Shift+Space"
-          disabled={disabled}
-          onActivate={() => onInsert(ZWNJ)}
-        />
-        <VirtualKey label="space" wide disabled={disabled} onActivate={() => onInsert(" ")} />
-        <VirtualKey label="⌫" disabled={disabled} onActivate={onBackspace} />
-      </div>
     </div>
   );
 }

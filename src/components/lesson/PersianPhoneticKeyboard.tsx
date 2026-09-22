@@ -35,10 +35,17 @@ interface PersianPhoneticKeyboardProps {
 export function PersianPhoneticKeyboard({ onPressLetter, onZwnj, onSpace, onBackspace, disabled }: PersianPhoneticKeyboardProps) {
   const physicalDown = usePhysicalKeyState();
 
+  // Exactly three rows, matching the three QWERTY rows — Space and
+  // '/ZWNJ/Backspace ride along on rows two and three (one and three fewer
+  // letters than row one) rather than getting a fourth row of their own, so
+  // the whole keyboard stays compact end-to-end on a phone screen.
   return (
     <div className={keyboardStyles.keyboard}>
       {QWERTY_ROWS.map((row, rowIndex) => (
         <div className={keyboardStyles.row} key={rowIndex}>
+          {rowIndex === 2 && (
+            <VirtualKey label="'" className={styles.latinKey} disabled={disabled} onActivate={() => onPressLetter("'")} />
+          )}
           {row.map((letter) => {
             const valid = hasPhoneticValue(letter);
             return (
@@ -52,14 +59,21 @@ export function PersianPhoneticKeyboard({ onPressLetter, onZwnj, onSpace, onBack
               />
             );
           })}
+          {rowIndex === 1 && <VirtualKey label="space" wide disabled={disabled} onActivate={onSpace} />}
+          {rowIndex === 2 && (
+            <>
+              <VirtualKey
+                label="⌢"
+                className={styles.zwnj}
+                title="Half-space (ZWNJ) — Shift+Space; tap again to remove"
+                disabled={disabled}
+                onActivate={onZwnj}
+              />
+              <VirtualKey label="⌫" disabled={disabled} onActivate={onBackspace} />
+            </>
+          )}
         </div>
       ))}
-      <div className={keyboardStyles.row}>
-        <VirtualKey label="'" className={styles.latinKey} disabled={disabled} onActivate={() => onPressLetter("'")} />
-        <VirtualKey label="⌢" className={styles.zwnj} title="Half-space (ZWNJ) — Shift+Space" disabled={disabled} onActivate={onZwnj} />
-        <VirtualKey label="space" wide disabled={disabled} onActivate={onSpace} />
-        <VirtualKey label="⌫" disabled={disabled} onActivate={onBackspace} />
-      </div>
     </div>
   );
 }
