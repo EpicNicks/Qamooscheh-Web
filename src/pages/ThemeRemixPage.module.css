@@ -149,6 +149,19 @@
   align-content: flex-start;
 }
 
+/* One selection = one card-stack unit: the topmost picked ancestor on top,
+   its picked descendants below in tree order. Only breaks apart by dragging
+   a tile back out to "All topics" (ThemeRemixPage's cascadeRemovalIds/
+   removeAnimated) — there's no reordering within the stack or the pane. */
+.stackGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 3px;
+  border: 2px solid color-mix(in srgb, var(--color-deepdive) 45%, transparent);
+  border-radius: var(--radius-md);
+}
+
 .empty {
   margin: 0;
   align-self: center;
@@ -193,7 +206,11 @@
   border-color: var(--color-deepdive);
 }
 
+/* Indent is relative to the tile's own stack root (ThemeRemixPage's `stacks`
+   memo), not the whole tree — a stack picked up mid-tree sits flush left. */
 .selectedTile {
+  --depth-step: min(var(--depth, 1) - 1, 5);
+  margin-left: calc(var(--depth-step) * var(--space-3));
   border-color: var(--color-deepdive);
   background: color-mix(in srgb, var(--color-deepdive) 12%, var(--color-surface));
 }
@@ -217,6 +234,48 @@
 .tileRemove {
   color: var(--color-danger);
   font-weight: 700;
+}
+
+/* ---- Tweens for non-drag motion (click add/remove, Clear) ----
+   Drag has its own live feedback (the DragOverlay + dnd-kit's transform), so
+   these are suppressed mid-drag via .isDragging — piling a mount pop on top
+   of an in-flight drag would fight the pointer instead of following it. */
+
+@keyframes tilePop {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.tileMount {
+  animation: tilePop 150ms ease;
+}
+
+.browsePane .tileMount {
+  display: inline-flex;
+}
+
+.stackGroup .tileMount {
+  display: flex;
+}
+
+.isDragging .tileMount {
+  animation: none;
+}
+
+.tileFading {
+  opacity: 0;
+  transform: scale(0.85);
+  transition:
+    opacity 150ms ease,
+    transform 150ms ease;
+  pointer-events: none;
 }
 
 .actions {

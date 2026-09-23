@@ -12,13 +12,12 @@ import {
   useSensors,
   type Active,
   type CollisionDetection,
-  type DragEndEvent,
   type DragOverEvent,
   type DragStartEvent,
   type Over,
   type UniqueIdentifier,
 } from "@dnd-kit/core";
-import { SortableContext, arrayMove, rectSortingStrategy, useSortable, type SortingStrategy } from "@dnd-kit/sortable";
+import { SortableContext, useSortable, type SortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useBootstrap } from "../hooks/useBootstrap";
 import { useAllThemeSkillArtifacts, useThemeIndex, refKey } from "../hooks/useCourseContent";
@@ -146,7 +145,13 @@ function DroppablePane({ id, className, label, children }: { id: ContainerId; cl
  * either one drags a topic's whole subtree along with it (add/remove below)
  * — picking "Grammar" also picks "Tenses" and "Past" underneath it, so the
  * browse pane never leaves an already-covered subtopic sitting there
- * unselected. The search box above both filters the browse pane and offers
+ * unselected. Removal is symmetric the other way too: picking any one piece
+ * back out evicts its selected ancestors along with it (a parent tile means
+ * "this whole subtree", so it can't survive losing part of that subtree).
+ * "Your mix" renders the result grouped into vertical stacks — one visual
+ * unit per topmost selected ancestor — and only breaks a stack apart by
+ * dragging a piece out to "All topics"; there's no free reordering inside
+ * the pane. The search box above both filters the browse pane and offers
  * autocomplete suggestions (with breadcrumbs, since a bare id can be
  * ambiguous once nested) that add a tag directly (and its subtree, same as
  * a click).
@@ -162,6 +167,10 @@ export function ThemeRemixPage() {
   );
 
   const [selected, setSelected] = useState<string[]>([]);
+  // Ids mid-way through the non-drag removal tween below — still in
+  // `selected` (so they keep rendering) but styled to fade/shrink out before
+  // the timeout in removeAnimated() actually drops them.
+  const [fadingOut, setFadingOut] = useState<Set<string>>(new Set());
   const [query, setQuery] = useState("");
   const [highlight, setHighlight] = useState(0);
   const [activeThemeId, setActiveThemeId] = useState<string | null>(null);
@@ -200,6 +209,26 @@ export function ThemeRemixPage() {
     () => buildRemixPool(themeIndex.data, skillArtifacts, { themeIds: selected }).length,
     [themeIndex.data, skillArtifacts, selected],
   );
+  // "Your mix" grouped into vertical stacks: one per topmost selected
+  // ancestor (a selected id with no selected ancestor of its own), each
+  // holding that root's selected descendants in tree order with depth
+  // relative to the stack's own root (root itself at 1), not the whole
+  // tree — a stack picked up mid-tree (e.g. just "Tenses") shouldn't look
+  // indented under a "Grammar" tile that isn't there.
+  const stacks = useMemo(() => {
+    const themes = themeIndex.data?.themes ?? [];
+    const selectedSet = new Set(selected);
+    const roots = selected.filter((id) => {
+      const ancestors = ancestorsOf(themeIndex.data, id).slice(0, -1);
+      return !ancestors.some((a) => selectedSet.has(a.id));
+    });
+    return roots.map((root) => {
+      const rootDepth = ancestorsOf(themeIndex.data, root).length;
+      return subtreeIds(themes, root)
+        .filter((id) => selectedSet.has(id))
+        .map((id) => ({ id, depth: ancestorsOf(themeIndex.data, id).length - rootDepth + 1 }));
+    });
+  }, [selected, themeIndex.data]);
 
   const normalizedQuery = query.trim().toLowerCase();
   const selectedSet = new Set(selected);
@@ -221,14 +250,52 @@ export function ThemeRemixPage() {
       const additions = ids.filter((id) => !prev.includes(id));
       return additions.length === 0 ? prev : [...prev, ...additions];
     });
+    // Re-adding something mid-fade (rare, but possible if it's clicked again
+    // before its removal timeout lands) should cancel that fade, not finish it.
+    setFadingOut((prev) => {
+      if (prev.size === 0) return prev;
+      const next = new Set(prev);
+      for (const id of ids) next.delete(id);
+      return next;
+    });
   }
 
-  // Symmetric with add(): removing a topic drops its whole subtree too, not
-  // just the one tile — otherwise its subtopics would linger in "selected"
-  // with no way back to the browse pane short of picking each one off.
+  // A topic's own subtree PLUS its currently-selected ancestors: a selected
+  // parent tile stands for "this whole subtree", so pulling any one piece
+  // out of it invalidates that claim and the ancestor has to go too, not
+  // just the piece itself.
+  function cascadeRemovalIds(themeId: string): string[] {
+    const themes = themeIndex.data?.themes ?? [];
+    const down = subtreeIds(themes, themeId);
+    const up = ancestorsOf(themeIndex.data, themeId).map((theme) => theme.id);
+    return Array.from(new Set([...down, ...up]));
+  }
+
+  // Used by drag (handleDragOver): removal has to be immediate there, since
+  // dnd-kit needs the tile to actually change containers live as it's
+  // dragged over — no tween, the drag itself is the animation.
   function remove(themeId: string) {
-    const ids = new Set(subtreeIds(themeIndex.data?.themes ?? [], themeId));
+    const ids = new Set(cascadeRemovalIds(themeId));
     setSelected((prev) => prev.filter((id) => !ids.has(id)));
+  }
+
+  const FADE_MS = 150;
+
+  // Used by click-to-remove and Clear: keeps `ids` in `selected` (so they
+  // keep rendering, now styled via `fadingOut`) for one brief tween before
+  // actually dropping them.
+  function removeAnimated(ids: string[]) {
+    if (ids.length === 0) return;
+    setFadingOut((prev) => new Set([...prev, ...ids]));
+    window.setTimeout(() => {
+      setSelected((prev) => prev.filter((id) => !ids.includes(id)));
+      setFadingOut((prev) => {
+        if (prev.size === 0) return prev;
+        const next = new Set(prev);
+        for (const id of ids) next.delete(id);
+        return next;
+      });
+    }, FADE_MS);
   }
 
   function pickSuggestion(themeId: string) {
@@ -263,12 +330,12 @@ export function ThemeRemixPage() {
     setActiveThemeId(themeIdFromTileId(event.active.id));
   }
 
-  // Crossing panes moves the tag live (as WordBankExercise does), so the
-  // drop itself only ever has to finalize ordering within "selected". The
-  // browse pane's contents are derived (everything not selected, in tree
-  // order), so moving INTO it is just removal from `selected`. Either
-  // direction drags the whole subtree along with the tile actually under the
-  // pointer, same as click (add/remove above).
+  // Crossing panes moves the tag live (as WordBankExercise does) — both
+  // panes' contents are fully derived from `selected` (browse: everything
+  // not in it, in tree order; "Your mix": grouped into stacks by the
+  // `stacks` memo), so there's nothing left for a drop to finalize; see
+  // handleDragEnd. Either direction drags the whole subtree along with the
+  // tile actually under the pointer, same as click (add/remove above).
   function handleDragOver(event: DragOverEvent) {
     const { active, over } = event;
     if (!over) return;
@@ -292,17 +359,11 @@ export function ThemeRemixPage() {
     });
   }
 
-  function handleDragEnd(event: DragEndEvent) {
+  // "Your mix" has no free reordering to finalize (its stacks are derived,
+  // not user-ordered) — handleDragOver already did the only thing a drop
+  // needs to, live, while dragging.
+  function handleDragEnd() {
     setActiveThemeId(null);
-    const { active, over } = event;
-    if (!over || containerOf(active.id) !== "selected" || containerOf(over.id) !== "selected") return;
-    const themeId = themeIdFromTileId(active.id);
-    setSelected((prev) => {
-      const oldIndex = prev.indexOf(themeId);
-      const newIndex = isContainerId(over.id) ? prev.length - 1 : prev.indexOf(themeIdFromTileId(over.id));
-      if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return prev;
-      return arrayMove(prev, oldIndex, newIndex);
-    });
   }
 
   function remix() {
@@ -373,21 +434,22 @@ export function ThemeRemixPage() {
         onDragEnd={handleDragEnd}
         onDragCancel={() => setActiveThemeId(null)}
       >
-        <div className={styles.panes}>
+        <div className={activeThemeId !== null ? `${styles.panes} ${styles.isDragging}` : styles.panes}>
           <section className={styles.column}>
             <h2 className={styles.paneTitle}>All topics</h2>
             <DroppablePane id="browse" className={`${styles.pane} ${styles.browsePane}`} label="All topics">
               <SortableContext items={browseEntries.map(({ theme }) => tileId(theme.id))} strategy={fixedOrderStrategy}>
                 {browseEntries.map(({ theme, depth }) => (
-                  <SortableThemeTile
-                    key={theme.id}
-                    themeId={theme.id}
-                    container="browse"
-                    depth={depth}
-                    count={standardCounts.get(theme.id) ?? 0}
-                    breadcrumb={breadcrumbs.get(theme.id) ?? theme.id}
-                    onActivate={() => add(theme.id)}
-                  />
+                  <div key={theme.id} className={styles.tileMount}>
+                    <SortableThemeTile
+                      themeId={theme.id}
+                      container="browse"
+                      depth={depth}
+                      count={standardCounts.get(theme.id) ?? 0}
+                      breadcrumb={breadcrumbs.get(theme.id) ?? theme.id}
+                      onActivate={() => add(theme.id)}
+                    />
+                  </div>
                 ))}
               </SortableContext>
               {browseEntries.length === 0 && (
@@ -399,16 +461,25 @@ export function ThemeRemixPage() {
           <section className={styles.column}>
             <h2 className={styles.paneTitle}>Your mix</h2>
             <DroppablePane id="selected" className={`${styles.pane} ${styles.selectedPane}`} label="Your mix">
-              <SortableContext items={selected.map(tileId)} strategy={rectSortingStrategy}>
-                {selected.map((themeId) => (
-                  <SortableThemeTile
-                    key={themeId}
-                    themeId={themeId}
-                    container="selected"
-                    count={standardCounts.get(themeId) ?? 0}
-                    breadcrumb={breadcrumbs.get(themeId) ?? themeId}
-                    onActivate={() => remove(themeId)}
-                  />
+              <SortableContext items={selected.map(tileId)} strategy={fixedOrderStrategy}>
+                {stacks.map((stack) => (
+                  <div key={stack[0].id} className={styles.stackGroup}>
+                    {stack.map(({ id, depth }) => (
+                      <div
+                        key={id}
+                        className={fadingOut.has(id) ? `${styles.tileMount} ${styles.tileFading}` : styles.tileMount}
+                      >
+                        <SortableThemeTile
+                          themeId={id}
+                          container="selected"
+                          depth={depth}
+                          count={standardCounts.get(id) ?? 0}
+                          breadcrumb={breadcrumbs.get(id) ?? id}
+                          onActivate={() => removeAnimated(cascadeRemovalIds(id))}
+                        />
+                      </div>
+                    ))}
+                  </div>
                 ))}
               </SortableContext>
               {selected.length === 0 && <p className={styles.empty}>Nothing picked yet — click or drag topics here.</p>}
@@ -418,7 +489,7 @@ export function ThemeRemixPage() {
                 {selected.length === 0 ? "" : `${poolSize} ${poolSize === 1 ? "lesson" : "lessons"} in the mix`}
               </span>
               {selected.length > 0 && (
-                <Button variant="secondary" onClick={() => setSelected([])}>
+                <Button variant="secondary" onClick={() => removeAnimated(selected)}>
                   Clear
                 </Button>
               )}
