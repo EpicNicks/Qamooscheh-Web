@@ -1,25 +1,24 @@
-import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useLessonEngine, type SubmitAnswerResult, type LessonExerciseInstance } from "../hooks/useLessonEngine";
 import { useExerciseSession } from "../hooks/useExerciseSession";
 import { useBootstrap } from "../hooks/useBootstrap";
-import { useCoursePath, useThemeIndex } from "../hooks/useCourseContent";
+import { useAuth } from "../auth/useAuth";
+import { useCoursePath, useSkillArtifactsForLessonRefs, useThemeIndex, refKey } from "../hooks/useCourseContent";
 import { isFirstStandardPosition } from "../domain/pathProgress";
 import { xpForAnswer } from "../domain/xp";
+import { themesForLesson } from "../domain/themeLookup";
+import { computeMasteryScore, selectRemixLessons, REMIX_MAX_LESSONS } from "../domain/deepDiveRemix";
+import { loadCardStates } from "../lib/cardStateStore";
 import { ExerciseSessionScreen } from "../components/lesson/ExerciseSessionScreen";
 import { RealLessonOverlay } from "../components/tutorial/RealLessonOverlay";
 import { LessonResults } from "../components/lesson/LessonResults";
 import { Spinner } from "../components/common/Spinner";
 import { ErrorBanner } from "../components/common/ErrorBanner";
 import { Button } from "../components/common/Button";
-import type { ThemeEntry, ThemeIndexArtifact } from "../types/content";
+import type { SkillRef } from "../types/api";
+import type { ThemeLessonRef } from "../types/content";
 import styles from "./LessonPage.module.css";
-
-/** Every theme bucket (in themes.json) that lists this lesson key — a lesson typically has 1-3. */
-function themesForLesson(themeIndex: ThemeIndexArtifact | undefined, lessonKey: string): ThemeEntry[] {
-  if (!themeIndex) return [];
-  return themeIndex.themes.filter((theme) => theme.lessons.some((lesson) => lesson.id === lessonKey));
-}
 
 /**
  * A planned lesson from the learner's own cursor (API_SPEC.md §2.2). The
@@ -30,9 +29,66 @@ function themesForLesson(themeIndex: ThemeIndexArtifact | undefined, lessonKey: 
  */
 export function LessonPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { lessonKey } = useParams();
   const isDeepDive = lessonKey != null;
-  const engine = useLessonEngine(lessonKey);
+  const isRemixRoute = location.pathname.startsWith("/lesson/deep-dive-remix/");
+
+  const bootstrap = useBootstrap();
+  const course = bootstrap.data?.course ?? null;
+  const { userId } = useAuth();
+  // Fetched independently of the engine (course comes straight from
+  // bootstrap, not engine.course) because the remix route needs it BEFORE
+  // useLessonEngine can even be called — its key list is an input, not an
+  // output, of this computation.
+  const themeIndex = useThemeIndex(course);
+
+  // The remix route's own lesson key list: every OTHER lesson across every
+  // theme the source lesson belongs to, weighted by how well the learner
+  // already knows the source lesson's vocabulary (domain/deepDiveRemix.ts).
+  // Falls back to just the source lesson alone when its themes have nothing
+  // else to offer, rather than a dead end. Deliberately returns [] (not
+  // [lessonKey]) while its own prerequisite fetches (theme index, the source
+  // lesson's own artifact) are still in flight — useLessonEngine treats an
+  // empty deep-dive key array as "still loading", not "nothing to show" (see
+  // its own doc comment), so this naturally keeps LessonPage in the loading
+  // state until there's something real to hand it.
+  const sourceLessonRef = useMemo<SkillRef[]>(
+    () => (isRemixRoute && lessonKey ? [{ unitKey: null, skillKey: lessonKey }] : []),
+    [isRemixRoute, lessonKey],
+  );
+  const { skills: sourceSkillArtifacts } = useSkillArtifactsForLessonRefs(
+    isRemixRoute ? course : null,
+    themeIndex.data,
+    sourceLessonRef,
+  );
+  const sourceArtifact = lessonKey ? sourceSkillArtifacts.get(refKey({ unitKey: null, skillKey: lessonKey })) : undefined;
+
+  const remixPool = useMemo<ThemeLessonRef[]>(() => {
+    if (!isRemixRoute || !lessonKey) return [];
+    const seen = new Set<string>([lessonKey]); // exclude the source lesson itself — "more like this", not "this again"
+    const pool: ThemeLessonRef[] = [];
+    for (const theme of themesForLesson(themeIndex.data, lessonKey)) {
+      for (const lesson of theme.lessons) {
+        if (seen.has(lesson.id)) continue;
+        seen.add(lesson.id);
+        pool.push(lesson);
+      }
+    }
+    return pool;
+  }, [isRemixRoute, lessonKey, themeIndex.data]);
+
+  const remixKeys = useMemo<string[]>(() => {
+    if (!isRemixRoute || !lessonKey || themeIndex.data == null || sourceArtifact == null) return [];
+    if (remixPool.length === 0) return [lessonKey];
+    const cardStates = userId ? loadCardStates(userId) : {};
+    const tags = [...new Set(sourceArtifact.exercises.flatMap((e) => e.tags))];
+    const mastery = computeMasteryScore(cardStates, tags);
+    return selectRemixLessons(remixPool, mastery, REMIX_MAX_LESSONS).map((l) => l.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- selectRemixLessons is intentionally randomized (weighted sampling); recomputing only when its real inputs' identities change, not every render, is the point — same posture as ThemeBrowsePage's shuffle-on-toggle.
+  }, [isRemixRoute, lessonKey, themeIndex.data, sourceArtifact, remixPool, userId]);
+
+  const engine = useLessonEngine(isRemixRoute ? remixKeys : isDeepDive && lessonKey ? [lessonKey] : undefined);
   const session = useExerciseSession<LessonExerciseInstance, SubmitAnswerResult>(engine.course);
   const { confirmation } = session;
   const [lastUsedHint, setLastUsedHint] = useState(false);
@@ -44,8 +100,7 @@ export function LessonPage() {
   // react-query (every other screen reads the same queries), so this costs
   // no extra network round-trip. Never applies to a deep dive — it's never
   // the learner's first lesson.
-  const bootstrap = useBootstrap();
-  const { path } = useCoursePath(bootstrap.data?.course ?? null, bootstrap.data?.position ?? null);
+  const { path } = useCoursePath(course, bootstrap.data?.position ?? null);
   const allowTutorialAutoTrigger =
     !isDeepDive &&
     !!engine.current &&
@@ -55,8 +110,8 @@ export function LessonPage() {
 
   // For the "Deep Dive" bridge on the recap below — both the ordinary
   // cursor-driven recap and the deep-dive recap can offer it, so it's
-  // resolved unconditionally rather than only in deep-dive mode.
-  const themeIndex = useThemeIndex(engine.course);
+  // resolved unconditionally rather than only in deep-dive mode. Reuses the
+  // same themeIndex fetched above for the remix computation.
   const primarySkillRef = engine.sessionSkillRefs[0] ?? null;
   const lessonThemes = primarySkillRef ? themesForLesson(themeIndex.data, primarySkillRef.skillKey) : [];
   // Hides the bridge for a non-standard category (story/conversation/song) —

@@ -2,7 +2,10 @@ import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { PathSkill, PositionKey } from "../../domain/pathProgress";
 import { usePathTheme } from "../../theme/PathThemeContext";
+import { useBootstrap } from "../../hooks/useBootstrap";
+import { useThemeIndex } from "../../hooks/useCourseContent";
 import { LessonStartPopover } from "./LessonStartPopover";
+import { DeepDiveChooserModal } from "./DeepDiveChooserModal";
 import { useSkillActions } from "./useSkillActions";
 import styles from "./SkillNode.module.css";
 
@@ -27,7 +30,13 @@ export function SkillNode({ skill, layout = "node", nextSkipTarget = null }: Ski
   const locked = skill.status === "locked";
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [popoverOpen, setPopoverOpen] = useState(false);
-  const actions = useSkillActions(skill, nextSkipTarget);
+  const [deepDiveOpen, setDeepDiveOpen] = useState(false);
+  // Independent react-query subscription rather than a prop drilled down from
+  // PathPage — matches Sidebar.tsx's own pattern, and costs nothing extra:
+  // both queries are already cached from whichever page fetched them first.
+  const bootstrap = useBootstrap();
+  const themeIndex = useThemeIndex(bootstrap.data?.course ?? null);
+  const actions = useSkillActions(skill, nextSkipTarget, themeIndex.data);
 
   function handleClick() {
     if (locked) return;
@@ -63,11 +72,20 @@ export function SkillNode({ skill, layout = "node", nextSkipTarget = null }: Ski
           anchorRef={buttonRef}
           primaryLabel={actions.primaryLabel}
           onPrimary={actions.onPrimary}
+          onDeepDive={
+            actions.hasDeepDive
+              ? () => {
+                  setPopoverOpen(false);
+                  setDeepDiveOpen(true);
+                }
+              : undefined
+          }
           onSkip={actions.onSkip}
           onReviewVocabulary={actions.onReviewVocabulary}
           onClose={() => setPopoverOpen(false)}
         />
       )}
+      {deepDiveOpen && <DeepDiveChooserModal lessonKey={skill.skillKey} onClose={() => setDeepDiveOpen(false)} />}
     </>
   );
 }

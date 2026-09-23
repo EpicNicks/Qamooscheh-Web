@@ -14,7 +14,7 @@
 //      A network failure queues the session for a later flush instead of
 //      losing it (lib/offlineQueue.ts).
 import { useCallback, useMemo, useRef, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useBootstrap } from "./useBootstrap";
 import { useSkillArtifactsForRefs, useSkillArtifactsForLessonRefs, useThemeIndex, refKey } from "./useCourseContent";
 import { getNextSession } from "../api/sessionPlan";
@@ -26,7 +26,7 @@ import { loadCardStates, mergeCardStates } from "../lib/cardStateStore";
 import { enqueue as enqueueOffline } from "../lib/offlineQueue";
 import { checkAnswer, type AnswerVerdict } from "../domain/answerFeedback";
 import { resolveExerciseType } from "../domain/exerciseResolution";
-import type { SkillRef, SubmittedItem, SubmittedSession, SubmittedSessionResponse } from "../types/api";
+import type { SessionPlanResponse, SkillRef, SubmittedItem, SubmittedSession, SubmittedSessionResponse } from "../types/api";
 import type { ExerciseArtifact } from "../types/content";
 import type { ExerciseType, SkillCategory } from "../domain/enums";
 
@@ -35,6 +35,11 @@ const RETRY_DEPTH = 3;
 // wrong answer is requeued exactly once (attempt 1 requeues, attempt 2 does
 // not), i.e. the exercise is asked at most twice total.
 const MAX_RETRIES = 2;
+// Only applied to a multi-lesson remix (deepDiveLessonKeys.length > 1) — a
+// due-tag union across several full lessons could otherwise run much longer
+// than an ordinary session. A single-lesson dive (or the cursor path) is
+// already naturally bounded by that one lesson's own size and stays uncapped.
+const REMIX_MAX_EXERCISES = 20;
 
 export interface LessonExerciseInstance {
   key: string;
@@ -90,31 +95,101 @@ export interface SubmitAnswerResult {
 }
 
 /**
- * @param deepDiveLessonKey When set, this is a deep-dive session for one
- * explicitly chosen lesson (GET /v1/sessions/for-lesson/{lessonKey}) rather
- * than the cursor-driven "what's next" plan — the theme-browsing/"Deep Dive"
- * counterpart (API_SPEC.md §2.11). Content is resolved via the theme
- * index's own path pointers instead of the unit-artifact indirection the
- * cursor path uses, since a standalone lesson has no unit artifact. Submit
- * is otherwise identical — no special-cased path, per the feature's own
- * design intent.
+ * @param deepDiveLessonKeys When set (non-empty), this is a deep-dive
+ * session for one or more explicitly chosen lessons (each via GET
+ * /v1/sessions/for-lesson/{lessonKey}) rather than the cursor-driven
+ * "what's next" plan — the theme-browsing/"Deep Dive" counterpart
+ * (API_SPEC.md §2.11). A single key is the ordinary "start this one lesson"
+ * case; several is a blended "remix" session (LessonPage's
+ * /lesson/deep-dive-remix route) — each lesson's plan is fetched
+ * independently and merged client-side (skills/reviewTags/newTags/
+ * prefetchTags unioned, courseVersion from whichever call succeeded first —
+ * every call shares the same pinned version). A lesson that 404s is simply
+ * dropped from the merge rather than failing the whole batch; only when
+ * EVERY key fails does this surface as "unavailable"/"error", exactly
+ * mirroring the single-key case's own 404 handling. Content is resolved via
+ * the theme index's own path pointers instead of the unit-artifact
+ * indirection the cursor path uses, since a standalone lesson has no unit
+ * artifact. Submit is otherwise identical — no special-cased path: whatever
+ * distinct (unitKey, skillKey) pairs actually got answered are what
+ * finishLesson groups into one SubmittedSession each, regardless of how many
+ * lessons that spans.
  */
-export function useLessonEngine(deepDiveLessonKey?: string) {
+export function useLessonEngine(deepDiveLessonKeys?: string[]) {
   const { userId } = useAuth();
   const queryClient = useQueryClient();
-  const isDeepDive = deepDiveLessonKey != null;
+  // The ARRAY'S PRESENCE selects the mode, not its length — an empty array
+  // still means "deep-dive mode, keys not resolved yet" (LessonPage's remix
+  // route computes its key list asynchronously, from the source lesson's own
+  // themes + local FSRS state, and starts out with nothing to pass). Treating
+  // an empty array as "not deep-diving" would make the engine fall back to
+  // fetching the cursor-driven plan for that brief window instead of simply
+  // waiting — see deepDivePlanIsLoading below for the loading-state half of
+  // this.
+  const isDeepDive = deepDiveLessonKeys != null;
 
   const bootstrap = useBootstrap();
   const course = bootstrap.data?.course ?? null;
 
-  const plan = useQuery({
-    queryKey: isDeepDive ? ["sessionForLesson", deepDiveLessonKey] : ["sessionPlan"],
-    queryFn: () => (isDeepDive ? getSessionForLesson(deepDiveLessonKey) : getNextSession()),
-    enabled: bootstrap.isSuccess,
-    // A lesson outside the learner's pinned version 404s (LessonNotFoundException)
-    // rather than being a transient failure — retrying it would just 404 again.
-    retry: isDeepDive ? false : undefined,
+  // Cursor-driven mode's own query — enabled only when NOT deep-diving.
+  const cursorPlan = useQuery({
+    queryKey: ["sessionPlan"],
+    queryFn: getNextSession,
+    enabled: bootstrap.isSuccess && !isDeepDive,
   });
+
+  // Deep-dive mode's queries — one per lesson key, independently retryable
+  // (a lesson outside the learner's pinned version 404s rather than being a
+  // transient failure, so retrying it would just 404 again).
+  const deepDiveQueries = useQueries({
+    queries: (isDeepDive ? deepDiveLessonKeys! : []).map((key) => ({
+      queryKey: ["sessionForLesson", key],
+      queryFn: () => getSessionForLesson(key),
+      enabled: bootstrap.isSuccess,
+      retry: false,
+    })),
+  });
+  const deepDiveSucceeded = deepDiveQueries
+    .map((q) => q.data)
+    .filter((d): d is SessionPlanResponse => d != null);
+  const deepDivePlanData: SessionPlanResponse | undefined =
+    isDeepDive && deepDiveSucceeded.length > 0
+      ? {
+          courseVersion: deepDiveSucceeded[0].courseVersion,
+          skills: deepDiveSucceeded.flatMap((p) => p.skills),
+          reviewTags: [...new Set(deepDiveSucceeded.flatMap((p) => p.reviewTags))],
+          newTags: [...new Set(deepDiveSucceeded.flatMap((p) => p.newTags))],
+          prefetchTags: [...new Set(deepDiveSucceeded.flatMap((p) => p.prefetchTags))],
+        }
+      : undefined;
+  // "Unavailable" only once every key has failed AND at least one of those
+  // failures was a real 404 — otherwise a batch of transient network errors
+  // would misreport as "this lesson doesn't exist" (falls through to the
+  // generic "error" status instead, via deepDivePlanIsError below).
+  const isLessonNotFound =
+    isDeepDive &&
+    deepDivePlanData == null &&
+    deepDiveQueries.length > 0 &&
+    deepDiveQueries.every((q) => q.isError) &&
+    deepDiveQueries.some((q) => q.error instanceof ApiError && q.error.status === 404);
+  // Empty key list counts as loading too (see isDeepDive's own comment) —
+  // only once LessonPage has actually resolved a real (possibly single-
+  // element, see its own fallback) key list do the individual queries below
+  // get a chance to settle.
+  const deepDivePlanIsLoading =
+    isDeepDive &&
+    deepDivePlanData == null &&
+    (deepDiveLessonKeys!.length === 0 || deepDiveQueries.some((q) => q.isLoading));
+  const deepDivePlanIsError =
+    isDeepDive && deepDivePlanData == null && deepDiveQueries.length > 0 && deepDiveQueries.every((q) => q.isError);
+
+  // Same shape as react-query's own return (only the fields this hook
+  // actually reads below) — lets every existing `plan.data`/`plan.isLoading`/
+  // `plan.isError` reference below stay unchanged regardless of which mode
+  // is active.
+  const plan = isDeepDive
+    ? { data: deepDivePlanData, isLoading: deepDivePlanIsLoading, isError: deepDivePlanIsError }
+    : cursorPlan;
 
   // The learner's current cursor, reused as the practice-mode skill whenever
   // `plan.data.skills` comes back empty — which it does whenever nothing's
@@ -194,11 +269,14 @@ export function useLessonEngine(deepDiveLessonKey?: string) {
     return instances;
   }
 
+  const isRemix = !!deepDiveLessonKeys && deepDiveLessonKeys.length > 1;
+
   const initialQueue = useMemo<LessonExerciseInstance[]>(() => {
     if (!skillsReady || !plan.data || !userId) return [];
-    return buildInstances(plan.data.skills, dueTags);
+    const instances = buildInstances(plan.data.skills, dueTags);
+    return isRemix ? instances.slice(0, REMIX_MAX_EXERCISES) : instances;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [skillsReady, plan.data, userId, dueTags]);
+  }, [skillsReady, plan.data, userId, dueTags, isRemix]);
 
   const [queue, setQueue] = useState<LessonExerciseInstance[] | null>(null);
   const [totalCount, setTotalCount] = useState(0);
@@ -243,8 +321,20 @@ export function useLessonEngine(deepDiveLessonKey?: string) {
   if (queue === null && skillsReady && plan.data) {
     setQueue(initialQueue);
     setTotalCount(initialQueue.length);
-    setSessionSkillRefs(plan.data.skills);
-    const primaryRef = plan.data.skills[0];
+    // Derived from the actual built (and possibly REMIX_MAX_EXERCISES-
+    // truncated) queue, not plan.data.skills directly — a remix's merged
+    // plan can list a lesson whose exercises got truncated away entirely,
+    // and that lesson was never actually played.
+    const playedRefs: SkillRef[] = [];
+    const seenKeys = new Set<string>();
+    for (const instance of initialQueue) {
+      const key = refKey(instance);
+      if (seenKeys.has(key)) continue;
+      seenKeys.add(key);
+      playedRefs.push({ unitKey: instance.unitKey, skillKey: instance.skillKey });
+    }
+    setSessionSkillRefs(playedRefs);
+    const primaryRef = playedRefs[0];
     setSessionSkillCategory(primaryRef ? (skillArtifacts.get(refKey(primaryRef))?.category ?? null) : null);
     shownAt.current = performance.now();
   }
@@ -277,7 +367,8 @@ export function useLessonEngine(deepDiveLessonKey?: string) {
     if (!plan.data) return;
     const refs = plan.data.skills.length > 0 ? plan.data.skills : positionRef ? [positionRef] : [];
     if (refs.length === 0) return;
-    const instances = buildInstances(refs, null);
+    const built = buildInstances(refs, null);
+    const instances = isRemix ? built.slice(0, REMIX_MAX_EXERCISES) : built;
     setIsPracticeMode(true);
     setItems([]);
     setFirstTryCorrect(0);
@@ -438,8 +529,6 @@ export function useLessonEngine(deepDiveLessonKey?: string) {
     }
   }
 
-  const isLessonNotFound = isDeepDive && plan.error instanceof ApiError && plan.error.status === 404;
-
   const derivedStatus: LessonStatus =
     status === "submitting" || status === "done" || status === "rejected"
       ? status
@@ -453,13 +542,16 @@ export function useLessonEngine(deepDiveLessonKey?: string) {
               ? "empty"
               : "ready";
 
-  // Only meaningful once the deep dive is done and the completed lesson had
-  // a journey position at all — a standalone lesson can never move the
-  // cursor. See startingPositionRef's own comment for what this compares.
+  // Only meaningful once the deep dive is done and AT LEAST ONE session skill
+  // had a journey position — a standalone lesson can never move the cursor,
+  // but a remix spanning several lessons only needs one of them to (checking
+  // sessionSkillRefs[0] alone would miss it whenever the journeyed lesson
+  // wasn't the first one merged in). See startingPositionRef's own comment
+  // for what this compares.
   const journeyAdvanced =
     isDeepDive &&
     derivedStatus === "done" &&
-    sessionSkillRefs[0]?.unitKey != null &&
+    sessionSkillRefs.some((ref) => ref.unitKey != null) &&
     startingPositionRef.current !== undefined &&
     bootstrap.data?.position != null &&
     (startingPositionRef.current === null ||

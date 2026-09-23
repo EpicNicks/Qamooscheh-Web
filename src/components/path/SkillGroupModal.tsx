@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import type { PathSkill, PositionKey } from "../../domain/pathProgress";
+import type { ThemeIndexArtifact } from "../../types/content";
 import { usePathTheme } from "../../theme/PathThemeContext";
 import { useListNavigation } from "../../hooks/useListNavigation";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
@@ -18,6 +19,9 @@ interface SkillGroupModalProps {
   /** The composite node this opened from — the FLIP animation's start rect, and where focus returns. */
   originRef: RefObject<HTMLElement | null>;
   onClose: () => void;
+  /** Opens the Deep Dive chooser for the currently-active alternate, after this modal's own close animation finishes — see requestClose's `then` param. */
+  onDeepDive: (skillKey: string) => void;
+  themeIndex?: ThemeIndexArtifact | null;
 }
 
 /**
@@ -34,7 +38,7 @@ interface SkillGroupModalProps {
  * containing block for `position: fixed` descendants, so an in-place overlay
  * would size itself to the node's own small box instead of the viewport.
  */
-export function SkillGroupModal({ skills, nextSkipTarget, originRef, onClose }: SkillGroupModalProps) {
+export function SkillGroupModal({ skills, nextSkipTarget, originRef, onClose, onDeepDive, themeIndex }: SkillGroupModalProps) {
   const theme = usePathTheme();
   const overlayRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -48,23 +52,30 @@ export function SkillGroupModal({ skills, nextSkipTarget, originRef, onClose }: 
 
   const actionsRef = useRef<ReturnType<typeof useSkillActions> | null>(null);
   const listNav = useListNavigation(skills.length, () => actionsRef.current?.onPrimary());
-  const actions = useSkillActions(skills[listNav.activeIndex] ?? null, nextSkipTarget);
+  const activeSkill = skills[listNav.activeIndex] ?? null;
+  const actions = useSkillActions(activeSkill, nextSkipTarget, themeIndex);
   actionsRef.current = actions;
 
-  function requestClose() {
+  /**
+   * `then` defaults to `onClose` (the Cancel/×/overlay-click path) but the
+   * Deep Dive button passes its own so the chooser modal opens only once
+   * this one has actually finished animating away, rather than the two
+   * dialogs briefly overlapping.
+   */
+  function requestClose(then: () => void = onClose) {
     const anim = dialogRef.current && flipFromOrigin(dialogRef.current, originRectRef.current, { direction: "reverse" });
     overlayRef.current?.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 160, fill: "forwards" });
     if (!anim) {
-      onClose();
+      then();
       return;
     }
     // .finally, not .then: a cancelled animation rejects, and a cancelled
     // close must still close (otherwise Escape during the open animation
     // strands the dialog on screen).
-    void anim.finished.finally(onClose);
+    void anim.finished.finally(then);
   }
 
-  useFocusTrap(dialogRef, { enabled: true, onEscape: requestClose });
+  useFocusTrap(dialogRef, { enabled: true, onEscape: () => requestClose() });
 
   useLayoutEffect(() => {
     listRef.current?.focus();
@@ -90,7 +101,7 @@ export function SkillGroupModal({ skills, nextSkipTarget, originRef, onClose }: 
   }, []);
 
   return createPortal(
-    <div ref={overlayRef} className={styles.overlay} onClick={requestClose}>
+    <div ref={overlayRef} className={styles.overlay} onClick={() => requestClose()}>
       <div
         ref={dialogRef}
         className={styles.dialog}
@@ -99,7 +110,7 @@ export function SkillGroupModal({ skills, nextSkipTarget, originRef, onClose }: 
         aria-labelledby="skill-group-title"
         onClick={(e) => e.stopPropagation()}
       >
-        <button type="button" className={styles.close} aria-label="Close" onClick={requestClose}>
+        <button type="button" className={styles.close} aria-label="Close" onClick={() => requestClose()}>
           <CloseIcon />
         </button>
         <h2 id="skill-group-title" className={styles.title}>
@@ -137,6 +148,15 @@ export function SkillGroupModal({ skills, nextSkipTarget, originRef, onClose }: 
             <Button className={styles.action} onClick={actions.onPrimary}>
               {actions.primaryLabel}
             </Button>
+            {actions.hasDeepDive && activeSkill && (
+              <Button
+                className={styles.action}
+                variant="deepDive"
+                onClick={() => requestClose(() => onDeepDive(activeSkill.skillKey))}
+              >
+                Deep Dive
+              </Button>
+            )}
             {actions.onSkip && (
               <Button
                 className={styles.action}

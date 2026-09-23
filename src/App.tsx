@@ -77,6 +77,7 @@ export default function App() {
         <Route path="/themes/:themeId" element={<ThemeBrowsePage />} />
         <Route path="/lesson" element={<LessonPage />} />
         <Route path="/lesson/deep-dive/:lessonKey" element={<LessonPage />} />
+        <Route path="/lesson/deep-dive-remix/:lessonKey" element={<LessonPage />} />
         <Route path="/story/:unitKey/:skillKey" element={<StoryPage />} />
         <Route path="/practice/:unitKey/:skillKey" element={<PracticePage />} />
         <Route path="/checkpoint/:unitKey/:skillKey" element={<CheckpointPage />} />

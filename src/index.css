@@ -15,6 +15,9 @@
   --color-current: #1cb0f6;
   /** The "skip ahead" placement-test node (PlacementTestNode, GitHub #4) — deliberately its own hue, shared with neither .locked's grey nor .current's blue, so the one node that behaves unlike every other locked node also reads as visually distinct rather than a locked node with a dashed border. */
   --color-placement: #ff9600;
+  /** The "Deep Dive" button (Journey popovers, LessonPage's post-lesson bridge) — its own hue, distinct from primary/danger/current/placement, so it reads as a third kind of action rather than a stronger or weaker "Start lesson". */
+  --color-deepdive: #8854d0;
+  --color-deepdive-hover: #7042b8;
 
   --radius-sm: 8px;
   --radius-md: 14px;

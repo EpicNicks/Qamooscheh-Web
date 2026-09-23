@@ -36,3 +36,12 @@
   background: var(--color-danger);
   color: #fff;
 }
+
+.deepDive {
+  background: var(--color-deepdive);
+  color: #fff;
+}
+
+.deepDive:hover:not(:disabled) {
+  background: var(--color-deepdive-hover);
+}

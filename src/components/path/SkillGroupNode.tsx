@@ -1,7 +1,10 @@
 import { useRef, useState } from "react";
 import type { PathPosition, PositionKey } from "../../domain/pathProgress";
 import { usePathTheme } from "../../theme/PathThemeContext";
+import { useBootstrap } from "../../hooks/useBootstrap";
+import { useThemeIndex } from "../../hooks/useCourseContent";
 import { SkillGroupModal } from "./SkillGroupModal";
+import { DeepDiveChooserModal } from "./DeepDiveChooserModal";
 import nodeStyles from "./SkillNode.module.css";
 import styles from "./SkillGroupNode.module.css";
 
@@ -22,6 +25,9 @@ export function SkillGroupNode({ position, nextSkipTarget }: { position: PathPos
   const locked = position.status === "locked";
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [deepDiveLessonKey, setDeepDiveLessonKey] = useState<string | null>(null);
+  const bootstrap = useBootstrap();
+  const themeIndex = useThemeIndex(bootstrap.data?.course ?? null);
   const titles = position.skills.map((s) => s.title);
 
   return (
@@ -41,7 +47,20 @@ export function SkillGroupNode({ position, nextSkipTarget }: { position: PathPos
         <span className={styles.countPill}>{position.skills.length}</span>
       </button>
       {modalOpen && (
-        <SkillGroupModal skills={position.skills} nextSkipTarget={nextSkipTarget} originRef={buttonRef} onClose={() => setModalOpen(false)} />
+        <SkillGroupModal
+          skills={position.skills}
+          nextSkipTarget={nextSkipTarget}
+          originRef={buttonRef}
+          onClose={() => setModalOpen(false)}
+          onDeepDive={(skillKey) => {
+            setModalOpen(false);
+            setDeepDiveLessonKey(skillKey);
+          }}
+          themeIndex={themeIndex.data}
+        />
+      )}
+      {deepDiveLessonKey && (
+        <DeepDiveChooserModal lessonKey={deepDiveLessonKey} onClose={() => setDeepDiveLessonKey(null)} />
       )}
     </>
   );

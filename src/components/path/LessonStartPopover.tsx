@@ -47,6 +47,8 @@ interface LessonStartPopoverProps {
   /** "Start lesson" for the current skill, "Practice" for a past one being revisited, "Take the placement test" for a future unit's entry node (SkillNode's placement variant) — see SkillNode. */
   primaryLabel: string;
   onPrimary: () => void;
+  /** Opens the Deep Dive chooser modal — only offered on a standard-category skill tagged with at least one theme (useSkillActions.hasDeepDive). */
+  onDeepDive?: () => void;
   /** Only ever offered on the current skill, and only when there's a position ahead to test into — see domain/pathProgress.ts's findNextStandardTarget. A skill already passed has nothing left to test out of. */
   onSkip?: () => void;
   /** Omitted by the placement variant: a locked future unit's node offers only the one placement-test action, not Start/Practice/Review-vocab. */
@@ -80,6 +82,7 @@ export function LessonStartPopover({
   anchorRef,
   primaryLabel,
   onPrimary,
+  onDeepDive,
   onSkip,
   onReviewVocabulary,
   description,
@@ -201,6 +204,11 @@ export function LessonStartPopover({
     <div ref={popoverRef} className={styles.popover} style={style} role="dialog" aria-label={primaryLabel}>
       {description && <p className={styles.description}>{description}</p>}
       <Button onClick={onPrimary}>{primaryLabel}</Button>
+      {onDeepDive && (
+        <Button variant="deepDive" onClick={onDeepDive}>
+          Deep Dive
+        </Button>
+      )}
       {onSkip && (
         <Button variant="secondary" onClick={onSkip} title="Complete a shorter quiz instead of the full lesson to advance">
           Test out

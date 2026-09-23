@@ -42,7 +42,7 @@ export function Sidebar({ variant = "rail" }: { variant?: "rail" | "drawer" }) {
           page paint pays for fetching themes.json, which nothing else
           currently does. */}
       <NavLink to="/themes" className={({ isActive }) => (isActive ? `${styles.link} ${styles.active}` : styles.link)}>
-        Explore
+        Deep Dives
       </NavLink>
       {[...categories].map((category) => (
         <NavLink

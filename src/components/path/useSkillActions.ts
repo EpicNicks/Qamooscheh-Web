@@ -1,5 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import type { PathSkill, PositionKey } from "../../domain/pathProgress";
+import { themesForLesson } from "../../domain/themeLookup";
+import type { ThemeIndexArtifact } from "../../types/content";
 
 export interface SkillActions {
   /** "Start lesson" for the current skill, "Practice" for one being revisited. */
@@ -8,6 +10,13 @@ export interface SkillActions {
   /** Only present on the current skill when there's a position ahead to test into. */
   onSkip?: () => void;
   onReviewVocabulary: () => void;
+  /**
+   * Whether to show the "Deep Dive" button at all — a standard-category
+   * skill tagged with at least one theme. Not a callback: opening the
+   * chooser modal is local UI state (SkillNode/SkillGroupModal own it), not
+   * a navigation action like the others here.
+   */
+  hasDeepDive: boolean;
 }
 
 /**
@@ -20,7 +29,11 @@ export interface SkillActions {
  * `skill` may be null while a list has no selection (SkillGroupModal before
  * its list has focus); the returned callbacks are then no-ops.
  */
-export function useSkillActions(skill: PathSkill | null, nextSkipTarget: PositionKey | null): SkillActions {
+export function useSkillActions(
+  skill: PathSkill | null,
+  nextSkipTarget: PositionKey | null,
+  themeIndex?: ThemeIndexArtifact | null,
+): SkillActions {
   const navigate = useNavigate();
 
   function primaryAction() {
@@ -50,5 +63,7 @@ export function useSkillActions(skill: PathSkill | null, nextSkipTarget: Positio
     onReviewVocabulary: () => {
       if (skill) navigate(`/vocabulary/${skill.unitKey}/${skill.skillKey}`);
     },
+    hasDeepDive:
+      skill != null && skill.category === "standard" && themesForLesson(themeIndex, skill.skillKey).length > 0,
   };
 }
