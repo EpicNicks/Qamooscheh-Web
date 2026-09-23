@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useLessonEngine, type SubmitAnswerResult, type LessonExerciseInstance } from "../hooks/useLessonEngine";
 import { useExerciseSession } from "../hooks/useExerciseSession";
 import { useBootstrap } from "../hooks/useBootstrap";
@@ -7,8 +7,8 @@ import { useAuth } from "../auth/useAuth";
 import { useCoursePath, useAllThemeSkillArtifacts, useThemeIndex, refKey } from "../hooks/useCourseContent";
 import { isFirstStandardPosition } from "../domain/pathProgress";
 import { xpForAnswer } from "../domain/xp";
-import { themesForLesson } from "../domain/themeLookup";
-import { computeMasteryScore, selectRemixLessons, REMIX_MAX_LESSONS } from "../domain/deepDiveRemix";
+import { rootThemesForLesson } from "../domain/themeTree";
+import { buildRemixPool, computeMasteryScore, selectRemixLessons, REMIX_MAX_LESSONS } from "../domain/deepDiveRemix";
 import { loadCardStates } from "../lib/cardStateStore";
 import { ExerciseSessionScreen } from "../components/lesson/ExerciseSessionScreen";
 import { RealLessonOverlay } from "../components/tutorial/RealLessonOverlay";
@@ -30,8 +30,16 @@ export function LessonPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { lessonKey } = useParams();
-  const isDeepDive = lessonKey != null;
-  const isRemixRoute = location.pathname.startsWith("/lesson/deep-dive-remix/");
+  const [searchParams] = useSearchParams();
+  const isRemixRoute = location.pathname.startsWith("/lesson/deep-dive-remix/") && lessonKey != null;
+  // The lesson-LESS remix: /lesson/deep-dive-remix?themeIds=a,b (from
+  // ThemeRemixPage's picker) — no source lesson, so no exclusion and no
+  // source-anchored mastery; just the picked tags' pooled lessons. Counts as
+  // a deep dive for every copy/tutorial decision below, same as the others.
+  const isThemeRemixRoute = location.pathname.replace(/\/$/, "") === "/lesson/deep-dive-remix" && lessonKey == null;
+  const isDeepDive = lessonKey != null || isThemeRemixRoute;
+  const themeIdsParam = isThemeRemixRoute ? (searchParams.get("themeIds") ?? "") : "";
+  const remixThemeIds = useMemo(() => themeIdsParam.split(",").filter((id) => id !== ""), [themeIdsParam]);
 
   const bootstrap = useBootstrap();
   const course = bootstrap.data?.course ?? null;
@@ -47,7 +55,10 @@ export function LessonPage() {
   // own doc comment), so this costs nothing extra once either of those pages
   // has been visited this session, and gives the remix pool below the same
   // category data those pages already filter on.
-  const { skills: allThemeSkillArtifacts } = useAllThemeSkillArtifacts(isRemixRoute ? course : null, themeIndex.data);
+  const { skills: allThemeSkillArtifacts, isLoading: themeSkillsLoading } = useAllThemeSkillArtifacts(
+    isRemixRoute || isThemeRemixRoute ? course : null,
+    themeIndex.data,
+  );
   const sourceArtifact = lessonKey ? allThemeSkillArtifacts.get(refKey({ unitKey: null, skillKey: lessonKey })) : undefined;
 
   // The remix route's own lesson key list: every OTHER standard-category
@@ -65,20 +76,18 @@ export function LessonPage() {
   // array as "still loading", not "nothing to show" (see its own doc
   // comment), so this naturally keeps LessonPage in the loading state until
   // there's something real to hand it.
+  //
+  // Unions across the lesson's ROOT tags only: `lessons` is rolled up the
+  // theme tree, so every descendant tag's lessons are already inside its
+  // root — root-union equals all-depth-union, just without re-walking every
+  // ancestor bucket.
   const remixPool = useMemo<ThemeLessonRef[]>(() => {
     if (!isRemixRoute || !lessonKey || sourceArtifact == null) return [];
-    const seen = new Set<string>([lessonKey]); // exclude the source lesson itself — "more like this", not "this again"
-    const pool: ThemeLessonRef[] = [];
-    for (const theme of themesForLesson(themeIndex.data, lessonKey)) {
-      for (const lesson of theme.lessons) {
-        if (seen.has(lesson.id)) continue;
-        seen.add(lesson.id);
-        if (allThemeSkillArtifacts.get(refKey({ unitKey: null, skillKey: lesson.id }))?.category !== "standard") continue;
-        pool.push(lesson);
-      }
-    }
-    return pool;
-  }, [isRemixRoute, lessonKey, themeIndex.data, allThemeSkillArtifacts]);
+    return buildRemixPool(themeIndex.data, allThemeSkillArtifacts, {
+      themeIds: rootThemesForLesson(themeIndex.data, lessonKey).map((t) => t.id),
+      excludeLessonKey: lessonKey, // "more like this", not "this again"
+    });
+  }, [isRemixRoute, lessonKey, themeIndex.data, allThemeSkillArtifacts, sourceArtifact]);
 
   const remixKeys = useMemo<string[]>(() => {
     if (!isRemixRoute || !lessonKey || themeIndex.data == null || sourceArtifact == null) return [];
@@ -90,7 +99,29 @@ export function LessonPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- selectRemixLessons is intentionally randomized (weighted sampling); recomputing only when its real inputs' identities change, not every render, is the point — same posture as ThemeBrowsePage's shuffle-on-toggle.
   }, [isRemixRoute, lessonKey, themeIndex.data, sourceArtifact, remixPool, userId]);
 
-  const engine = useLessonEngine(isRemixRoute ? remixKeys : isDeepDive && lessonKey ? [lessonKey] : undefined);
+  // The lesson-less remix's pool + key list. Waits (returns []) until the
+  // theme index AND every candidate artifact have resolved — the same
+  // "empty array = still loading" contract as above — but unlike the
+  // lesson-anchored route there's no source lesson to fall back to, so a
+  // genuinely empty pool is surfaced as its own screen (themeRemixIsEmpty)
+  // instead of leaving useLessonEngine waiting forever. Mastery is a neutral
+  // 0.5: there's no single source lesson's vocabulary to score against, and
+  // aggregating mastery across an arbitrary multi-tag pool is out of scope.
+  const themeRemixReady = isThemeRemixRoute && themeIndex.data != null && !themeSkillsLoading;
+  const themeRemixPool = useMemo<ThemeLessonRef[]>(() => {
+    if (!themeRemixReady) return [];
+    return buildRemixPool(themeIndex.data, allThemeSkillArtifacts, { themeIds: remixThemeIds });
+  }, [themeRemixReady, themeIndex.data, allThemeSkillArtifacts, remixThemeIds]);
+  const themeRemixKeys = useMemo<string[]>(
+    () => selectRemixLessons(themeRemixPool, 0.5, REMIX_MAX_LESSONS).map((l) => l.id),
+    // Randomized on purpose (weighted sampling) — recompute only when the pool itself changes, same as remixKeys above.
+    [themeRemixPool],
+  );
+  const themeRemixIsEmpty = themeRemixReady && themeRemixPool.length === 0;
+
+  const engine = useLessonEngine(
+    isThemeRemixRoute ? themeRemixKeys : isRemixRoute ? remixKeys : isDeepDive && lessonKey ? [lessonKey] : undefined,
+  );
   const session = useExerciseSession<LessonExerciseInstance, SubmitAnswerResult>(engine.course);
   const { confirmation } = session;
   const [lastUsedHint, setLastUsedHint] = useState(false);
@@ -115,7 +146,11 @@ export function LessonPage() {
   // resolved unconditionally rather than only in deep-dive mode. Reuses the
   // same themeIndex fetched above for the remix computation.
   const primarySkillRef = engine.sessionSkillRefs[0] ?? null;
-  const lessonThemes = primarySkillRef ? themesForLesson(themeIndex.data, primarySkillRef.skillKey) : [];
+  // Root tags only: rollup lists a lesson in every ancestor of its tag, so
+  // the all-depth set would show e.g. Grammar AND Tenses AND PastTense chips
+  // for one PastTense lesson. Deeper tags stay reachable from the Journey's
+  // Deep Dive chooser and from each root's browse page.
+  const lessonThemes = primarySkillRef ? rootThemesForLesson(themeIndex.data, primarySkillRef.skillKey) : [];
   // Hides the bridge for a non-standard category (story/conversation/song) —
   // those never belong in a themes.json browse bucket even when tagged
   // (content/CLAUDE.md), and this also happens to compensate for a known
@@ -132,6 +167,22 @@ export function LessonPage() {
   useEffect(() => {
     if (!isReviewing) markShown();
   }, [isReviewing, markShown]);
+
+  if (isThemeRemixRoute && themeIndex.isError) {
+    return <ErrorBanner message="Couldn't load themes from the CDN." />;
+  }
+
+  if (themeRemixIsEmpty) {
+    return (
+      <div className={styles.done}>
+        <h1>Nothing to remix here yet</h1>
+        <p>The topics you picked don't have any practice lessons in your current course version.</p>
+        <div className={styles.doneActions}>
+          <Button onClick={() => navigate("/theme-remix")}>Pick other topics</Button>
+        </div>
+      </div>
+    );
+  }
 
   if (engine.status === "loading") {
     return <Spinner label="Preparing your lesson…" />;

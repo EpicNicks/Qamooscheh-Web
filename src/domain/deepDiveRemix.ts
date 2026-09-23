@@ -7,7 +7,40 @@
 // treated as settled scheduling math (see exerciseResolution.ts's own
 // "SIMPLIFIED" card-state heuristic for the same posture elsewhere here).
 import type { CardState } from "../types/api";
-import type { ThemeLessonRef } from "../types/content";
+import type { SkillArtifact, ThemeIndexArtifact, ThemeLessonRef } from "../types/content";
+import { refKey } from "./skillRefKey";
+import { indexThemesById } from "./themeTree";
+
+/**
+ * The candidate lessons a remix draws from: the union of `themeIds`' own
+ * (already rolled-up, so descendants included) `lessons`, deduped by id in
+ * first-seen order, filtered to `category === "standard"` via
+ * `skillArtifacts` (keyed by refKey, as useAllThemeSkillArtifacts returns
+ * it) — story/conversation/song lessons only make sense played in sequence,
+ * and themes.json currently leaks them in (a known backend gap). A lesson
+ * whose artifact hasn't loaded yet is excluded, same as ThemeBrowsePage.
+ * `excludeLessonKey` drops the source lesson for the lesson-anchored remix
+ * ("more like this", not "this again"). Unknown theme ids are ignored.
+ */
+export function buildRemixPool(
+  themeIndex: ThemeIndexArtifact | null | undefined,
+  skillArtifacts: Map<string, SkillArtifact>,
+  opts: { themeIds: string[]; excludeLessonKey?: string },
+): ThemeLessonRef[] {
+  if (!themeIndex) return [];
+  const byId = indexThemesById(themeIndex.themes);
+  const seen = new Set<string>(opts.excludeLessonKey != null ? [opts.excludeLessonKey] : []);
+  const pool: ThemeLessonRef[] = [];
+  for (const themeId of opts.themeIds) {
+    for (const lesson of byId.get(themeId)?.lessons ?? []) {
+      if (seen.has(lesson.id)) continue;
+      seen.add(lesson.id);
+      if (skillArtifacts.get(refKey({ unitKey: null, skillKey: lesson.id }))?.category !== "standard") continue;
+      pool.push(lesson);
+    }
+  }
+  return pool;
+}
 
 /** FSRS stability (days) treated as "fully known" for this heuristic's 0..1 scale — not a real retrievability calculation, just a rough proxy. */
 const MASTERY_STABILITY_CAP = 30;

@@ -6,13 +6,11 @@ import { useQueries, useQuery } from "@tanstack/react-query";
 import { getCourseManifest, getLexemeIndex, getSkillArtifact, getThemeIndex, getUnitArtifact } from "../api/content";
 import { computePathProgress, type PathSkillInput, type PathUnit, type PositionKey } from "../domain/pathProgress";
 import type { UnitVocab } from "../domain/courseVocabulary";
+import { refKey } from "../domain/skillRefKey";
 import type { CourseRef, SkillRef } from "../types/api";
 import type { CourseManifest, ManifestRef, SkillArtifact, ThemeIndexArtifact, UnitArtifact } from "../types/content";
 
-/** `${unitKey}/${skillKey}`, null-safe — the shared key convention for skill-artifact maps, since a theme lesson's `unitKey` can be null. */
-export function refKey(ref: SkillRef): string {
-  return `${ref.unitKey ?? "_"}/${ref.skillKey}`;
-}
+export { refKey };
 
 export function useCourseManifest(course: CourseRef | null | undefined) {
   return useQuery({

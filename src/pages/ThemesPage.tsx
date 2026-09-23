@@ -1,8 +1,12 @@
-import { Link } from "react-router-dom";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useBootstrap } from "../hooks/useBootstrap";
 import { useAllThemeSkillArtifacts, useThemeIndex, refKey } from "../hooks/useCourseContent";
 import { Spinner } from "../components/common/Spinner";
 import { ErrorBanner } from "../components/common/ErrorBanner";
+import { Button } from "../components/common/Button";
+import { ThemeDrilldownModal } from "../components/themes/ThemeDrilldownModal";
+import { childrenOf } from "../domain/themeTree";
 import { errorMessage } from "../lib/errors";
 import styles from "./ThemesPage.module.css";
 
@@ -19,8 +23,17 @@ import styles from "./ThemesPage.module.css";
  * every theme-tagged lesson's artifact once and shares it with
  * ThemeBrowsePage and the Journey Deep Dive remix pool — see that hook's own
  * doc comment for why this is one shared cached fetch, not three.
+ *
+ * Only ROOT tags are listed (themes.json is a tree via `parentId`); a root's
+ * rolled-up `lessons` already include every descendant's, so its count is
+ * the whole subtree's. Clicking one opens ThemeDrilldownModal to step down
+ * the tree. Roots come from `childrenOf(themes, null)`, not a bare
+ * `parentId === null` filter, so an orphan (parent id missing from the
+ * index) still shows up as a root rather than vanishing.
  */
 export function ThemesPage() {
+  const navigate = useNavigate();
+  const [openRootId, setOpenRootId] = useState<string | null>(null);
   const bootstrap = useBootstrap();
   const course = bootstrap.data?.course ?? null;
   const themeIndex = useThemeIndex(course);
@@ -35,19 +48,37 @@ export function ThemesPage() {
     return <p>No themed lessons yet for this course.</p>;
   }
 
+  const roots = childrenOf(themes, null);
+
   return (
-    <div className={styles.grid}>
-      {themes.map((theme) => {
-        const standardCount = theme.lessons.filter(
-          (lesson) => skillArtifacts.get(refKey({ unitKey: null, skillKey: lesson.id }))?.category === "standard",
-        ).length;
-        return (
-          <Link key={theme.id} to={`/themes/${encodeURIComponent(theme.id)}`} className={styles.card}>
-            <span className={styles.name}>{theme.id}</span>
-            <span className={styles.count}>{standardCount} lessons</span>
-          </Link>
-        );
-      })}
+    <div className={styles.page}>
+      <div className={styles.header}>
+        <p className={styles.intro}>Pick a topic to explore, or mix several together.</p>
+        <Button variant="deepDive" onClick={() => navigate("/theme-remix")}>
+          Remix
+        </Button>
+      </div>
+      <div className={styles.grid}>
+        {roots.map((theme) => {
+          const standardCount = theme.lessons.filter(
+            (lesson) => skillArtifacts.get(refKey({ unitKey: null, skillKey: lesson.id }))?.category === "standard",
+          ).length;
+          return (
+            <button key={theme.id} type="button" className={styles.card} onClick={() => setOpenRootId(theme.id)}>
+              <span className={styles.name}>{theme.id}</span>
+              <span className={styles.count}>{standardCount} lessons</span>
+            </button>
+          );
+        })}
+      </div>
+      {openRootId !== null && themeIndex.data && (
+        <ThemeDrilldownModal
+          key={openRootId}
+          themeIndex={themeIndex.data}
+          rootId={openRootId}
+          onClose={() => setOpenRootId(null)}
+        />
+      )}
     </div>
   );
 }

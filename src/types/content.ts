@@ -112,9 +112,16 @@ export interface ThemeLessonRef {
  * as-is; "random" is the client's own shuffle of the same list. There is no
  * separate display `name` — `id` (the tag itself, e.g. "Food", "Restaurant")
  * is the only label the backend sends.
+ *
+ * Themes form a tree of unbounded depth via `parentId` (null = a root tag).
+ * `lessons` is already rolled up by the backend: it includes every
+ * descendant's lessons too (deduped, same sort), so a lesson tagged with a
+ * leaf also appears in every ancestor. A node can carry direct lessons and
+ * children at the same time. See domain/themeTree.ts for the tree helpers.
  */
 export interface ThemeEntry {
   id: string;
+  parentId: string | null;
   lessons: ThemeLessonRef[];
 }
 

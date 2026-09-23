@@ -1,0 +1,234 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.title {
+  font-size: 1.25rem;
+  margin: 0;
+}
+
+.intro {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+/* ---- Autocomplete ---- */
+
+.search {
+  position: relative;
+}
+
+.searchInput {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.searchInput:focus-visible {
+  outline: none;
+  border-color: var(--color-deepdive);
+}
+
+.suggestions {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 10;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  box-shadow: 0 6px 18px rgb(0 0 0 / 15%);
+  overflow: hidden;
+}
+
+.suggestion {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-2) var(--space-3);
+  border-top: 1px solid var(--color-border);
+  cursor: pointer;
+}
+
+.suggestion:first-child {
+  border-top: none;
+}
+
+.suggestionActive {
+  background: color-mix(in srgb, var(--color-deepdive) 12%, var(--color-surface));
+}
+
+.suggestionName {
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.suggestionTrail {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+/* ---- Two panes ---- */
+
+.panes {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+}
+
+@media (min-width: 720px) {
+  .panes {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+
+  /* Side by side, the browse list scrolls on its own so the mix pane and
+     Remix button stay in view; stacked (phone), the page scrolls instead. */
+  .browsePane {
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.paneTitle {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.pane {
+  display: flex;
+  gap: var(--space-2);
+  min-height: 84px;
+  padding: var(--space-2);
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  transition: border-color 0.15s ease;
+}
+
+.paneOver {
+  border-color: var(--color-deepdive);
+}
+
+/* Tree order, one tag per line, indented by depth. Tiles stay content-width
+   (not full rows) so there's always bare pane to touch-scroll on — the
+   tiles themselves are touch-action: none for dragging. */
+.browsePane {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.selectedPane {
+  flex-wrap: wrap;
+  align-content: flex-start;
+}
+
+.empty {
+  margin: 0;
+  align-self: center;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+/* ---- Tiles ---- */
+
+.tile {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  max-width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  touch-action: none;
+}
+
+.tile:focus-visible {
+  outline: 2px solid var(--color-deepdive);
+  outline-offset: 2px;
+}
+
+/* Same depth language as DeepDiveChooserModal's topic rows: indent plus a
+   deepening purple left edge/tint, capped so a deep tree stays legible. */
+.browseTile {
+  --depth-step: min(var(--depth, 1) - 1, 5);
+  margin-left: calc(var(--depth-step) * var(--space-4));
+  border-left: calc(var(--depth-step) * 2px + 4px) solid
+    color-mix(in srgb, var(--color-deepdive) calc(35% + var(--depth-step) * 13%), transparent);
+  background: color-mix(in srgb, var(--color-deepdive) calc(var(--depth-step) * 8%), var(--color-surface));
+}
+
+.browseTile:hover {
+  border-color: var(--color-deepdive);
+}
+
+.selectedTile {
+  border-color: var(--color-deepdive);
+  background: color-mix(in srgb, var(--color-deepdive) 12%, var(--color-surface));
+}
+
+.overlayTile {
+  cursor: grabbing;
+  border-color: var(--color-deepdive);
+  box-shadow: 0 6px 18px rgb(0 0 0 / 20%);
+}
+
+.tileName {
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.tileCount {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.tileRemove {
+  color: var(--color-danger);
+  font-weight: 700;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.poolSize {
+  margin-right: auto;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}

@@ -54,8 +54,65 @@
   color: var(--color-text-muted);
 }
 
+/* Every tag this lesson belongs to, DFS pre-order, as one touching stack —
+   no gap, shared borders, only the outer corners rounded — so the nesting
+   reads as a single outline rather than a pile of separate chips. */
 .topicList {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
+  flex-direction: column;
+  gap: 0;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+/* One row per { theme, depth }. `--depth` (1-based, set inline) steps both
+   the left indent and a deep-dive-purple tint mixed into the surface colour,
+   capped so an unexpectedly deep tree stays legible. */
+.topic {
+  --depth-step: min(var(--depth, 1) - 1, 5);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  margin: 0;
+  padding: var(--space-2) var(--space-3) var(--space-2) calc(var(--space-3) + var(--depth-step) * var(--space-3));
+  border: none;
+  border-top: 1px solid var(--color-border);
+  border-left: calc(var(--depth-step) * 2px + 4px) solid
+    color-mix(in srgb, var(--color-deepdive) calc(35% + var(--depth-step) * 13%), transparent);
+  background: color-mix(in srgb, var(--color-deepdive) calc(var(--depth-step) * 8%), var(--color-surface));
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.topic:first-child {
+  border-top: none;
+}
+
+.topic:hover,
+.topic:focus-visible {
+  background: color-mix(in srgb, var(--color-deepdive) calc(12% + var(--depth-step) * 8%), var(--color-surface));
+}
+
+.topic:focus-visible {
+  outline: 2px solid var(--color-deepdive);
+  outline-offset: -2px;
+}
+
+.topicLevel {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.topicName {
+  font-weight: 700;
+  overflow-wrap: anywhere;
 }

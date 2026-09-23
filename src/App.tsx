@@ -17,6 +17,7 @@ import { PracticePage } from "./pages/PracticePage";
 import { CheckpointPage } from "./pages/CheckpointPage";
 import { ThemesPage } from "./pages/ThemesPage";
 import { ThemeBrowsePage } from "./pages/ThemeBrowsePage";
+import { ThemeRemixPage } from "./pages/ThemeRemixPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { SettingsPage } from "./pages/settings/SettingsPage";
 import { HelpPage } from "./pages/HelpPage";
@@ -75,9 +76,14 @@ export default function App() {
         <Route path="/vocabulary/:unitKey/:skillKey" element={<VocabularyReviewPage />} />
         <Route path="/themes" element={<ThemesPage />} />
         <Route path="/themes/:themeId" element={<ThemeBrowsePage />} />
+        {/* Its own top-level path, not /themes/remix — that would be shadowed
+            by /themes/:themeId (and make a theme named "remix" unreachable). */}
+        <Route path="/theme-remix" element={<ThemeRemixPage />} />
         <Route path="/lesson" element={<LessonPage />} />
         <Route path="/lesson/deep-dive/:lessonKey" element={<LessonPage />} />
         <Route path="/lesson/deep-dive-remix/:lessonKey" element={<LessonPage />} />
+        {/* Lesson-less sibling: ?themeIds=a,b from ThemeRemixPage. */}
+        <Route path="/lesson/deep-dive-remix" element={<LessonPage />} />
         <Route path="/story/:unitKey/:skillKey" element={<StoryPage />} />
         <Route path="/practice/:unitKey/:skillKey" element={<PracticePage />} />
         <Route path="/checkpoint/:unitKey/:skillKey" element={<CheckpointPage />} />

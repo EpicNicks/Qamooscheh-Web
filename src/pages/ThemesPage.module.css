@@ -1,3 +1,22 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.intro {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
@@ -14,9 +33,14 @@
   background: var(--color-surface);
   text-decoration: none;
   color: inherit;
+  /* A <button> now (it opens ThemeDrilldownModal), not a <Link>. */
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 
-.card:hover {
+.card:hover,
+.card:focus-visible {
   border-color: var(--color-primary);
 }
 
