@@ -1,14 +1,13 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useBootstrap } from "../hooks/useBootstrap";
-import { useSkillArtifactsForLessonRefs, useThemeIndex, refKey } from "../hooks/useCourseContent";
+import { useAllThemeSkillArtifacts, useThemeIndex, refKey } from "../hooks/useCourseContent";
 import { useCompletedLessons } from "../hooks/useCompletedLessons";
 import { ThemeLessonRow } from "../components/themes/ThemeLessonRow";
 import { Spinner } from "../components/common/Spinner";
 import { ErrorBanner } from "../components/common/ErrorBanner";
 import { Button } from "../components/common/Button";
 import { errorMessage } from "../lib/errors";
-import type { SkillRef } from "../types/api";
 import type { ThemeLessonRef } from "../types/content";
 import styles from "./ThemeBrowsePage.module.css";
 
@@ -26,14 +25,16 @@ function shuffle<T>(items: readonly T[]): T[] {
  * One theme's lesson list (API_SPEC.md §2.11) — structured (as themes.json
  * ships it, pre-sorted by commonUsageScore desc) or a client-side shuffle of
  * the same list. `?from=<lessonKey>` marks the lesson the learner arrived
- * from via a Journey recap's "Deep Dive" bridge.
+ * from via a Journey recap's or popover's "Deep Dive" bridge.
  *
  * Filters out anything whose fetched SkillArtifact.category isn't
  * "standard" — content/CLAUDE.md mandates that themes.json's own publisher
  * step exclude story/conversation/song lessons from browse buckets, but
  * ArtifactBuilder.cs doesn't actually do that yet (a known backend gap, not
- * fixed here), so this page compensates itself using data it already fetches
- * for the title anyway. Waits for every artifact to resolve before rendering
+ * fixed here). Sourced from useAllThemeSkillArtifacts (shared with
+ * ThemesPage's counts and the Journey Deep Dive remix pool — one fetch,
+ * cached course-wide, not three), so switching themes costs nothing once
+ * that first fetch has resolved. Waits for it to resolve before rendering
  * the list rather than filtering incrementally, so a story lesson never
  * flashes into view before disappearing.
  */
@@ -47,18 +48,12 @@ export function ThemeBrowsePage() {
   const course = bootstrap.data?.course ?? null;
   const themeIndex = useThemeIndex(course);
   const completedLessons = useCompletedLessons(course?.code);
-
-  const theme = themeIndex.data?.themes.find((t) => t.id === themeId) ?? null;
-
-  const refs = useMemo<SkillRef[]>(
-    () => (theme?.lessons ?? []).map((lesson): SkillRef => ({ unitKey: null, skillKey: lesson.id })),
-    [theme],
-  );
-  const { skills: skillArtifacts, isLoading: skillsLoading, isError: skillsError } = useSkillArtifactsForLessonRefs(
+  const { skills: skillArtifacts, isLoading: skillsLoading, isError: skillsError } = useAllThemeSkillArtifacts(
     course,
     themeIndex.data,
-    refs,
   );
+
+  const theme = themeIndex.data?.themes.find((t) => t.id === themeId) ?? null;
 
   const [randomGeneration, setRandomGeneration] = useState(0);
   const [view, setView] = useState<"structured" | "random">("structured");

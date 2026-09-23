@@ -419,3 +419,39 @@ export function useSkillArtifactsForLessonRefs(
     isError: skillResults.some((r) => r.isError),
   };
 }
+
+/**
+ * Every lesson artifact across the WHOLE theme index (deduped — a lesson can
+ * appear in several theme buckets), fetched once and shared — small enough
+ * in aggregate for a course's theme-tagged lessons to fetch eagerly rather
+ * than per-theme or per-page, and every consumer needs the same underlying
+ * data anyway (title + category, neither available from ThemeLessonRef
+ * alone): ThemesPage's accurate per-theme counts, ThemeBrowsePage's rows,
+ * and the Deep Dive remix pool all filter to `category === "standard"`
+ * against exactly this map, so this is also the one place that filter needs
+ * to be applied correctly rather than three. Cached forever per course
+ * version like every other content fetch here (staleTime: Infinity, keyed
+ * through to the version) — a version bump is the only thing that
+ * invalidates it, and every one of those three consumers shares the same
+ * react-query cache entries, so only the first visit in a session actually
+ * pays for the fetch.
+ */
+export function useAllThemeSkillArtifacts(
+  course: CourseRef | null | undefined,
+  themeIndex: ThemeIndexArtifact | null | undefined,
+): { skills: Map<string, SkillArtifact>; isLoading: boolean; isError: boolean } {
+  const allRefs = useMemo<SkillRef[]>(() => {
+    const seen = new Set<string>();
+    const refs: SkillRef[] = [];
+    for (const theme of themeIndex?.themes ?? []) {
+      for (const lesson of theme.lessons) {
+        if (seen.has(lesson.id)) continue;
+        seen.add(lesson.id);
+        refs.push({ unitKey: null, skillKey: lesson.id });
+      }
+    }
+    return refs;
+  }, [themeIndex]);
+
+  return useSkillArtifactsForLessonRefs(course, themeIndex, allRefs);
+}

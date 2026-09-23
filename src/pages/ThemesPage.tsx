@@ -1,11 +1,9 @@
-import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useBootstrap } from "../hooks/useBootstrap";
-import { useSkillArtifactsForLessonRefs, useThemeIndex, refKey } from "../hooks/useCourseContent";
+import { useAllThemeSkillArtifacts, useThemeIndex, refKey } from "../hooks/useCourseContent";
 import { Spinner } from "../components/common/Spinner";
 import { ErrorBanner } from "../components/common/ErrorBanner";
 import { errorMessage } from "../lib/errors";
-import type { SkillRef } from "../types/api";
 import styles from "./ThemesPage.module.css";
 
 /**
@@ -17,38 +15,16 @@ import styles from "./ThemesPage.module.css";
  * ThemeBrowsePage actually shows once you drill in — themes.json currently
  * leaks story-category lessons into its buckets (a known backend gap, see
  * ThemeBrowsePage's own doc comment), so the raw `theme.lessons.length`
- * would overstate it. Getting that count means fetching every lesson's
- * SkillArtifact for its category, same cost useAllSkillArtifacts already
- * pays for the whole Journey path on every authenticated page — but it's
- * paid once: react-query caches each one under a key that includes the
- * course version and never marks it stale (staleTime: Infinity, the same
- * convention every other content fetch in this file uses), so it's free on
- * every later visit within that version and refetches on its own the moment
- * the version changes or the tab reloads, with no manual invalidation
- * needed.
+ * would overstate it. Sourced from useAllThemeSkillArtifacts, which fetches
+ * every theme-tagged lesson's artifact once and shares it with
+ * ThemeBrowsePage and the Journey Deep Dive remix pool — see that hook's own
+ * doc comment for why this is one shared cached fetch, not three.
  */
 export function ThemesPage() {
   const bootstrap = useBootstrap();
   const course = bootstrap.data?.course ?? null;
   const themeIndex = useThemeIndex(course);
-
-  const allLessonRefs = useMemo<SkillRef[]>(() => {
-    const seen = new Set<string>();
-    const refs: SkillRef[] = [];
-    for (const theme of themeIndex.data?.themes ?? []) {
-      for (const lesson of theme.lessons) {
-        if (seen.has(lesson.id)) continue;
-        seen.add(lesson.id);
-        refs.push({ unitKey: null, skillKey: lesson.id });
-      }
-    }
-    return refs;
-  }, [themeIndex.data]);
-  const { skills: skillArtifacts, isLoading: skillsLoading } = useSkillArtifactsForLessonRefs(
-    course,
-    themeIndex.data,
-    allLessonRefs,
-  );
+  const { skills: skillArtifacts, isLoading: skillsLoading } = useAllThemeSkillArtifacts(course, themeIndex.data);
 
   if (bootstrap.isLoading || themeIndex.isLoading || skillsLoading) return <Spinner label="Loading themes…" />;
   if (bootstrap.isError) return <ErrorBanner message={errorMessage(bootstrap.error, "Couldn't load your course.")} />;

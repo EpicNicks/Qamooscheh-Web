@@ -4,7 +4,7 @@ import { useLessonEngine, type SubmitAnswerResult, type LessonExerciseInstance }
 import { useExerciseSession } from "../hooks/useExerciseSession";
 import { useBootstrap } from "../hooks/useBootstrap";
 import { useAuth } from "../auth/useAuth";
-import { useCoursePath, useSkillArtifactsForLessonRefs, useThemeIndex, refKey } from "../hooks/useCourseContent";
+import { useCoursePath, useAllThemeSkillArtifacts, useThemeIndex, refKey } from "../hooks/useCourseContent";
 import { isFirstStandardPosition } from "../domain/pathProgress";
 import { xpForAnswer } from "../domain/xp";
 import { themesForLesson } from "../domain/themeLookup";
@@ -16,7 +16,6 @@ import { LessonResults } from "../components/lesson/LessonResults";
 import { Spinner } from "../components/common/Spinner";
 import { ErrorBanner } from "../components/common/ErrorBanner";
 import { Button } from "../components/common/Button";
-import type { SkillRef } from "../types/api";
 import type { ThemeLessonRef } from "../types/content";
 import styles from "./LessonPage.module.css";
 
@@ -43,40 +42,43 @@ export function LessonPage() {
   // output, of this computation.
   const themeIndex = useThemeIndex(course);
 
-  // The remix route's own lesson key list: every OTHER lesson across every
-  // theme the source lesson belongs to, weighted by how well the learner
-  // already knows the source lesson's vocabulary (domain/deepDiveRemix.ts).
-  // Falls back to just the source lesson alone when its themes have nothing
-  // else to offer, rather than a dead end. Deliberately returns [] (not
-  // [lessonKey]) while its own prerequisite fetches (theme index, the source
-  // lesson's own artifact) are still in flight — useLessonEngine treats an
-  // empty deep-dive key array as "still loading", not "nothing to show" (see
-  // its own doc comment), so this naturally keeps LessonPage in the loading
-  // state until there's something real to hand it.
-  const sourceLessonRef = useMemo<SkillRef[]>(
-    () => (isRemixRoute && lessonKey ? [{ unitKey: null, skillKey: lessonKey }] : []),
-    [isRemixRoute, lessonKey],
-  );
-  const { skills: sourceSkillArtifacts } = useSkillArtifactsForLessonRefs(
-    isRemixRoute ? course : null,
-    themeIndex.data,
-    sourceLessonRef,
-  );
-  const sourceArtifact = lessonKey ? sourceSkillArtifacts.get(refKey({ unitKey: null, skillKey: lessonKey })) : undefined;
+  // Every theme-tagged lesson's artifact, course-wide — shared with
+  // ThemesPage's counts and ThemeBrowsePage's rows (useAllThemeSkillArtifacts'
+  // own doc comment), so this costs nothing extra once either of those pages
+  // has been visited this session, and gives the remix pool below the same
+  // category data those pages already filter on.
+  const { skills: allThemeSkillArtifacts } = useAllThemeSkillArtifacts(isRemixRoute ? course : null, themeIndex.data);
+  const sourceArtifact = lessonKey ? allThemeSkillArtifacts.get(refKey({ unitKey: null, skillKey: lessonKey })) : undefined;
 
+  // The remix route's own lesson key list: every OTHER standard-category
+  // lesson across every theme the source lesson belongs to, weighted by how
+  // well the learner already knows the source lesson's vocabulary
+  // (domain/deepDiveRemix.ts). Story/conversation/song lessons are excluded
+  // here for the same reason ThemeBrowsePage excludes them from browsing —
+  // they only make sense played in sequence, not remixed into an arbitrary
+  // practice session — which also compensates for themes.json currently
+  // leaking them in (a known backend gap, not fixed here). Falls back to
+  // just the source lesson alone when its themes have nothing else to offer,
+  // rather than a dead end. Deliberately returns [] (not [lessonKey]) while
+  // its own prerequisite fetches (theme index, every candidate's artifact)
+  // are still in flight — useLessonEngine treats an empty deep-dive key
+  // array as "still loading", not "nothing to show" (see its own doc
+  // comment), so this naturally keeps LessonPage in the loading state until
+  // there's something real to hand it.
   const remixPool = useMemo<ThemeLessonRef[]>(() => {
-    if (!isRemixRoute || !lessonKey) return [];
+    if (!isRemixRoute || !lessonKey || sourceArtifact == null) return [];
     const seen = new Set<string>([lessonKey]); // exclude the source lesson itself — "more like this", not "this again"
     const pool: ThemeLessonRef[] = [];
     for (const theme of themesForLesson(themeIndex.data, lessonKey)) {
       for (const lesson of theme.lessons) {
         if (seen.has(lesson.id)) continue;
         seen.add(lesson.id);
+        if (allThemeSkillArtifacts.get(refKey({ unitKey: null, skillKey: lesson.id }))?.category !== "standard") continue;
         pool.push(lesson);
       }
     }
     return pool;
-  }, [isRemixRoute, lessonKey, themeIndex.data]);
+  }, [isRemixRoute, lessonKey, themeIndex.data, allThemeSkillArtifacts]);
 
   const remixKeys = useMemo<string[]>(() => {
     if (!isRemixRoute || !lessonKey || themeIndex.data == null || sourceArtifact == null) return [];
