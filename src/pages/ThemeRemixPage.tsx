@@ -22,7 +22,7 @@ import { SortableContext, arrayMove, rectSortingStrategy, useSortable, type Sort
 import { CSS } from "@dnd-kit/utilities";
 import { useBootstrap } from "../hooks/useBootstrap";
 import { useAllThemeSkillArtifacts, useThemeIndex, refKey } from "../hooks/useCourseContent";
-import { ancestorsOf, dfsAllThemes } from "../domain/themeTree";
+import { ancestorsOf, dfsAllThemes, subtreeIds } from "../domain/themeTree";
 import { buildRemixPool } from "../domain/deepDiveRemix";
 import { Spinner } from "../components/common/Spinner";
 import { ErrorBanner } from "../components/common/ErrorBanner";
@@ -142,10 +142,14 @@ function DroppablePane({ id, className, label, children }: { id: ContainerId; cl
  * Two panes on the WordBankExercise dnd-kit pattern: the left "browse" pane
  * lists every not-yet-picked tag in tree (DFS pre-order) order, indented by
  * depth — flat as far as dnd-kit is concerned — and the right "selected"
- * pane holds the picks. Tiles move between panes by click OR drag. The
- * search box above both filters the browse pane and offers autocomplete
- * suggestions (with breadcrumbs, since a bare id can be ambiguous once
- * nested) that add a tag directly.
+ * pane holds the picks. Tiles move between panes by click OR drag, and
+ * either one drags a topic's whole subtree along with it (add/remove below)
+ * — picking "Grammar" also picks "Tenses" and "Past" underneath it, so the
+ * browse pane never leaves an already-covered subtopic sitting there
+ * unselected. The search box above both filters the browse pane and offers
+ * autocomplete suggestions (with breadcrumbs, since a bare id can be
+ * ambiguous once nested) that add a tag directly (and its subtree, same as
+ * a click).
  */
 export function ThemeRemixPage() {
   const navigate = useNavigate();
@@ -209,12 +213,22 @@ export function ThemeRemixPage() {
   if (themeIndex.isError) return <ErrorBanner message="Couldn't load themes from the CDN." />;
   if (entries.length === 0) return <p>No themed lessons yet for this course.</p>;
 
+  // Picking a topic drags its whole subtree along — the browse pane can't
+  // otherwise leave an already-covered subtopic sitting there unselected.
   function add(themeId: string) {
-    setSelected((prev) => (prev.includes(themeId) ? prev : [...prev, themeId]));
+    const ids = subtreeIds(themeIndex.data?.themes ?? [], themeId);
+    setSelected((prev) => {
+      const additions = ids.filter((id) => !prev.includes(id));
+      return additions.length === 0 ? prev : [...prev, ...additions];
+    });
   }
 
+  // Symmetric with add(): removing a topic drops its whole subtree too, not
+  // just the one tile — otherwise its subtopics would linger in "selected"
+  // with no way back to the browse pane short of picking each one off.
   function remove(themeId: string) {
-    setSelected((prev) => prev.filter((id) => id !== themeId));
+    const ids = new Set(subtreeIds(themeIndex.data?.themes ?? [], themeId));
+    setSelected((prev) => prev.filter((id) => !ids.has(id)));
   }
 
   function pickSuggestion(themeId: string) {
@@ -252,7 +266,9 @@ export function ThemeRemixPage() {
   // Crossing panes moves the tag live (as WordBankExercise does), so the
   // drop itself only ever has to finalize ordering within "selected". The
   // browse pane's contents are derived (everything not selected, in tree
-  // order), so moving INTO it is just removal from `selected`.
+  // order), so moving INTO it is just removal from `selected`. Either
+  // direction drags the whole subtree along with the tile actually under the
+  // pointer, same as click (add/remove above).
   function handleDragOver(event: DragOverEvent) {
     const { active, over } = event;
     if (!over) return;
@@ -264,12 +280,14 @@ export function ThemeRemixPage() {
       remove(themeId);
       return;
     }
+    const ids = subtreeIds(themeIndex.data?.themes ?? [], themeId);
     setSelected((prev) => {
-      if (prev.includes(themeId)) return prev;
       const overIndex = isContainerId(over.id) ? -1 : prev.indexOf(themeIdFromTileId(over.id));
       const insertAt = overIndex >= 0 ? overIndex + (isAfterOverItem(active, over) ? 1 : 0) : prev.length;
+      const additions = ids.filter((id) => !prev.includes(id));
+      if (additions.length === 0) return prev;
       const next = prev.slice();
-      next.splice(insertAt, 0, themeId);
+      next.splice(insertAt, 0, ...additions);
       return next;
     });
   }

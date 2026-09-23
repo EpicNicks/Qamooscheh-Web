@@ -8,6 +8,7 @@ import {
   dfsThemesForLesson,
   indexThemesById,
   rootThemesForLesson,
+  subtreeIds,
   type ThemeNode,
 } from "./themeTree";
 
@@ -147,5 +148,25 @@ describe("dfsAllThemes", () => {
 
   it("returns [] for no themes", () => {
     expect(dfsAllThemes([])).toEqual([]);
+  });
+});
+
+describe("subtreeIds", () => {
+  it("returns the id plus every descendant, pre-order", () => {
+    expect(subtreeIds(themes, "Grammar")).toEqual(["Grammar", "Tenses", "Past", "Present", "Plurals"]);
+    expect(subtreeIds(themes, "Tenses")).toEqual(["Tenses", "Past", "Present"]);
+  });
+
+  it("returns just the id for a leaf", () => {
+    expect(subtreeIds(themes, "Past")).toEqual(["Past"]);
+  });
+
+  it("returns [] for an unknown id", () => {
+    expect(subtreeIds(themes, "nope")).toEqual([]);
+  });
+
+  it("doesn't loop forever on a parentId cycle", () => {
+    const cyclic: ThemeEntry[] = [theme("A", "B", []), theme("B", "A", [])];
+    expect(subtreeIds(cyclic, "A")).toEqual(["A", "B"]);
   });
 });

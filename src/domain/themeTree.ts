@@ -115,6 +115,36 @@ export function dfsThemesForLesson(
 }
 
 /**
+ * `rootId` plus every descendant, DFS pre-order (children in themes.json's
+ * sibling order) — the set that "drag a topic in, its subtopics come too"
+ * selection (ThemeRemixPage) toggles together. `[]` when `rootId` isn't in
+ * the index. Cycle-safe like the rest of this file.
+ */
+export function subtreeIds(themes: ThemeEntry[], rootId: string): string[] {
+  const byId = indexThemesById(themes);
+  if (!byId.has(rootId)) return [];
+  const byParent = new Map<string, ThemeEntry[]>();
+  for (const theme of themes) {
+    const parent = effectiveParentId(theme, byId);
+    if (parent == null) continue;
+    const siblings = byParent.get(parent);
+    if (siblings) siblings.push(theme);
+    else byParent.set(parent, [theme]);
+  }
+
+  const result: string[] = [];
+  const visited = new Set<string>();
+  function walk(id: string) {
+    if (visited.has(id)) return;
+    visited.add(id);
+    result.push(id);
+    for (const child of byParent.get(id) ?? []) walk(child.id);
+  }
+  walk(rootId);
+  return result;
+}
+
+/**
  * Every tag in the whole tree (not lesson-scoped, unlike dfsThemesForLesson),
  * in DFS pre-order over buildThemeForest's output, each with its 1-based
  * depth (a root — or an orphan, which the forest treats as one — is 1).
