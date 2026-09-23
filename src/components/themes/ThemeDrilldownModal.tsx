@@ -135,11 +135,11 @@ export function ThemeDrilldownModal({
         {node ? (
           <>
             <Button variant="deepDive" onClick={diveHere}>
-              Deep dive from here
+              Deep Dive
             </Button>
             {children.length > 0 && (
               <>
-                <p className={styles.body}>Or narrow it down:</p>
+                <p className={styles.body}>Deeper Dives:</p>
                 <div className={styles.childList}>
                   {children.map((child) => (
                     <button
