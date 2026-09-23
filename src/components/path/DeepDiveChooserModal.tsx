@@ -5,6 +5,7 @@ import { useBootstrap } from "../../hooks/useBootstrap";
 import { useThemeIndex } from "../../hooks/useCourseContent";
 import { themesForLesson } from "../../domain/themeLookup";
 import { Button } from "../common/Button";
+import { CloseIcon } from "../common/icons";
 // Same dialog chrome as LeaveCheckpointModal/SkipLessonModal — overlay,
 // centred card, manual focus-trap/Escape — this file just adds its own
 // topic-chip row on top of the same shape.
@@ -32,7 +33,9 @@ export function DeepDiveChooserModal({ lessonKey, onClose }: { lessonKey: string
   const themes = themesForLesson(themeIndex.data, lessonKey);
 
   useEffect(() => {
-    dialogRef.current?.querySelector<HTMLElement>("button")?.focus();
+    // Skips the close × (now first in DOM order) so opening focuses the
+    // actual primary action instead.
+    dialogRef.current?.querySelector<HTMLElement>(`button:not(.${styles.close})`)?.focus();
   }, []);
 
   useEffect(() => {
@@ -81,6 +84,9 @@ export function DeepDiveChooserModal({ lessonKey, onClose }: { lessonKey: string
         aria-labelledby="deep-dive-chooser-title"
         onClick={(event) => event.stopPropagation()}
       >
+        <button type="button" className={styles.close} aria-label="Close" onClick={onClose}>
+          <CloseIcon />
+        </button>
         <h2 id="deep-dive-chooser-title" className={styles.title}>
           Deep Dive
         </h2>
@@ -104,12 +110,6 @@ export function DeepDiveChooserModal({ lessonKey, onClose }: { lessonKey: string
             </div>
           </>
         )}
-
-        <div className={styles.actions}>
-          <Button variant="secondary" onClick={onClose}>
-            Cancel
-          </Button>
-        </div>
       </div>
     </div>,
     document.body,

@@ -10,6 +10,7 @@
 }
 
 .dialog {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
@@ -22,8 +23,29 @@
   color: var(--color-text);
 }
 
+/* Same top-right red × as SkillGroupModal's own .close — a plain dismiss,
+   not a labeled "Cancel" button competing for attention with the two real
+   choices below it. */
+.close {
+  position: absolute;
+  top: var(--space-1);
+  right: var(--space-1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-danger);
+  font-size: 1.25rem;
+}
+
 .title {
   margin: 0;
+  padding-right: var(--space-4);
   font-size: 1.15rem;
 }
 
@@ -35,11 +57,5 @@
 .topicList {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2);
-}
-
-.actions {
-  display: flex;
-  justify-content: flex-end;
   gap: var(--space-2);
 }
