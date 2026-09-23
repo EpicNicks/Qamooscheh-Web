@@ -45,13 +45,21 @@ export function useLexemeIndex(course: CourseRef | null | undefined) {
  * straight at that lesson's SkillArtifact (journey or standalone alike), so
  * this is also the sole path index for deep-dive content fetches — see
  * useSkillArtifactsForLessonRefs below.
+ *
+ * `manifest.themeIndexPath` is only present on a manifest the publisher
+ * wrote after the theme-lessons feature landed — a course version published
+ * before that has no such field (`undefined`, not an empty string), so
+ * guarding on it stops this from building a nonsense `.../undefined` CDN URL
+ * against a stale manifest. Callers see this exactly like "no themes yet"
+ * (an unset query, `data: undefined`) rather than an error.
  */
 export function useThemeIndex(course: CourseRef | null | undefined) {
   const manifestQuery = useCourseManifest(course);
+  const themeIndexPath = manifestQuery.data?.themeIndexPath;
   return useQuery({
     queryKey: ["content", "themes", course?.code, course?.version],
-    queryFn: () => getThemeIndex(course!.code, course!.version, manifestQuery.data!.themeIndexPath),
-    enabled: course != null && manifestQuery.data != null,
+    queryFn: () => getThemeIndex(course!.code, course!.version, themeIndexPath!),
+    enabled: course != null && themeIndexPath != null,
     staleTime: Infinity,
   });
 }
