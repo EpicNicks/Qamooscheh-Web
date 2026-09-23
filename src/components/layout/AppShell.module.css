@@ -97,7 +97,7 @@
   }
 
   .main {
-    padding: var(--space-3); /* reclaims road width from the desktop rail's padding */
+    padding: var(--space-3);
   }
 
   .drawerToggle {
@@ -166,11 +166,11 @@
   font-weight: 600;
 }
 
-/* Sidebar + main content, below the header. Sidebar sits flush at the true
-   left edge (a flex sibling here, not indented inside .main) — .main then
-   centers its own content within whatever space is left over, so the page
-   reads as "sidebar rail on the left, content centered next to it" rather
-   than the sidebar being one more thing inside a centered column. */
+/* Sidebar + main content, below the header. On desktop the sidebar rail is
+   fixed-positioned (see Sidebar.module.css) rather than a flex sibling, so
+   it floats over the left edge without affecting .main's layout — .main
+   spans the full body width and centers its content on the whole viewport,
+   the same way it does on mobile where no sidebar rail renders at all. */
 .body {
   flex: 1;
   display: flex;
