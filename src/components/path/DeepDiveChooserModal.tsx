@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { useBootstrap } from "../../hooks/useBootstrap";
 import { useThemeIndex } from "../../hooks/useCourseContent";
@@ -14,6 +15,14 @@ import styles from "./DeepDiveChooserModal.module.css";
  * SkillGroupModal, via useSkillActions.hasDeepDive). Offers the two Deep
  * Dive entry points for the tapped lesson: a blended remix across every
  * theme it belongs to, or browsing one specific theme directly.
+ *
+ * Portalled to document.body — mandatory here, unlike LeaveCheckpointModal:
+ * this opens from SkillNode/SkillGroupNode, both nested under SkillRoad's
+ * `.nodeWrap`, which carries `transform: translateY(-50%)`. A transformed
+ * ancestor becomes the containing block for a `position: fixed` descendant
+ * in every modern browser, so without the portal this dialog sizes and
+ * positions itself against that 84px node box instead of the viewport —
+ * see LessonStartPopover.tsx's own long comment on the exact same issue.
  */
 export function DeepDiveChooserModal({ lessonKey, onClose }: { lessonKey: string; onClose: () => void }) {
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -62,7 +71,7 @@ export function DeepDiveChooserModal({ lessonKey, onClose }: { lessonKey: string
     navigate(`/themes/${encodeURIComponent(themeId)}?from=${encodeURIComponent(lessonKey)}`);
   }
 
-  return (
+  return createPortal(
     <div className={styles.overlay} onClick={onClose}>
       <div
         ref={dialogRef}
@@ -102,6 +111,7 @@ export function DeepDiveChooserModal({ lessonKey, onClose }: { lessonKey: string
           </Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
