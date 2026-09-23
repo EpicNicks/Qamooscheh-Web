@@ -325,7 +325,11 @@ export function useSkillArtifactsForRefs(
 
   const skillRefsToFetch = refs
     .map((r) => {
-      const unit = unitsByKey.get(r.unitKey);
+      // This hook is only ever called with journeyed refs (cursor-driven
+      // sessions, checkpoints) whose unitKey is never actually null — the
+      // null case belongs to useSkillArtifactsForLessonRefs instead — but
+      // the shared SkillRef type allows it, so this stays null-safe.
+      const unit = r.unitKey == null ? undefined : unitsByKey.get(r.unitKey);
       // Which position a skill sits at is irrelevant here — this resolves
       // named refs, so it just looks across every position in the unit.
       const skillRef = unit?.positions.flatMap((p) => p.skills).find((s) => s.id === r.skillKey);
