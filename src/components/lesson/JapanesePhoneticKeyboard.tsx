@@ -29,7 +29,12 @@ export function JapanesePhoneticKeyboard({ onPressLetter, onSpace, onBackspace, 
   return (
     <div className={keyboardStyles.keyboard}>
       {QWERTY_ROWS.map((row, rowIndex) => (
-        <div className={keyboardStyles.row} key={rowIndex}>
+        <div
+          className={[keyboardStyles.row, rowIndex === 1 && keyboardStyles.rowHome, rowIndex === 2 && keyboardStyles.rowBottom]
+            .filter(Boolean)
+            .join(" ")}
+          key={rowIndex}
+        >
           {row.map((letter) => (
             <VirtualKey
               key={letter}

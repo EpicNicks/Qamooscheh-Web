@@ -55,6 +55,59 @@
   font-size: 0.8rem;
 }
 
+/* 40px tall, flex-stretched keys are sized for a phone-portrait row (~10
+   equal-share keys across a ~360-400px viewport) — every key grows to fill
+   the row edge-to-edge, which is exactly what a real keyboard does NOT do:
+   real keys are all the same fixed size, and rows of different lengths
+   instead start at different x-offsets ("stagger"), producing the familiar
+   staircase silhouette. Stretching reads fine on a phone (it's how a
+   condensed on-screen keyboard is expected to look, and it's what fits a
+   fixed key count edge-to-edge on a narrow screen) but on a wider,
+   landscape-ish viewport (desktop, or a tablet turned sideways) it turns
+   every row into a flat, edge-to-edge bar. On that wider viewport this
+   switches to fixed-size keys (see .rowHome/.rowBottom below for the
+   stagger itself) — min-aspect-ratio (not just min-width) is what keeps a
+   tablet's condensed *portrait* orientation from picking this up too. This
+   block must stay AFTER the plain .key/.wide rules above: a later
+   unconditional rule beats an earlier media-query one of equal specificity,
+   regardless of nesting. */
+/* keep in sync with src/theme/breakpoints.ts */
+@media (min-width: 769px) and (min-aspect-ratio: 1/1) {
+  .key {
+    height: 56px;
+    font-size: 1.3rem;
+    flex: 0 0 4rem;
+    width: 4rem;
+  }
+
+  .wide {
+    flex: 0 0 10rem;
+    width: 10rem;
+  }
+
+  /* Rows no longer stretch to the container's width, so size the keyboard
+     to its own (now variable-length) rows and center them as a block. */
+  .keyboard {
+    align-items: center;
+  }
+
+  .row {
+    width: fit-content;
+  }
+
+  /* Opt-in offsets the QWERTY-shaped keyboards apply to their actual letter
+     rows (not utility rows like a number row or a lone space/backspace bar)
+     — half a key for the home row, a full key for the bottom row, matching
+     a real keyboard's stagger. */
+  .rowHome {
+    margin-left: 2rem;
+  }
+
+  .rowBottom {
+    margin-left: 4rem;
+  }
+}
+
 /* Pressed/held — on for the whole duration the key (physical or pointer) is down. */
 .pressed {
   background: var(--color-current);

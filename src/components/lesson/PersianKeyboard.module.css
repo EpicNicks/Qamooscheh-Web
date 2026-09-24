@@ -15,6 +15,30 @@
   gap: 3px;
 }
 
+/* Same desktop/landscape stagger as keyboard/Keyboard.module.css — this file
+   keeps its own .keyboard/.row copy (see file header), so the opt-in offset
+   classes live here too rather than importing the shared module just for
+   these two rules. .key/.wide sizing itself still comes from VirtualKey's
+   shared Keyboard.module.css. */
+/* keep in sync with src/theme/breakpoints.ts */
+@media (min-width: 769px) and (min-aspect-ratio: 1/1) {
+  .keyboard {
+    align-items: center;
+  }
+
+  .row {
+    width: fit-content;
+  }
+
+  .rowHome {
+    margin-left: 2rem;
+  }
+
+  .rowBottom {
+    margin-left: 4rem;
+  }
+}
+
 .persianKey {
   font-family: 'Vazirmatn', 'Noto Naskh Arabic', Tahoma, 'Segoe UI', sans-serif;
 }
