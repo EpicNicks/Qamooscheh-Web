@@ -85,10 +85,13 @@
     width: 10rem;
   }
 
-  /* Rows no longer stretch to the container's width, so size the keyboard
-     to its own (now variable-length) rows and center them as a block. */
+  /* Rows no longer stretch to the container's width, so shrink the keyboard
+     itself to its widest row (fit-content) and center every row as a block
+     within that — .utilityRow's width: 100% below relies on this to span
+     exactly as wide as the top letter row, not the old full container. */
   .keyboard {
     align-items: center;
+    width: fit-content;
   }
 
   .row {
@@ -106,6 +109,26 @@
   .rowBottom {
     margin-left: 4rem;
   }
+}
+
+/* The dedicated 4th row the Persian phonetic/native keyboards switch to at
+   this same wide layout (see useKeyboardWideLayout) — modifier keys (Shift
+   or the apostrophe letter, Backspace) pinned to the two ends, ZWNJ+Space
+   grouped in between. Only ever mounted at the wide breakpoint (the
+   components gate it with the same query via useKeyboardWideLayout), so no
+   @media guard is needed here — its width: 100% depends on .keyboard's
+   fit-content sizing immediately above, which IS media-gated. Because the
+   two end keys (Shift/apostrophe, Backspace) are both plain, equal-width
+   .key elements, justify-content: space-between happens to center the
+   ZWNJ+Space group exactly between them for free. */
+.utilityRow {
+  width: 100%;
+  justify-content: space-between;
+}
+
+.utilityCenter {
+  display: flex;
+  gap: 3px;
 }
 
 /* Pressed/held — on for the whole duration the key (physical or pointer) is down. */

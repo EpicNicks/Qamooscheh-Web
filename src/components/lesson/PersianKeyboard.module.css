@@ -24,6 +24,7 @@
 @media (min-width: 769px) and (min-aspect-ratio: 1/1) {
   .keyboard {
     align-items: center;
+    width: fit-content;
   }
 
   .row {
@@ -37,6 +38,19 @@
   .rowBottom {
     margin-left: 4rem;
   }
+}
+
+/* Dedicated 4th row (Shift/Backspace pinned to the ends, ZWNJ+Space grouped
+   between) — see keyboard/Keyboard.module.css's .utilityRow for why no
+   @media guard is needed here. */
+.utilityRow {
+  width: 100%;
+  justify-content: space-between;
+}
+
+.utilityCenter {
+  display: flex;
+  gap: 3px;
 }
 
 .persianKey {
