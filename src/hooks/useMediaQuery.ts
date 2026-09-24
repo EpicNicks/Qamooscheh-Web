@@ -1,5 +1,5 @@
 import { useCallback, useSyncExternalStore } from "react";
-import { MEDIA_MOBILE } from "../theme/breakpoints";
+import { MEDIA_MOBILE, MEDIA_KEYBOARD_WIDE } from "../theme/breakpoints";
 
 // One MediaQueryList per distinct query, module-scoped. matchMedia() is called
 // on every getSnapshot, so without this a render-heavy tree allocates a fresh
@@ -42,4 +42,14 @@ export function useMediaQuery(query: string): boolean {
 /** The app's one breakpoint, so no caller has to import the query string. */
 export function useIsMobile(): boolean {
   return useMediaQuery(MEDIA_MOBILE);
+}
+
+/**
+ * Whether an on-screen keyboard should render its natural-shape, staggered,
+ * 4-utility-row layout instead of the condensed, edge-to-edge mobile one —
+ * a genuine DOM-structure difference (which row a key lives in), not just
+ * CSS, so it belongs behind this hook rather than a media query alone.
+ */
+export function useKeyboardWideLayout(): boolean {
+  return useMediaQuery(MEDIA_KEYBOARD_WIDE);
 }
