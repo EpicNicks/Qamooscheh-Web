@@ -5,6 +5,7 @@ import { ExercisePrompt } from "./ExercisePrompt";
 import { getLanguageInfo, getKeyboardKind, isPersian } from "../../domain/language";
 import { detectArabicVariants, ZWNJ } from "../../domain/persian/normalize";
 import { useKeyboardInputMethod } from "../../hooks/useKeyboardInputMethod";
+import { useDeviceInputEnabled } from "../../hooks/useDeviceInputEnabled";
 import type { ExerciseProps } from "./ExerciseRenderer";
 import styles from "./Exercise.module.css";
 
@@ -51,6 +52,7 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
   // which engine to ask for in the first place.
   const fa = useKeyboardInputMethod("fa");
   const ja = useKeyboardInputMethod("ja");
+  const deviceInput = useDeviceInputEnabled();
   const keyboardKind =
     languageInfo && exercise.scriptMode === "native"
       ? getKeyboardKind(courseCode, exercise.scriptMode, { fa: fa.method, ja: ja.method })
@@ -98,7 +100,7 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
   }
 
   const handlers: ScriptKeyboardHandlers = { pressLetter, pressSpace, pressZwnj, backspace };
-  engine = useScriptEngine({ keyboardKind, updateText, keyboardMode, disabled, text, languageInfo, inputWrapRef, handlers, fa, ja });
+  engine = useScriptEngine({ keyboardKind, updateText, keyboardMode, disabled, text, languageInfo, inputWrapRef, handlers, fa, ja, deviceInput });
 
   const arabicVariantHits = isPersian(courseCode) && exercise.scriptMode === "native" ? detectArabicVariants(text) : [];
 
@@ -197,8 +199,11 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
           // the input focusable/editable (letters still land here via the
           // handlers above) without triggering the OS keyboard; a plain
           // romanized exercise has no on-screen keyboard, so it keeps the
-          // normal one.
-          inputMode={keyboardKind ? "none" : undefined}
+          // normal one. deviceInput.enabled is the opt-out for that: the
+          // on-screen keyboard hides itself too (see scriptEngines.tsx) so
+          // the device's own keyboard is the only one shown, not a clutter
+          // of both.
+          inputMode={keyboardKind && !deviceInput.enabled ? "none" : undefined}
           dir={isNativeScript ? languageInfo?.direction : "ltr"}
           // Font-family only, not the per-script font-SIZE variable —
           // unlike DirectionalText (which wraps arbitrary inline content),

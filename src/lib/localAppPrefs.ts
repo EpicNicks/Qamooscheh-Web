@@ -113,6 +113,19 @@ export interface LocalAppPrefs {
    * CourseCatalogList)
    */
   persianFlag: "pahlavi" | "iri";
+  /**
+   * Whether a native-script exercise lets the device's own keyboard (a
+   * phone's OS keyboard, a Bluetooth keyboard's own popup, ...) come up
+   * instead of suppressing it for the app's on-screen one. A per-device UI
+   * choice, same reasoning as keyboardInputMethod, not an account-level
+   * study setting. Defaults off: TypeInExercise sets `inputMode="none"` on
+   * the answer input specifically so the on-screen keyboard is the only one
+   * a learner sees by default — this is the opt-out for someone who'd
+   * rather type on their own keyboard and skip the on-screen one entirely
+   * (showing both at once would just be clutter, which is why enabling this
+   * also hides the on-screen keyboard rather than showing both).
+   */
+  deviceInputEnabled: boolean;
 }
 
 const DEFAULTS: LocalAppPrefs = {
@@ -132,6 +145,7 @@ const DEFAULTS: LocalAppPrefs = {
   },
   suppressRemoveFontWarning: false,
   persianFlag: "pahlavi",
+  deviceInputEnabled: false,
 };
 
 function storageKey(userId: string): string {
