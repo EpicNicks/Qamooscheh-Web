@@ -38,19 +38,21 @@
   .rowBottom {
     margin-left: 4rem;
   }
+
+  /* Shift and Backspace, pinned to the two ends of the bottom letter row —
+     wider than an ordinary letter key, like their real-keyboard equivalents. */
+  .endKey {
+    flex: 0 0 5.5rem;
+    width: 5.5rem;
+  }
 }
 
-/* Dedicated 4th row (Shift/Backspace pinned to the ends, ZWNJ+Space grouped
-   between) — see keyboard/Keyboard.module.css's .utilityRow for why no
-   @media guard is needed here. */
+/* Dedicated 4th row: just ZWNJ+Space, centered as a pair — see
+   keyboard/Keyboard.module.css's .utilityRow for why no @media guard is
+   needed here. */
 .utilityRow {
   width: 100%;
-  justify-content: space-between;
-}
-
-.utilityCenter {
-  display: flex;
-  gap: 3px;
+  justify-content: center;
 }
 
 .persianKey {

@@ -47,7 +47,7 @@ export function PersianKeyboard({ onInsert, onZwnj, onBackspace, keyboardMode, d
   const shiftKey = (
     <VirtualKey
       label="⇧"
-      className={`${styles.persianKey} ${shift ? styles.shiftActive : ""}`}
+      className={`${styles.persianKey} ${shift ? styles.shiftActive : ""} ${styles.endKey}`}
       title="Shift (virtual only) — alef madda, hamza letters"
       disabled={disabled}
       onActivate={() => setShift((s) => !s)}
@@ -74,19 +74,19 @@ export function PersianKeyboard({ onInsert, onZwnj, onBackspace, keyboardMode, d
     // positions. Each key's own Persian glyph renders correctly regardless.
     //
     // Compact phone shape: exactly three rows, matching the three physical
-    // ISIRI rows — Space and Backspace/ZWNJ/Shift ride along on rows two and
-    // three (which have one and three fewer letters than row one) rather
-    // than getting a fourth row of their own, so the whole keyboard stays
-    // compact end-to-end on a phone screen. On a wide/landscape viewport
-    // those ride-along keys move to their own 4th row below instead, like a
-    // real keyboard's bottom row.
+    // ISIRI rows — Shift/Backspace bookend row three, Space rides along at
+    // the end of row two, and ZWNJ rides along at the end of row three,
+    // rather than any of them getting a fourth row of their own, so the
+    // whole keyboard stays compact end-to-end on a phone screen. On a
+    // wide/landscape viewport, Space and ZWNJ move to their own 4th row
+    // below instead (Shift/Backspace stay bookending row three, just wider).
     <div className={styles.keyboard}>
       {ISIRI_ROWS.map((row, rowIndex) => (
         <div
           className={[styles.row, rowIndex === 1 && styles.rowHome, rowIndex === 2 && styles.rowBottom].filter(Boolean).join(" ")}
           key={rowIndex}
         >
-          {rowIndex === 2 && !wide && shiftKey}
+          {rowIndex === 2 && shiftKey}
           {row.map(([codePoint, physicalCode]) => {
             const baseLetter = String.fromCodePoint(codePoint);
             return (
@@ -102,23 +102,6 @@ export function PersianKeyboard({ onInsert, onZwnj, onBackspace, keyboardMode, d
           })}
           {rowIndex === 1 && !wide && <VirtualKey label="space" wide disabled={disabled} onActivate={() => onInsert(" ")} />}
           {rowIndex === 2 && !wide && (
-            <>
-              <VirtualKey
-                label="⌢"
-                className={`${styles.persianKey} ${styles.zwnj}`}
-                title="Half-space (ZWNJ) — Shift+Space; tap again to remove"
-                disabled={disabled}
-                onActivate={onZwnj}
-              />
-              <VirtualKey label="⌫" disabled={disabled} onActivate={onBackspace} />
-            </>
-          )}
-        </div>
-      ))}
-      {wide && (
-        <div className={`${styles.row} ${styles.utilityRow}`}>
-          {shiftKey}
-          <div className={styles.utilityCenter}>
             <VirtualKey
               label="⌢"
               className={`${styles.persianKey} ${styles.zwnj}`}
@@ -126,9 +109,20 @@ export function PersianKeyboard({ onInsert, onZwnj, onBackspace, keyboardMode, d
               disabled={disabled}
               onActivate={onZwnj}
             />
-            <VirtualKey label="space" wide disabled={disabled} onActivate={() => onInsert(" ")} />
-          </div>
-          <VirtualKey label="⌫" disabled={disabled} onActivate={onBackspace} />
+          )}
+          {rowIndex === 2 && <VirtualKey label="⌫" className={styles.endKey} disabled={disabled} onActivate={onBackspace} />}
+        </div>
+      ))}
+      {wide && (
+        <div className={`${styles.row} ${styles.utilityRow}`}>
+          <VirtualKey
+            label="⌢"
+            className={`${styles.persianKey} ${styles.zwnj}`}
+            title="Half-space (ZWNJ) — Shift+Space; tap again to remove"
+            disabled={disabled}
+            onActivate={onZwnj}
+          />
+          <VirtualKey label="space" wide disabled={disabled} onActivate={() => onInsert(" ")} />
         </div>
       )}
     </div>

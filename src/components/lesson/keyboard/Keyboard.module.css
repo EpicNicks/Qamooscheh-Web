@@ -85,6 +85,14 @@
     width: 10rem;
   }
 
+  /* Shift/apostrophe and Backspace, pinned to the two ends of the bottom
+     letter row — a real keyboard's equivalents are wider than an ordinary
+     letter key, not the same size. */
+  .endKey {
+    flex: 0 0 5.5rem;
+    width: 5.5rem;
+  }
+
   /* Rows no longer stretch to the container's width, so shrink the keyboard
      itself to its widest row (fit-content) and center every row as a block
      within that — .utilityRow's width: 100% below relies on this to span
@@ -112,23 +120,17 @@
 }
 
 /* The dedicated 4th row the Persian phonetic/native keyboards switch to at
-   this same wide layout (see useKeyboardWideLayout) — modifier keys (Shift
-   or the apostrophe letter, Backspace) pinned to the two ends, ZWNJ+Space
-   grouped in between. Only ever mounted at the wide breakpoint (the
-   components gate it with the same query via useKeyboardWideLayout), so no
-   @media guard is needed here — its width: 100% depends on .keyboard's
-   fit-content sizing immediately above, which IS media-gated. Because the
-   two end keys (Shift/apostrophe, Backspace) are both plain, equal-width
-   .key elements, justify-content: space-between happens to center the
-   ZWNJ+Space group exactly between them for free. */
+   this same wide layout (see useKeyboardWideLayout) — just ZWNJ and Space,
+   centered as a pair (Shift/apostrophe and Backspace stay on the bottom
+   letter row itself, see .endKey above). Only ever mounted at the wide
+   breakpoint (the components gate it with the same query via
+   useKeyboardWideLayout), so no @media guard is needed here — its
+   width: 100% depends on .keyboard's fit-content sizing above, which IS
+   media-gated, to center against the same width as the letter rows rather
+   than just its own two keys. */
 .utilityRow {
   width: 100%;
-  justify-content: space-between;
-}
-
-.utilityCenter {
-  display: flex;
-  gap: 3px;
+  justify-content: center;
 }
 
 /* Pressed/held — on for the whole duration the key (physical or pointer) is down. */
