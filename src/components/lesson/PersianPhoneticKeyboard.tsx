@@ -38,11 +38,13 @@ export function PersianPhoneticKeyboard({ onPressLetter, onZwnj, onSpace, onBack
   const wide = useKeyboardWideLayout();
 
   // Compact phone shape: exactly three rows, matching the three QWERTY
-  // rows — Space and '/ZWNJ/Backspace ride along on rows two and three (one
-  // and three fewer letters than row one) rather than getting a fourth row
-  // of their own, so the whole keyboard stays compact end-to-end on a phone
-  // screen. On a wide/landscape viewport those ride-along keys move to
-  // their own 4th row below instead, like a real keyboard's bottom row.
+  // rows — apostrophe/Backspace bookend row three, Space rides along at the
+  // end of row two, and ZWNJ rides along at the end of row three, rather
+  // than any of them getting a fourth row of their own, so the whole
+  // keyboard stays compact end-to-end on a phone screen. On a
+  // wide/landscape viewport, Space and ZWNJ move to their own 4th row below
+  // instead (apostrophe/Backspace stay bookending row three, just wider —
+  // like a real keyboard's Shift/Backspace).
   return (
     <div className={keyboardStyles.keyboard}>
       {QWERTY_ROWS.map((row, rowIndex) => (
@@ -52,8 +54,13 @@ export function PersianPhoneticKeyboard({ onPressLetter, onZwnj, onSpace, onBack
             .join(" ")}
           key={rowIndex}
         >
-          {rowIndex === 2 && !wide && (
-            <VirtualKey label="'" className={styles.latinKey} disabled={disabled} onActivate={() => onPressLetter("'")} />
+          {rowIndex === 2 && (
+            <VirtualKey
+              label="'"
+              className={`${styles.latinKey} ${keyboardStyles.endKey}`}
+              disabled={disabled}
+              onActivate={() => onPressLetter("'")}
+            />
           )}
           {row.map((letter) => {
             const valid = hasPhoneticValue(letter);
@@ -70,23 +77,6 @@ export function PersianPhoneticKeyboard({ onPressLetter, onZwnj, onSpace, onBack
           })}
           {rowIndex === 1 && !wide && <VirtualKey label="space" wide disabled={disabled} onActivate={onSpace} />}
           {rowIndex === 2 && !wide && (
-            <>
-              <VirtualKey
-                label="⌢"
-                className={styles.zwnj}
-                title="Half-space (ZWNJ) — Shift+Space; tap again to remove"
-                disabled={disabled}
-                onActivate={onZwnj}
-              />
-              <VirtualKey label="⌫" disabled={disabled} onActivate={onBackspace} />
-            </>
-          )}
-        </div>
-      ))}
-      {wide && (
-        <div className={`${keyboardStyles.row} ${keyboardStyles.utilityRow}`}>
-          <VirtualKey label="'" className={styles.latinKey} disabled={disabled} onActivate={() => onPressLetter("'")} />
-          <div className={keyboardStyles.utilityCenter}>
             <VirtualKey
               label="⌢"
               className={styles.zwnj}
@@ -94,9 +84,22 @@ export function PersianPhoneticKeyboard({ onPressLetter, onZwnj, onSpace, onBack
               disabled={disabled}
               onActivate={onZwnj}
             />
-            <VirtualKey label="space" wide disabled={disabled} onActivate={onSpace} />
-          </div>
-          <VirtualKey label="⌫" disabled={disabled} onActivate={onBackspace} />
+          )}
+          {rowIndex === 2 && (
+            <VirtualKey label="⌫" className={keyboardStyles.endKey} disabled={disabled} onActivate={onBackspace} />
+          )}
+        </div>
+      ))}
+      {wide && (
+        <div className={`${keyboardStyles.row} ${keyboardStyles.utilityRow}`}>
+          <VirtualKey
+            label="⌢"
+            className={styles.zwnj}
+            title="Half-space (ZWNJ) — Shift+Space; tap again to remove"
+            disabled={disabled}
+            onActivate={onZwnj}
+          />
+          <VirtualKey label="space" wide disabled={disabled} onActivate={onSpace} />
         </div>
       )}
     </div>
