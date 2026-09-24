@@ -7,6 +7,14 @@
   color: var(--color-primary);
 }
 
+/* "→ カタカナ"/"→ ひらがな" is 5 full-width characters — at the base .key
+   font-size that overflows on mobile, where this key is an equal-share key
+   no wider than any single-kana one. Smaller than .wide's own 0.8rem too,
+   since even the desktop wide version needs the extra room for the arrow. */
+.toKatakanaKey {
+  font-size: 0.65rem;
+}
+
 /* The bottom-most row: dakuten/handakuten/small, Space, Backspace+toKatakana.
    Space must land at the row's exact center regardless of how much sits on
    either side of it, which a plain flex row (space-between/center) can't

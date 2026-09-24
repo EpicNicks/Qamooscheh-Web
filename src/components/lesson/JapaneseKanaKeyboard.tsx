@@ -84,6 +84,12 @@ export function JapaneseKanaKeyboard({ lastChar, onInsert, onReplaceLast, onBack
     <VirtualKey
       label={script === "hiragana" ? "→ カタカナ" : "→ ひらがな"}
       wide={isWide}
+      // 5 full-width characters at the base 1.1rem key font-size overflows
+      // this key on mobile, where it's an equal-share key no wider than any
+      // single-kana one (only the wide desktop version gets .wide's own
+      // smaller 0.8rem for free) — shrink it further, unconditionally, so it
+      // fits in both layouts rather than needing yet another isWide branch.
+      className={styles.toKatakanaKey}
       title="Switch between hiragana and katakana"
       disabled={disabled}
       onActivate={() => setScript((s) => (s === "hiragana" ? "katakana" : "hiragana"))}
