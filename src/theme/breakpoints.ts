@@ -9,6 +9,8 @@
 //   src/components/layout/CourseSwitcher.module.css
 //   src/theme/defaultPathTheme.module.css
 //   src/components/path/SkillGroupModal.module.css
+//   src/components/lesson/keyboard/Keyboard.module.css
+//   src/components/lesson/PersianKeyboard.module.css
 //
 // Each of those carries `/* keep in sync with src/theme/breakpoints.ts */`
 // above its @media block.

@@ -61,7 +61,12 @@ export function JapaneseKanaKeyboard({ lastChar, onInsert, onReplaceLast, onBack
         <VirtualKey label={display(JIS_KANA_WO)} className={styles.kanaKey} disabled={disabled} onActivate={() => pressKana(JIS_KANA_WO)} />
       </div>
       {JIS_KANA_ROWS.map((row, rowIndex) => (
-        <div className={keyboardStyles.row} key={rowIndex}>
+        <div
+          className={[keyboardStyles.row, rowIndex === 1 && keyboardStyles.rowHome, rowIndex === 2 && keyboardStyles.rowBottom]
+            .filter(Boolean)
+            .join(" ")}
+          key={rowIndex}
+        >
           {row.map(([kana]) => (
             <VirtualKey key={kana} label={labelFor(kana)} className={styles.kanaKey} disabled={disabled} onActivate={() => pressKana(kana)} />
           ))}

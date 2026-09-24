@@ -68,7 +68,10 @@ export function PersianKeyboard({ onInsert, onZwnj, onBackspace, keyboardMode, d
     // phone screen.
     <div className={styles.keyboard}>
       {ISIRI_ROWS.map((row, rowIndex) => (
-        <div className={styles.row} key={rowIndex}>
+        <div
+          className={[styles.row, rowIndex === 1 && styles.rowHome, rowIndex === 2 && styles.rowBottom].filter(Boolean).join(" ")}
+          key={rowIndex}
+        >
           {rowIndex === 2 && (
             <VirtualKey
               label="⇧"
