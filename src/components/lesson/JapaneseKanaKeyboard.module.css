@@ -6,3 +6,35 @@
   border-color: var(--color-primary);
   color: var(--color-primary);
 }
+
+/* The bottom-most row: dakuten/handakuten/small, Space, Backspace+toKatakana.
+   Space must land at the row's exact center regardless of how much sits on
+   either side of it, which a plain flex row (space-between/center) can't
+   guarantee once the two sides hold different numbers of keys — a 3-column
+   grid with equal 1fr edge columns does: the middle (auto-sized) column is
+   always the true center of the row, and each side's cluster is a flex
+   group anchored to the edge nearest Space. */
+.finalRow {
+  display: grid;
+  /* minmax(0, 1fr), not bare 1fr: a bare 1fr track still has an implicit
+     min-content floor, so the left (3 keys) and right (2, one wide) clusters
+     — different natural widths — would size unequally and throw the center
+     column off. minmax(0, ...) removes that floor so both sides are forced
+     to the exact same width, keeping Space truly centered. */
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 3px;
+  width: 100%;
+}
+
+.finalRowLeft {
+  display: flex;
+  gap: 3px;
+  justify-content: flex-end;
+}
+
+.finalRowRight {
+  display: flex;
+  gap: 3px;
+  justify-content: space-between;
+}
