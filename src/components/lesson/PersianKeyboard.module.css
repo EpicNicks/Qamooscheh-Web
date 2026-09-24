@@ -25,6 +25,7 @@
   .keyboard {
     align-items: center;
     width: fit-content;
+    margin-inline: auto;
   }
 
   .row {

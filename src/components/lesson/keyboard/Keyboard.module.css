@@ -3,6 +3,19 @@
    Each keyboard's own CSS module handles row/grid layout and composes these
    classes in via VirtualKey's `className` prop. */
 
+/* The Layout/Phonetic or Phonetic/Kana SegmentedToggle plus the
+   DeviceInputToggle beside it (see scriptEngines.tsx) — both are inline-flex
+   on their own, but with no shared row wrapper they fall back to plain
+   inline text flow, which baseline-aligns them instead of centering them on
+   each other despite their different heights. flex-wrap so a narrow phone
+   screen drops the toggle to its own line rather than clipping/overflowing. */
+.controlsRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
 /* Generic container, used as-is by the Latin-QWERTY phonetic keyboards
    (Persian and Japanese both just render this shape over different keys) —
    PersianKeyboard.module.css keeps its own copy since its layout predates
@@ -96,10 +109,15 @@
   /* Rows no longer stretch to the container's width, so shrink the keyboard
      itself to its widest row (fit-content) and center every row as a block
      within that — .utilityRow's width: 100% below relies on this to span
-     exactly as wide as the top letter row, not the old full container. */
+     exactly as wide as the top letter row, not the old full container.
+     margin-inline: auto then centers that (now possibly narrower than its
+     container, e.g. Persian's ~13 keys) — or wider (the kana keyboard's ~14
+     keys can exceed the viewport) — box within the page itself, rather than
+     leaving it flush against the container's left edge either way. */
   .keyboard {
     align-items: center;
     width: fit-content;
+    margin-inline: auto;
   }
 
   .row {

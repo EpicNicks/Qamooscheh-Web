@@ -8,6 +8,7 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { SegmentedToggle } from "../../common/SegmentedToggle";
 import { DeviceInputToggle } from "../languageSettings/DeviceInputToggle";
+import keyboardStyles from "./Keyboard.module.css";
 import { PersianKeyboard } from "../PersianKeyboard";
 import { PersianPhoneticKeyboard } from "../PersianPhoneticKeyboard";
 import { JapanesePhoneticKeyboard } from "../JapanesePhoneticKeyboard";
@@ -113,16 +114,18 @@ function usePersianLayoutEngine(params: {
     supportsZwnj: true,
     keyboardNode: (
       <>
-        <SegmentedToggle
-          options={[
-            { value: "layout", label: "Layout" },
-            { value: "phonetic", label: "Phonetic" },
-          ]}
-          value={fa.method}
-          onChange={fa.setInputMethod}
-          disabled={disabled}
-        />
-        <DeviceInputToggle enabled={deviceInput.enabled} onChange={deviceInput.setEnabled} disabled={disabled} />
+        <div className={keyboardStyles.controlsRow}>
+          <SegmentedToggle
+            options={[
+              { value: "layout", label: "Layout" },
+              { value: "phonetic", label: "Phonetic" },
+            ]}
+            value={fa.method}
+            onChange={fa.setInputMethod}
+            disabled={disabled}
+          />
+          <DeviceInputToggle enabled={deviceInput.enabled} onChange={deviceInput.setEnabled} disabled={disabled} />
+        </div>
         {!deviceInput.enabled && (
           <PersianKeyboard
             onInsert={(fragment) => updateText((prev) => prev + fragment)}
@@ -203,16 +206,18 @@ function usePersianPhoneticEngine(params: {
     },
     keyboardNode: (
       <>
-        <SegmentedToggle
-          options={[
-            { value: "layout", label: "Layout" },
-            { value: "phonetic", label: "Phonetic" },
-          ]}
-          value={fa.method}
-          onChange={fa.setInputMethod}
-          disabled={disabled}
-        />
-        <DeviceInputToggle enabled={deviceInput.enabled} onChange={deviceInput.setEnabled} disabled={disabled} />
+        <div className={keyboardStyles.controlsRow}>
+          <SegmentedToggle
+            options={[
+              { value: "layout", label: "Layout" },
+              { value: "phonetic", label: "Phonetic" },
+            ]}
+            value={fa.method}
+            onChange={fa.setInputMethod}
+            disabled={disabled}
+          />
+          <DeviceInputToggle enabled={deviceInput.enabled} onChange={deviceInput.setEnabled} disabled={disabled} />
+        </div>
         {!deviceInput.enabled && (
           <PersianPhoneticKeyboard
             onPressLetter={handlers.pressLetter}
@@ -279,16 +284,18 @@ function useJapanesePhoneticEngine(params: {
     supportsZwnj: false,
     keyboardNode: (
       <>
-        <SegmentedToggle
-          options={[
-            { value: "phonetic", label: "Phonetic" },
-            { value: "kana", label: "Kana layout" },
-          ]}
-          value={ja.method}
-          onChange={ja.setInputMethod}
-          disabled={disabled}
-        />
-        <DeviceInputToggle enabled={deviceInput.enabled} onChange={deviceInput.setEnabled} disabled={disabled} />
+        <div className={keyboardStyles.controlsRow}>
+          <SegmentedToggle
+            options={[
+              { value: "phonetic", label: "Phonetic" },
+              { value: "kana", label: "Kana layout" },
+            ]}
+            value={ja.method}
+            onChange={ja.setInputMethod}
+            disabled={disabled}
+          />
+          <DeviceInputToggle enabled={deviceInput.enabled} onChange={deviceInput.setEnabled} disabled={disabled} />
+        </div>
         {!deviceInput.enabled && (
           <JapanesePhoneticKeyboard onPressLetter={handlers.pressLetter} onSpace={handlers.pressSpace} onBackspace={handlers.backspace} disabled={disabled} />
         )}
@@ -332,16 +339,18 @@ function useJapaneseKanaEngine(params: {
     supportsZwnj: false,
     keyboardNode: (
       <>
-        <SegmentedToggle
-          options={[
-            { value: "phonetic", label: "Phonetic" },
-            { value: "kana", label: "Kana layout" },
-          ]}
-          value={ja.method}
-          onChange={ja.setInputMethod}
-          disabled={disabled}
-        />
-        <DeviceInputToggle enabled={deviceInput.enabled} onChange={deviceInput.setEnabled} disabled={disabled} />
+        <div className={keyboardStyles.controlsRow}>
+          <SegmentedToggle
+            options={[
+              { value: "phonetic", label: "Phonetic" },
+              { value: "kana", label: "Kana layout" },
+            ]}
+            value={ja.method}
+            onChange={ja.setInputMethod}
+            disabled={disabled}
+          />
+          <DeviceInputToggle enabled={deviceInput.enabled} onChange={deviceInput.setEnabled} disabled={disabled} />
+        </div>
         {!deviceInput.enabled && (
           <JapaneseKanaKeyboard
             lastChar={text.slice(-1)}
