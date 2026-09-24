@@ -171,6 +171,24 @@
   }
 }
 
+/* keep in sync with src/theme/breakpoints.ts */
+@media (min-width: 769px) and (min-aspect-ratio: 1/1) {
+  /* On this layout the on-screen keyboard itself is fit-content (see
+     keyboard/Keyboard.module.css) and can be WIDER than this column — the
+     kana keyboard routinely is. `margin-inline: auto` on the keyboard alone
+     can't center that: per spec, auto margins resolve to 0 once the
+     available space (container width minus content width) goes negative, so
+     an over-wide box just hugs the left edge instead, overflowing only to
+     the right. Flexbox doesn't have that limitation — centering the keyboard
+     (and the controls row above it) as flex items here overflows them
+     evenly on both sides instead. */
+  .keyboardBleed {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+}
+
 /* The Japanese phonetic keyboard's still-buffering romaji — sits right
    after the input, inside the same inline-block wrap, so it visually reads
    as "what comes next" rather than a separate element. */

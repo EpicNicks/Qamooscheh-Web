@@ -110,14 +110,13 @@
      itself to its widest row (fit-content) and center every row as a block
      within that — .utilityRow's width: 100% below relies on this to span
      exactly as wide as the top letter row, not the old full container.
-     margin-inline: auto then centers that (now possibly narrower than its
-     container, e.g. Persian's ~13 keys) — or wider (the kana keyboard's ~14
-     keys can exceed the viewport) — box within the page itself, rather than
-     leaving it flush against the container's left edge either way. */
+     Centering the keyboard ITSELF within the page (it can end up wider than
+     its column, e.g. the kana keyboard) is Exercise.module.css's
+     .keyboardBleed's job, via flexbox rather than margin: auto — see its own
+     comment for why margin: auto specifically can't do it. */
   .keyboard {
     align-items: center;
     width: fit-content;
-    margin-inline: auto;
   }
 
   .row {
