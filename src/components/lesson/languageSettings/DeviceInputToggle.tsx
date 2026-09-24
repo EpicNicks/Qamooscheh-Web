@@ -1,3 +1,4 @@
+import { useIsMobile } from "../../../hooks/useMediaQuery";
 import styles from "./DeviceInputToggle.module.css";
 
 interface DeviceInputToggleProps {
@@ -16,8 +17,18 @@ interface DeviceInputToggleProps {
  * SegmentedToggle: there's exactly one thing being turned on or off here,
  * not a choice between named options, but it borrows that component's pill
  * track and spring-eased thumb so it still reads as the same kind of control.
+ *
+ * The label changes with viewport, not just state: `inputMode="none"` (see
+ * TypeInExercise) only ever suppresses a PHONE's on-screen keyboard — a
+ * desktop's physical keyboard always works regardless of this toggle, so
+ * "Device Input" would be a lie there. On mobile this toggle genuinely turns
+ * device input on/off; on desktop all it does is declutter the screen by
+ * hiding the (redundant) on-screen keyboard, so it's framed as that instead.
  */
 export function DeviceInputToggle({ enabled, onChange, disabled }: DeviceInputToggleProps) {
+  const isMobile = useIsMobile();
+  const label = isMobile ? `${enabled ? "Disable" : "Enable"} Device Input` : `${enabled ? "Show" : "Hide"} Virtual Keyboard`;
+
   return (
     <button
       type="button"
@@ -34,7 +45,7 @@ export function DeviceInputToggle({ enabled, onChange, disabled }: DeviceInputTo
       <span className={styles.track} aria-hidden="true">
         <span className={styles.thumb} />
       </span>
-      {enabled ? "Disable" : "Enable"} Device Input
+      {label}
     </button>
   );
 }
