@@ -7,6 +7,7 @@
 // itself needs to change.
 import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { SegmentedToggle } from "../../common/SegmentedToggle";
+import { DeviceInputToggle } from "../languageSettings/DeviceInputToggle";
 import { PersianKeyboard } from "../PersianKeyboard";
 import { PersianPhoneticKeyboard } from "../PersianPhoneticKeyboard";
 import { JapanesePhoneticKeyboard } from "../JapanesePhoneticKeyboard";
@@ -19,10 +20,12 @@ import { PHYSICAL_CHAR_TO_KANA } from "../../../domain/japanese/jisKanaLayout";
 import { usePersianPhoneticInput, handlePickerNavigation } from "../../../hooks/usePersianPhoneticInput";
 import { useJapanesePhoneticInput } from "../../../hooks/useJapanesePhoneticInput";
 import type { useKeyboardInputMethod } from "../../../hooks/useKeyboardInputMethod";
+import type { useDeviceInputEnabled } from "../../../hooks/useDeviceInputEnabled";
 import type { getLanguageInfo } from "../../../domain/language";
 
 type FaInputMethod = ReturnType<typeof useKeyboardInputMethod<"fa">>;
 type JaInputMethod = ReturnType<typeof useKeyboardInputMethod<"ja">>;
+type DeviceInputMethod = ReturnType<typeof useDeviceInputEnabled>;
 import styles from "../Exercise.module.css";
 
 
@@ -93,8 +96,9 @@ function usePersianLayoutEngine(params: {
   disabled: boolean | undefined;
   handlers: ScriptKeyboardHandlers;
   fa: FaInputMethod;
+  deviceInput: DeviceInputMethod;
 }): ScriptEngine {
-  const { updateText, keyboardMode, disabled, handlers, fa } = params;
+  const { updateText, keyboardMode, disabled, handlers, fa, deviceInput } = params;
 
   return {
     pressLetter(letter) {
@@ -118,13 +122,16 @@ function usePersianLayoutEngine(params: {
           onChange={fa.setInputMethod}
           disabled={disabled}
         />
-        <PersianKeyboard
-          onInsert={(fragment) => updateText((prev) => prev + fragment)}
-          onZwnj={handlers.pressZwnj}
-          onBackspace={handlers.backspace}
-          keyboardMode={keyboardMode ?? "contextual"}
-          disabled={disabled}
-        />
+        <DeviceInputToggle enabled={deviceInput.enabled} onChange={deviceInput.setEnabled} disabled={disabled} />
+        {!deviceInput.enabled && (
+          <PersianKeyboard
+            onInsert={(fragment) => updateText((prev) => prev + fragment)}
+            onZwnj={handlers.pressZwnj}
+            onBackspace={handlers.backspace}
+            keyboardMode={keyboardMode ?? "contextual"}
+            disabled={disabled}
+          />
+        )}
       </>
     ),
     overlayNode: null,
@@ -139,8 +146,9 @@ function usePersianPhoneticEngine(params: {
   inputWrapRef: React.RefObject<HTMLDivElement | null>;
   handlers: ScriptKeyboardHandlers;
   fa: FaInputMethod;
+  deviceInput: DeviceInputMethod;
 }): ScriptEngine {
-  const { updateText, disabled, text, languageInfo, inputWrapRef, handlers, fa } = params;
+  const { updateText, disabled, text, languageInfo, inputWrapRef, handlers, fa, deviceInput } = params;
   const persianPhonetic = usePersianPhoneticInput((deleteCount, insertText) =>
     updateText((prev) => prev.slice(0, prev.length - deleteCount) + insertText),
   );
@@ -204,13 +212,16 @@ function usePersianPhoneticEngine(params: {
           onChange={fa.setInputMethod}
           disabled={disabled}
         />
-        <PersianPhoneticKeyboard
-          onPressLetter={handlers.pressLetter}
-          onZwnj={handlers.pressZwnj}
-          onSpace={handlers.pressSpace}
-          onBackspace={handlers.backspace}
-          disabled={disabled}
-        />
+        <DeviceInputToggle enabled={deviceInput.enabled} onChange={deviceInput.setEnabled} disabled={disabled} />
+        {!deviceInput.enabled && (
+          <PersianPhoneticKeyboard
+            onPressLetter={handlers.pressLetter}
+            onZwnj={handlers.pressZwnj}
+            onSpace={handlers.pressSpace}
+            onBackspace={handlers.backspace}
+            disabled={disabled}
+          />
+        )}
       </>
     ),
     overlayNode: !persianPhonetic.candidates ? null : (
@@ -244,8 +255,9 @@ function useJapanesePhoneticEngine(params: {
   disabled: boolean | undefined;
   handlers: ScriptKeyboardHandlers;
   ja: JaInputMethod;
+  deviceInput: DeviceInputMethod;
 }): ScriptEngine {
-  const { updateText, disabled, handlers, ja } = params;
+  const { updateText, disabled, handlers, ja, deviceInput } = params;
   const japanesePhonetic = useJapanesePhoneticInput((deleteCount, insertText) =>
     updateText((prev) => prev.slice(0, prev.length - deleteCount) + insertText),
   );
@@ -276,7 +288,10 @@ function useJapanesePhoneticEngine(params: {
           onChange={ja.setInputMethod}
           disabled={disabled}
         />
-        <JapanesePhoneticKeyboard onPressLetter={handlers.pressLetter} onSpace={handlers.pressSpace} onBackspace={handlers.backspace} disabled={disabled} />
+        <DeviceInputToggle enabled={deviceInput.enabled} onChange={deviceInput.setEnabled} disabled={disabled} />
+        {!deviceInput.enabled && (
+          <JapanesePhoneticKeyboard onPressLetter={handlers.pressLetter} onSpace={handlers.pressSpace} onBackspace={handlers.backspace} disabled={disabled} />
+        )}
       </>
     ),
     // The buffer isn't in the answer text yet — it's a consonant (cluster)
@@ -300,8 +315,9 @@ function useJapaneseKanaEngine(params: {
   text: string;
   handlers: ScriptKeyboardHandlers;
   ja: JaInputMethod;
+  deviceInput: DeviceInputMethod;
 }): ScriptEngine {
-  const { updateText, disabled, text, handlers, ja } = params;
+  const { updateText, disabled, text, handlers, ja, deviceInput } = params;
 
   return {
     pressLetter(letter) {
@@ -325,13 +341,16 @@ function useJapaneseKanaEngine(params: {
           onChange={ja.setInputMethod}
           disabled={disabled}
         />
-        <JapaneseKanaKeyboard
-          lastChar={text.slice(-1)}
-          onInsert={(fragment) => updateText((prev) => prev + fragment)}
-          onReplaceLast={(newLastChar) => updateText((prev) => (prev.length === 0 ? prev : prev.slice(0, -1) + newLastChar))}
-          onBackspace={handlers.backspace}
-          disabled={disabled}
-        />
+        <DeviceInputToggle enabled={deviceInput.enabled} onChange={deviceInput.setEnabled} disabled={disabled} />
+        {!deviceInput.enabled && (
+          <JapaneseKanaKeyboard
+            lastChar={text.slice(-1)}
+            onInsert={(fragment) => updateText((prev) => prev + fragment)}
+            onReplaceLast={(newLastChar) => updateText((prev) => (prev.length === 0 ? prev : prev.slice(0, -1) + newLastChar))}
+            onBackspace={handlers.backspace}
+            disabled={disabled}
+          />
+        )}
       </>
     ),
     overlayNode: null,
@@ -356,14 +375,15 @@ export function useScriptEngine(params: {
   handlers: ScriptKeyboardHandlers;
   fa: FaInputMethod;
   ja: JaInputMethod;
+  deviceInput: DeviceInputMethod;
 }): ScriptEngine {
-  const { keyboardKind, updateText, keyboardMode, disabled, text, languageInfo, inputWrapRef, handlers, fa, ja } = params;
+  const { keyboardKind, updateText, keyboardMode, disabled, text, languageInfo, inputWrapRef, handlers, fa, ja, deviceInput } = params;
 
   const plain = createPlainEngine(updateText);
-  const persianLayout = usePersianLayoutEngine({ updateText, keyboardMode, disabled, handlers, fa });
-  const persianPhonetic = usePersianPhoneticEngine({ updateText, disabled, text, languageInfo, inputWrapRef, handlers, fa });
-  const japanesePhonetic = useJapanesePhoneticEngine({ updateText, disabled, handlers, ja });
-  const japaneseKana = useJapaneseKanaEngine({ updateText, disabled, text, handlers, ja });
+  const persianLayout = usePersianLayoutEngine({ updateText, keyboardMode, disabled, handlers, fa, deviceInput });
+  const persianPhonetic = usePersianPhoneticEngine({ updateText, disabled, text, languageInfo, inputWrapRef, handlers, fa, deviceInput });
+  const japanesePhonetic = useJapanesePhoneticEngine({ updateText, disabled, handlers, ja, deviceInput });
+  const japaneseKana = useJapaneseKanaEngine({ updateText, disabled, text, handlers, ja, deviceInput });
 
   switch (keyboardKind) {
     case "persian-layout":
