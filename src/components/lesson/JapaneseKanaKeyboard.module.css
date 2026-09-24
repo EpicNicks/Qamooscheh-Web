@@ -15,6 +15,17 @@
   font-size: 0.65rem;
 }
 
+/* On the wide/landscape layout this key is 10rem (.wide) and standalone
+   (see .finalRowRight), not sharing a cramped equal-share slot with three
+   other keys the way it does on mobile — the base 1.1rem key size already
+   fit fine there, so restore it instead of the mobile-only shrink above.
+   keep in sync with src/theme/breakpoints.ts */
+@media (min-width: 769px) and (min-aspect-ratio: 1/1) {
+  .toKatakanaKey {
+    font-size: 1.1rem;
+  }
+}
+
 /* The bottom-most row: dakuten/handakuten/small, Space, Backspace+toKatakana.
    Space must land at the row's exact center regardless of how much sits on
    either side of it, which a plain flex row (space-between/center) can't
