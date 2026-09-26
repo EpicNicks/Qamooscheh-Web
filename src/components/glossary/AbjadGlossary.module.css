@@ -1,0 +1,114 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.toggles {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.search {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+/* Always rendered (empty when unfiltered) so the live region exists before
+   its first announcement, and reserves its line so results don't jump. */
+.status {
+  margin: 0;
+  min-height: 1.2em;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+/* Sound groups flow like words in a paragraph: a one-letter group takes one
+   tile's width, a shared-sound group as many as it has letters, and each
+   wraps to the next line as a unit. A group wider than the column (the four
+   z's on a phone) wraps its own tiles inside itself instead. */
+.groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-width: 100%;
+  padding: var(--space-2);
+  border: 2px solid transparent;
+  border-radius: calc(var(--radius-lg) + var(--space-2));
+}
+
+/* A lone letter has no enclosure to pad out, so it drops the side padding
+   (keeping the vertical, so its header lines up with a shared group's in the
+   same row) — which is what fits two of them side by side on a phone. */
+.group:not([data-shared="true"]) {
+  padding-inline: 0;
+  border-inline-width: 0;
+}
+
+/* Letters that share a sound get a visible enclosure — the whole point of
+   grouping them is that the learner sees "these all say s" at a glance. */
+.group[data-shared="true"] {
+  border-color: var(--color-current);
+  background: color-mix(in srgb, var(--color-current) 8%, transparent);
+}
+
+/* Always exactly two lines (sound, then hint) so every group's tiles start
+   at the same height and a row of groups lines up. A one-tile group is only
+   a tile wide, so its hint truncates rather than wrapping to a third line or
+   stretching the group past its tile. */
+.groupHeader {
+  display: flex;
+  flex-direction: column;
+  padding: 0 var(--space-1);
+  max-width: 9rem;
+}
+
+.group[data-shared="true"] .groupHeader {
+  max-width: none;
+}
+
+.headerRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.sound {
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: var(--color-text);
+}
+
+.hint {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.count {
+  margin-left: auto;
+  padding: 1px var(--space-2);
+  border-radius: 999px;
+  background: var(--color-current);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.tiles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}

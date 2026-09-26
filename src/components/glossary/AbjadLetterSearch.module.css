@@ -1,0 +1,118 @@
+.row {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-2);
+  width: min(36rem, 100%);
+  align-self: center;
+}
+
+.box {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 2.75rem;
+  padding: var(--space-1) var(--space-2);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  cursor: text;
+}
+
+.box:focus-within {
+  border-color: var(--color-current);
+}
+
+.input {
+  flex: 1;
+  min-width: 6rem;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  padding: var(--space-1) 0;
+}
+
+.chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px 2px 2px var(--space-2);
+  border: 1px solid var(--color-current);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-current) 12%, var(--color-bg));
+  color: var(--color-text);
+  cursor: grab;
+  user-select: none;
+  /* The chip handles its own drag, so a touch on it mustn't scroll the page. */
+  touch-action: none;
+}
+
+.chip[data-dragging="true"] {
+  z-index: 10;
+  cursor: grabbing;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 20%);
+}
+
+/* Past the box's edge: letting go here removes the chip. */
+.chip[data-outside="true"] {
+  border-color: var(--color-danger);
+  background: var(--color-danger-bg);
+  opacity: 0.8;
+}
+
+.chipLetter {
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.chipLatin {
+  font-weight: 700;
+}
+
+.chipMatches {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.remove:hover,
+.remove:focus-visible {
+  background: var(--color-border);
+  color: var(--color-text);
+}
+
+.clear {
+  flex: none;
+  padding: 0 var(--space-3);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.clear:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

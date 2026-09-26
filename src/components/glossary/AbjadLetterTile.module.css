@@ -1,0 +1,155 @@
+/* Fixed size rather than content-sized: both faces are stacked absolutely in
+   the same box, so the tile can't grow to fit whichever one happens to be
+   longer. A long note scrolls inside .backBody instead. */
+.tile {
+  width: 9rem;
+  height: 14rem;
+  flex: none;
+  perspective: 900px;
+}
+
+.inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.tile[data-flipped="true"] .inner {
+  transform: rotateY(180deg);
+}
+
+.face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg);
+  overflow: hidden;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+.back {
+  transform: rotateY(180deg);
+  background: var(--color-surface);
+}
+
+.glyph {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3.25rem;
+  line-height: 1;
+  color: var(--color-text);
+}
+
+.name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0 var(--space-2);
+  text-align: center;
+  padding: 0 var(--space-2) var(--space-2);
+}
+
+.nameRomanized {
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.nameNative {
+  color: var(--color-text-muted);
+}
+
+/* The flip control IS the tile's bottom edge — full width, sharing the
+   tile's own border and corner radius — so "Learn more" reads as part of
+   the card rather than a button placed on top of it. */
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  width: 100%;
+  padding: var(--space-2);
+  border: none;
+  border-top: 2px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-current);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.footer:hover {
+  background: var(--color-border);
+}
+
+.footer:focus-visible {
+  outline: 2px solid var(--color-current);
+  outline-offset: -4px;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+}
+
+.back .footer {
+  background: var(--color-bg);
+}
+
+.backBody {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.example {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-align: center;
+}
+
+.exampleWord {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.exampleGloss {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.chip {
+  align-self: center;
+  padding: 2px var(--space-2);
+  border-radius: 999px;
+  background: var(--color-border);
+  color: var(--color-text-muted);
+  font-size: 0.68rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.note {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--color-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .inner {
+    transition: none;
+  }
+}

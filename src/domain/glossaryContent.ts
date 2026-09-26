@@ -32,6 +32,8 @@ export interface GlossaryEntry {
   terms?: GlossaryTerm[];
   /** Explanatory prose shown above a leaf's table — for a rule the table itself demonstrates but doesn't state (e.g. how ordinals are formed). */
   note?: string;
+  /** A leaf that renders its own interactive component in place of a `terms` table — see GlossaryEntryPage's switch on it. */
+  view?: "abjad";
 }
 
 // Persian numbers 1-9, needed both on their own (1-10, 21-29, ...) and as the
@@ -267,8 +269,17 @@ const COLORS_ENTRY: GlossaryEntry = {
   ],
 };
 
+// Rendered by components/glossary/AbjadGlossary.tsx from domain/persian/abjad.ts
+// rather than a `terms` table — letters are tiles grouped by sound, not rows.
+const ABJAD_ENTRY: GlossaryEntry = {
+  id: "abjad",
+  title: "Persian Letters (Abjad)",
+  view: "abjad",
+};
+
 const GLOSSARY_BY_COURSE: Record<string, GlossaryEntry[]> = {
   fa: [
+    ABJAD_ENTRY,
     {
       id: "counting",
       title: "Counting",
