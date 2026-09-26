@@ -137,7 +137,9 @@ export function StoryTranscript({
                   note={feedback.note}
                   answer={answeredItem.exercise.answer}
                   answerIsTokenized={answeredItem.exercise.type === "word_bank" || answeredItem.exercise.type === "match"}
-                  submittedText={feedback.submittedText}
+                  // A type-in answer stays visible in its own (red) input below,
+                  // so the feedback box shows only the correct answer.
+                  submittedText={answeredItem.renderType === "type_in" ? undefined : feedback.submittedText}
                   hintMap={hintMap}
                   textSettings={textSettings}
                   reportContext={{ exerciseTags: answeredItem.exercise.tags, prompt: answeredItem.exercise.prompt }}
@@ -153,6 +155,7 @@ export function StoryTranscript({
                   hintMap={hintMap}
                   textSettings={textSettings}
                   advance={{ label: "Continue", onAdvance: confirmation.confirm }}
+                  wrongAnswer={feedback.correct ? undefined : feedback.submittedText}
                 />
               </div>
             );
