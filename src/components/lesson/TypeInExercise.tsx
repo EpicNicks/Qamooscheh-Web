@@ -30,15 +30,15 @@ function isInteractiveTarget(target: EventTarget | null, except: HTMLElement | n
  * this component asks for — see keyboard/scriptEngines.tsx. Adding a new
  * keyboard kind means writing one engine there; nothing here changes.
  */
-export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keyboardMode, autoplayAudio, hintMap, textSettings, advance }: ExerciseProps) {
-  const [text, setText] = useState("");
+export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keyboardMode, autoplayAudio, hintMap, textSettings, advance, wrongAnswer }: ExerciseProps) {
+  const [text, setText] = useState(wrongAnswer ?? "");
   const [usedHint, setUsedHint] = useState(false);
   const [hintShown, setHintShown] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   // Mirrors `text` synchronously (state updates are batched/async, but
   // submit() needs the just-finalized value immediately — see submit()) —
   // every mutation goes through updateText so the two never drift.
-  const textRef = useRef("");
+  const textRef = useRef(wrongAnswer ?? "");
 
   const inputWrapRef = useRef<HTMLDivElement>(null);
 
@@ -187,7 +187,7 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
       <div className={styles.inputWrap} ref={inputWrapRef}>
         <input
           ref={inputRef}
-          className={styles.input}
+          className={wrongAnswer !== undefined ? `${styles.input} ${styles.inputWrong}` : styles.input}
           value={text}
           onChange={(e) => updateText(() => e.target.value)}
           disabled={disabled}

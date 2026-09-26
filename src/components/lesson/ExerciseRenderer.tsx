@@ -36,6 +36,13 @@ export interface ExerciseProps {
    * whenever this is set.
    */
   advance?: { label: string; onAdvance: () => void };
+  /**
+   * What the learner submitted, set only while reviewing a WRONG answer —
+   * TypeInExercise prefills its (disabled) input with it and styles it red,
+   * so the mistake stays visible next to the revealed correct answer. Other
+   * exercise types ignore it.
+   */
+  wrongAnswer?: string;
 }
 
 /**
@@ -55,6 +62,7 @@ export function ExerciseRenderer({
   hintMap,
   textSettings,
   advance,
+  wrongAnswer,
 }: ExerciseProps & { renderType: ExerciseType }) {
   switch (renderType) {
     case "word_bank":
@@ -82,6 +90,7 @@ export function ExerciseRenderer({
           hintMap={hintMap}
           textSettings={textSettings}
           advance={advance}
+          wrongAnswer={wrongAnswer}
         />
       );
     case "match":

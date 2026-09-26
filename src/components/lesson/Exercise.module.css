@@ -107,6 +107,18 @@
   max-width: 100%;
 }
 
+/* Reviewing a wrong answer — the learner's own text stays in the (disabled)
+   input, marked red. Opacity/text-fill override the browser's greyed-out
+   disabled styling so the red actually reads. */
+.inputWrong,
+.inputWrong:disabled {
+  border-color: var(--color-danger);
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  -webkit-text-fill-color: var(--color-danger);
+  opacity: 1;
+}
+
 /* Positioning context for the floating Persian candidate picker — sized to
    the input itself (inline-block), not a full-width block, so it doesn't
    change the input's own layout. */
