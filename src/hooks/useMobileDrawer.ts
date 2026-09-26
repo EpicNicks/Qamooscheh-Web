@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 
-/** A pointerdown below this x is left to iOS Safari's own back-swipe, which cannot be preventDefault'ed and which lives in roughly the first 12-16px. */
+/** A touchstart below this x is left to iOS Safari's own back-swipe, which cannot be preventDefault'ed and which lives in roughly the first 12-16px. */
 const EDGE_DEAD_ZONE_PX = 16;
 /** …and above this it's ordinary page content, not an edge grab. Deliberately generous (well past where any OS back-gesture strip ends) so a thumb doesn't have to land precisely on a sliver to open the drawer. */
 const EDGE_ZONE_PX = 80;
@@ -17,7 +17,7 @@ export interface MobileDrawer {
   /** `source` decides whether focus moves into the panel — a swipe-open from a thumb shouldn't yank focus or pop the keyboard. */
   open: (source: "button" | "swipe") => void;
   close: () => void;
-  /** Live drag offset in px, 0 when not dragging. Written straight to the DOM via panelRef, not state — see the pointermove handler below. */
+  /** Live drag offset in px, 0 when not dragging. Written straight to the DOM via panelRef, not state — see the touchmove handler below. */
   panelRef: RefObject<HTMLElement | null>;
   triggerRef: RefObject<HTMLButtonElement | null>;
 }
@@ -76,38 +76,66 @@ export function useMobileDrawer(opts: { enabled: boolean; pathname: string }): M
     };
   }, [isOpen]);
 
-  // Left-edge swipe-to-open / swipe-to-close. Window-level pointer events,
+  // Left-edge swipe-to-open / swipe-to-close. Window-level touch events,
   // no invisible hit-target element: on a narrow phone a real lesson node can
   // sit within a few px of the edge, so an always-on edge div would swallow
   // taps on it. Filtering by coordinate instead means the only "hit target"
   // is the already-visible drawer/scrim once it's open.
+  //
+  // Touch events rather than pointer events: page content has the default
+  // `touch-action: auto`, so a couple of px into a swipe the browser claims
+  // the touch for panning and fires `pointercancel` — the drag froze just
+  // after it started. A non-passive touchmove can preventDefault() that
+  // takeover once the gesture locks to the x axis.
   useEffect(() => {
     if (!enabled) return;
 
-    let active: { id: number; x0: number; y0: number; t0: number; axis: null | "x" | "y"; openingFrom: boolean } | null = null;
+    let active: { id: number; x0: number; y0: number; t0: number; axis: null | "x" | "y"; openingFrom: boolean; lastX: number } | null = null;
 
-    function onPointerDown(e: PointerEvent) {
-      // Touch/pen only: a mouse near the window edge must never drag the drawer.
-      if (e.pointerType === "mouse") return;
+    function findTouch(list: TouchList, id: number): Touch | null {
+      for (let i = 0; i < list.length; i++) if (list[i].identifier === id) return list[i];
+      return null;
+    }
+
+    function endDrag() {
+      panelRef.current?.removeAttribute("data-dragging");
+      panelRef.current?.style.removeProperty("--drawer-drag");
+    }
+
+    function onTouchStart(e: TouchEvent) {
+      // A second finger landing mid-gesture abandons it — no pinch-drags.
+      if (active) {
+        active = null;
+        endDrag();
+        return;
+      }
+      if (e.touches.length !== 1) return;
+      const t = e.changedTouches[0];
       // Never fight a dialog that's on top of us (SkillGroupModal, CourseCatalogModal, ...).
       if ((e.target as Element | null)?.closest?.('[role="dialog"]')) return;
 
-      const fromEdge = !isOpenRef.current && e.clientX >= EDGE_DEAD_ZONE_PX && e.clientX <= EDGE_ZONE_PX;
+      const fromEdge = !isOpenRef.current && t.clientX >= EDGE_DEAD_ZONE_PX && t.clientX <= EDGE_ZONE_PX;
       const fromPanel = isOpenRef.current && panelRef.current?.contains(e.target as Node);
       const fromScrim = isOpenRef.current && !fromPanel;
       if (!fromEdge && !fromPanel && !fromScrim) return;
 
-      active = { id: e.pointerId, x0: e.clientX, y0: e.clientY, t0: e.timeStamp, axis: null, openingFrom: !isOpenRef.current };
+      active = { id: t.identifier, x0: t.clientX, y0: t.clientY, t0: e.timeStamp, axis: null, openingFrom: !isOpenRef.current, lastX: t.clientX };
     }
 
-    function onPointerMove(e: PointerEvent) {
-      if (!active || e.pointerId !== active.id) return;
-      const dx = e.clientX - active.x0;
-      const dy = e.clientY - active.y0;
+    function onTouchMove(e: TouchEvent) {
+      if (!active) return;
+      const t = findTouch(e.changedTouches, active.id);
+      if (!t) return;
+      const dx = t.clientX - active.x0;
+      const dy = t.clientY - active.y0;
+      active.lastX = t.clientX;
 
       if (active.axis === null) {
+        // Deliberately not preventDefault'ed while undecided: cancelling the
+        // first touchmove would kill a vertical scroll that starts in the edge zone.
         if (Math.hypot(dx, dy) < DIRECTION_LOCK_PX) return;
-        active.axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+        // Not cancelable means the browser already started scrolling — too late to claim it.
+        active.axis = Math.abs(dx) > Math.abs(dy) && e.cancelable ? "x" : "y";
         // Vertical wins -> this was a scroll, not a drawer gesture. Bail for good.
         if (active.axis === "y") {
           active = null;
@@ -116,21 +144,21 @@ export function useMobileDrawer(opts: { enabled: boolean; pathname: string }): M
         panelRef.current?.setAttribute("data-dragging", "");
       }
 
+      if (e.cancelable) e.preventDefault();
+
       // Written straight to the DOM. Putting this in React state would
-      // re-render the whole shell on every pointermove frame.
+      // re-render the whole shell on every touchmove frame.
       const width = panelRef.current?.offsetWidth ?? 280;
       const offset = active.openingFrom ? Math.max(0, Math.min(width, dx)) : Math.max(0, Math.min(width, width + dx));
       panelRef.current?.style.setProperty("--drawer-drag", `${offset}px`);
     }
 
-    function endDrag() {
-      panelRef.current?.removeAttribute("data-dragging");
-      panelRef.current?.style.removeProperty("--drawer-drag");
-    }
-
-    function onPointerEnd(e: PointerEvent) {
-      if (!active || e.pointerId !== active.id) return;
-      const dx = e.clientX - active.x0;
+    function onTouchEnd(e: TouchEvent) {
+      if (!active) return;
+      const t = findTouch(e.changedTouches, active.id);
+      if (!t) return;
+      const cancelled = e.type === "touchcancel";
+      const dx = (cancelled ? active.lastX : t.clientX) - active.x0;
       const elapsed = e.timeStamp - active.t0;
       const distance = Math.abs(dx);
       const velocity = elapsed > 0 ? distance / elapsed : 0;
@@ -141,20 +169,20 @@ export function useMobileDrawer(opts: { enabled: boolean; pathname: string }): M
       active = null;
       endDrag();
 
-      if (axis !== "x" || !committed) return;
+      if (cancelled || axis !== "x" || !committed) return;
       if (wasOpeningFrom && dx > 0) open("swipe");
       else if (!wasOpeningFrom && dx < 0) close();
     }
 
-    window.addEventListener("pointerdown", onPointerDown, true);
-    window.addEventListener("pointermove", onPointerMove);
-    window.addEventListener("pointerup", onPointerEnd);
-    window.addEventListener("pointercancel", onPointerEnd);
+    window.addEventListener("touchstart", onTouchStart, { capture: true, passive: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: false });
+    window.addEventListener("touchend", onTouchEnd);
+    window.addEventListener("touchcancel", onTouchEnd);
     return () => {
-      window.removeEventListener("pointerdown", onPointerDown, true);
-      window.removeEventListener("pointermove", onPointerMove);
-      window.removeEventListener("pointerup", onPointerEnd);
-      window.removeEventListener("pointercancel", onPointerEnd);
+      window.removeEventListener("touchstart", onTouchStart, { capture: true });
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("touchend", onTouchEnd);
+      window.removeEventListener("touchcancel", onTouchEnd);
       active = null;
       endDrag();
     };

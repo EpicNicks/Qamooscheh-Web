@@ -32,14 +32,14 @@
   transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
   will-change: transform;
   overscroll-behavior: contain; /* a flick inside the drawer must not scroll the page behind */
-  touch-action: pan-y; /* vertical scroll stays native; horizontal drags reach JS */
+  touch-action: pan-y; /* vertical scroll stays native; horizontal drags stay with JS */
 }
 
 .panel[data-open] {
   transform: translateX(0);
 }
 
-/* While a finger is on the panel, JS writes --drawer-drag every pointermove;
+/* While a finger is on the panel, JS writes --drawer-drag every touchmove;
    the transition has to be off or every frame would be re-animated. */
 .panel[data-dragging] {
   transition: none;
