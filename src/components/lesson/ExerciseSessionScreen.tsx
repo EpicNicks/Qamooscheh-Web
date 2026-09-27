@@ -115,9 +115,9 @@ export function ExerciseSessionScreen<TItem extends ExerciseSessionItem, TFeedba
           xp={feedbackXp?.(feedback)}
           answer={answeredItem.exercise.answer}
           answerIsTokenized={answeredItem.exercise.type === "word_bank" || answeredItem.exercise.type === "match"}
-          // A type-in answer stays visible in its own (red) input below,
-          // so the feedback box shows only the correct answer.
-          submittedText={answeredItem.renderType === "type_in" ? undefined : feedback.submittedText}
+          // A type-in or word-bank answer stays visible in the (red/green)
+          // exercise below, so the feedback box shows only the correct answer.
+          submittedText={answeredItem.renderType === "type_in" || answeredItem.renderType === "word_bank" ? undefined : feedback.submittedText}
           hintMap={hintMap}
           textSettings={textSettings}
           reportContext={{ exerciseTags: answeredItem.exercise.tags, prompt: answeredItem.exercise.prompt }}

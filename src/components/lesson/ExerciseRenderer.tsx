@@ -38,9 +38,11 @@ export interface ExerciseProps {
   advance?: { label: string; onAdvance: () => void };
   /**
    * What the learner submitted, set only while reviewing a WRONG answer —
-   * TypeInExercise prefills its (disabled) input with it and styles it red,
-   * so the mistake stays visible next to the revealed correct answer. Other
-   * exercise types ignore it.
+   * TypeInExercise prefills its (disabled) input with it and styles it red;
+   * WordBankExercise puts the submitted tiles back in the answer row, green
+   * where they're in the right order and red otherwise — so the mistake
+   * stays visible next to the revealed correct answer. Other exercise types
+   * ignore it.
    */
   wrongAnswer?: string;
 }
@@ -76,6 +78,7 @@ export function ExerciseRenderer({
           hintMap={hintMap}
           textSettings={textSettings}
           advance={advance}
+          wrongAnswer={wrongAnswer}
         />
       );
     case "type_in":

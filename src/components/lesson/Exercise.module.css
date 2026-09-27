@@ -68,6 +68,35 @@
   cursor: not-allowed;
 }
 
+/* Reviewing a wrong word-bank answer — the learner's submitted tiles stay
+   in the answer row, green where they're in the right order, yellow for
+   the two tiles of a single swap, red otherwise (WordBankExercise's
+   gradeTiles). Opacity overrides .tile:disabled's greying so the colors
+   read. */
+.tileRight,
+.tileRight:disabled {
+  border-color: var(--color-success);
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  opacity: 1;
+}
+
+.tileSwapped,
+.tileSwapped:disabled {
+  border-color: var(--color-warning);
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+  opacity: 1;
+}
+
+.tileWrong,
+.tileWrong:disabled {
+  border-color: var(--color-danger);
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  opacity: 1;
+}
+
 .answerRow {
   min-height: 44px;
   display: flex;

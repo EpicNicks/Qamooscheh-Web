@@ -11,6 +11,8 @@
   --color-danger-bg: #ffeaea;
   --color-success: #58cc02;
   --color-success-bg: #eaffdf;
+  --color-warning: #d9a100;
+  --color-warning-bg: #fff6d6;
   --color-locked: #cfcfd6;
   --color-current: #1cb0f6;
   /** The "skip ahead" placement-test node (PlacementTestNode, GitHub #4) — deliberately its own hue, shared with neither .locked's grey nor .current's blue, so the one node that behaves unlike every other locked node also reads as visually distinct rather than a locked node with a dashed border. */
@@ -58,6 +60,7 @@
     --color-text-muted: #9a9aab;
     --color-danger-bg: #3a1414;
     --color-success-bg: #123018;
+    --color-warning-bg: #3a2f08;
     --color-locked: #3a3a4a;
     color-scheme: dark;
   }

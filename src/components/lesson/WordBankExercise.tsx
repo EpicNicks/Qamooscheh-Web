@@ -106,6 +106,80 @@ function reinsertAtOriginalPosition(order: number[], tileIndex: number, original
   return next;
 }
 
+// Recovers which tiles a submitted answer string was built from — the
+// review screen is a fresh mount that only gets the submitted TEXT (tiles
+// joined with spaces). A backtracking search rather than splitting on
+// spaces, since a single tile can itself contain a space. Falls back to an
+// empty selection if nothing matches (shouldn't happen for a real
+// submission).
+function tilesForSubmission(tiles: string[], submitted: string): number[] {
+  const used = new Set<number>();
+  const picked: number[] = [];
+  function search(rest: string): boolean {
+    if (rest === "") return true;
+    for (let i = 0; i < tiles.length; i++) {
+      if (used.has(i) || tiles[i] === "") continue;
+      const tile = tiles[i];
+      if (rest === tile || rest.startsWith(tile + " ")) {
+        used.add(i);
+        picked.push(i);
+        if (search(rest.slice(tile.length).replace(/^ /, ""))) return true;
+        used.delete(i);
+        picked.pop();
+      }
+    }
+    return false;
+  }
+  return search(submitted) ? picked : [];
+}
+
+type TileMark = "right" | "swapped" | "wrong";
+
+// Grades each submitted tile for the wrong-answer review. The same special
+// case Duolingo makes: if the answer is off by EXACTLY one swap of two
+// tiles (every tile present, only that pair trading places), the pair is
+// marked "swapped" (yellow) and everything else green. Otherwise, the
+// tiles in the right ORDER are the longest common subsequence of the two
+// token lists — unlike a straight index-by-index comparison, one extra or
+// misplaced tile doesn't shift every tile after it out of line and turn
+// them all red; only the tiles outside the best alignment are wrong.
+function gradeTiles(submitted: string[], answer: string[]): TileMark[] {
+  const n = submitted.length;
+  const m = answer.length;
+
+  if (n === m) {
+    const mismatches = submitted.flatMap((token, i) => (token === answer[i] ? [] : [i]));
+    if (mismatches.length === 2) {
+      const [a, b] = mismatches;
+      if (submitted[a] === answer[b] && submitted[b] === answer[a]) {
+        return submitted.map((_, i) => (i === a || i === b ? "swapped" : "right"));
+      }
+    }
+  }
+
+  const lcs = Array.from({ length: n + 1 }, () => new Array<number>(m + 1).fill(0));
+  for (let i = n - 1; i >= 0; i--) {
+    for (let j = m - 1; j >= 0; j--) {
+      lcs[i][j] = submitted[i] === answer[j] ? lcs[i + 1][j + 1] + 1 : Math.max(lcs[i + 1][j], lcs[i][j + 1]);
+    }
+  }
+  const marks = new Array<TileMark>(n).fill("wrong");
+  let i = 0;
+  let j = 0;
+  while (i < n && j < m) {
+    if (submitted[i] === answer[j]) {
+      marks[i] = "right";
+      i++;
+      j++;
+    } else if (lcs[i + 1][j] >= lcs[i][j + 1]) {
+      i++;
+    } else {
+      j++;
+    }
+  }
+  return marks;
+}
+
 interface SortableTileProps {
   tileIndex: number;
   container: ContainerId;
@@ -114,10 +188,18 @@ interface SortableTileProps {
   courseCode: string | null;
   hintMap: ReadonlyMap<string, WordHint>;
   textSettings: TextDisplaySettings;
+  /** Set only while reviewing a wrong answer — colors the tile green/yellow/red. */
+  mark?: TileMark;
   onActivate: () => void;
 }
 
-function SortableTile({ tileIndex, container, text, disabled, courseCode, hintMap, textSettings, onActivate }: SortableTileProps) {
+const TILE_MARK_CLASS: Record<TileMark, string> = {
+  right: styles.tileRight,
+  swapped: styles.tileSwapped,
+  wrong: styles.tileWrong,
+};
+
+function SortableTile({ tileIndex, container, text, disabled, courseCode, hintMap, textSettings, mark, onActivate }: SortableTileProps) {
   // The sensors' activationConstraint (see the DndContext below) is what
   // lets this button double as both a tap-target and a drag handle: a press
   // that never crosses the active sensor's threshold releases as a plain
@@ -139,7 +221,7 @@ function SortableTile({ tileIndex, container, text, disabled, courseCode, hintMa
         ref={setNodeRef}
         style={style}
         type="button"
-        className={styles.tile}
+        className={mark ? `${styles.tile} ${TILE_MARK_CLASS[mark]}` : styles.tile}
         onClick={onActivate}
         disabled={disabled}
         {...attributes}
@@ -184,6 +266,7 @@ export function WordBankExercise({
   hintMap = EMPTY_HINT_MAP,
   textSettings = PLAIN_TEXT,
   advance,
+  wrongAnswer,
 }: ExerciseProps) {
   const tiles = exercise.tiles ?? [];
   // Shuffled once per exercise (this component is remounted per exercise via
@@ -196,9 +279,19 @@ export function WordBankExercise({
   // that across two setState calls would let either array be read (e.g. by
   // a render effect) in a transient state that's missing or duplicating the
   // dragged tile.
-  const [order, setOrder] = useState<Record<ContainerId, number[]>>({ bank: originalBankOrder, answer: [] });
+  const [order, setOrder] = useState<Record<ContainerId, number[]>>(() => {
+    if (wrongAnswer === undefined) return { bank: originalBankOrder, answer: [] };
+    const answer = tilesForSubmission(tiles, wrongAnswer);
+    return { bank: originalBankOrder.filter((i) => !answer.includes(i)), answer };
+  });
   const bankOrder = order.bank;
   const answerOrder = order.answer;
+  // Reviewing a wrong answer: the learner's own tiles stay in the answer
+  // row, colored by gradeTiles.
+  const tileMarks = useMemo(
+    () => (wrongAnswer === undefined ? null : gradeTiles(answerOrder.map((i) => tiles[i]), exercise.answer)),
+    [wrongAnswer, answerOrder, tiles, exercise.answer],
+  );
   // Which tile is currently being dragged, if any — drives the DragOverlay
   // clone below, which is what actually tracks the pointer. Without it, the
   // "real" sortable tile is the only thing following the cursor, and every
@@ -370,13 +463,14 @@ export function WordBankExercise({
         <ExercisePrompt text={exercise.prompt} courseCode={courseCode} autoplayAudio={autoplayAudio} hintMap={hintMap} textSettings={textSettings} />
         <DroppableRow id="answer" className={isNativeScript ? `${styles.answerRow} ${styles.answerRowRtl}` : styles.answerRow} dir="ltr">
           <SortableContext items={answerOrder.map(tileId)} strategy={rectSortingStrategy}>
-            {answerOrder.map((tileIndex) => (
+            {answerOrder.map((tileIndex, position) => (
               <SortableTile
                 key={tileIndex}
                 tileIndex={tileIndex}
                 container="answer"
                 text={tiles[tileIndex]}
                 disabled={disabled}
+                mark={tileMarks?.[position]}
                 courseCode={tileCourseCode}
                 hintMap={hintMap}
                 textSettings={textSettings}
