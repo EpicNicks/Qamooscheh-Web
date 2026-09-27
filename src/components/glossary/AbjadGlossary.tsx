@@ -53,6 +53,11 @@ export function AbjadGlossary({ courseCode }: { courseCode: string | null | unde
           value={view}
           onChange={setView}
         />
+      </div>
+      {/* Its own element, a direct child of .wrap, so it can stay pinned
+          under the app header for the whole page — switching forms is
+          most useful while looking at letters far down the list. */}
+      <div className={styles.formBar}>
         <SegmentedToggle options={LETTER_FORMS.map((f) => ({ value: f, label: formLabels[f] }))} value={form} onChange={setForm} />
       </div>
 
