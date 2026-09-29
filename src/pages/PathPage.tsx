@@ -27,6 +27,7 @@ export function PathPage() {
 
   const pageRef = useRef<HTMLDivElement>(null);
   const stickyHeaderRef = useRef<HTMLDivElement>(null);
+  const goalRowRef = useRef<HTMLDivElement>(null);
 
   // Each unit's own sticky title (.title) sticks right below this wrapper,
   // not underneath it — but CSS sticky positioning has no idea about a
@@ -36,14 +37,24 @@ export function PathPage() {
   // Mirrors AppShell.tsx's own --header-height measurement for the same
   // reason: a ResizeObserver, not a one-off read, since content changing
   // after mount (the banner appearing/disappearing) has to keep it in sync.
+  //
+  // The goal row's own height and the ring's width are measured too: a unit's
+  // sticky title pins on the same line as the ring, at the same height, and
+  // narrow enough to stop short of it (CourseSection.module.css's .title).
   useLayoutEffect(() => {
     const header = stickyHeaderRef.current;
+    const goalRow = goalRowRef.current;
     const container = pageRef.current;
-    if (!header || !container) return;
+    if (!header || !goalRow || !container) return;
     const observer = new ResizeObserver(() => {
       container.style.setProperty("--sticky-header-height", `${header.offsetHeight}px`);
+      container.style.setProperty("--goal-row-height", `${goalRow.offsetHeight}px`);
+      const ring = goalRow.firstElementChild as HTMLElement | null;
+      container.style.setProperty("--goal-width", `${ring?.offsetWidth ?? 0}px`);
     });
     observer.observe(header);
+    observer.observe(goalRow);
+    if (goalRow.firstElementChild) observer.observe(goalRow.firstElementChild);
     return () => observer.disconnect();
   }, [isLoading, isError]);
 
@@ -67,7 +78,7 @@ export function PathPage() {
   return (
     <PathThemeProvider containerRef={pageRef}>
       <div ref={stickyHeaderRef} className={styles.stickyHeader}>
-        <div className={styles.headerRow}>
+        <div ref={goalRowRef} className={styles.headerRow}>
           <DailyGoalRing courseCode={bootstrap.data?.course?.code} />
         </div>
         {bootstrap.data?.update && bootstrap.data.course && (

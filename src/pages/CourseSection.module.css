@@ -43,29 +43,30 @@
   font-size: 1rem;
   color: var(--color-text-muted);
   margin: 0;
-  /* Pinned just below BOTH sticky headers stacked above it — AppShell.tsx's
-     --header-height (the same variable Sidebar.module.css sticks itself to)
-     and .stickyHeader's own measured height (PathPage's ResizeObserver) —
-     while its unit's road is in view, the same way a section header stays
-     put in a long list. Below .stickyHeader's z-index (6): that wrapper
-     floats above everything, this only floats above the road. Without the
-     two `top` terms here, this sticks at the very top of the viewport
-     instead, underneath both of them, so it's invisible until scrolled past
-     rather than actually sticky.
-     A rounded chip sized to its own text — not a full-width bar — for the
-     same reason .stickyHeader lost its background: a plain edge-to-edge
-     opaque strip only needed by a few words of text read as a stray white
-     rectangle laid over the road once .stickyHeader above it went
-     transparent, instead of one continuous painted band. align-self
-     overrides .section's flex stretch, which would otherwise force this back
-     to full width regardless of `display`. */
+  /* Pinned on the same line as the daily-goal ring while its unit's road is
+     in view, the same way a section header stays put in a long list:
+     --header-height is AppShell.tsx's app header, var(--space-2) is
+     .stickyHeader's own top padding, and --goal-row-height (PathPage's
+     ResizeObserver) makes this chip exactly as tall as the ring's, centered,
+     so the two read as one row. --goal-width keeps it from running under the
+     ring on a narrow screen. Below .stickyHeader's z-index (6): that wrapper
+     floats above everything, this only floats above the road.
+     A rounded chip sized to its own text — not a full-width bar — since a
+     plain edge-to-edge opaque strip only needed by a few words of text read
+     as a stray white rectangle laid over the road. align-self overrides
+     .section's flex stretch, which would otherwise force this back to full
+     width regardless of `display`. */
   align-self: flex-start;
   /* align-self sizes the chip to its own content, which for an authored unit
      title with no wrap opportunity can be wider than the column. */
-  max-width: 100%;
+  max-width: calc(100% - var(--goal-width, 0px) - var(--space-3));
   overflow-wrap: anywhere;
+  box-sizing: border-box;
+  min-height: var(--goal-row-height, 0px);
+  display: flex;
+  align-items: center;
   position: sticky;
-  top: calc(var(--header-height, 0px) + var(--sticky-header-height, 0px));
+  top: calc(var(--header-height, 0px) + var(--space-2));
   z-index: 4;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
