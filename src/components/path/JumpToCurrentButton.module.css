@@ -1,6 +1,9 @@
 /* Floats over the road's column (--jump-x, JumpToCurrentButton.tsx), at the
    bottom of the screen or just under the sticky headers at the top. Above
-   .stickyHeader (6) and the unit titles (4), below modal overlays (100). */
+   .stickyHeader (6) and the unit titles (4), below modal overlays (100).
+   A very light green face with black text in both themes (so not
+   --color-success-bg, which turns dark green in dark mode). The green ring
+   and the shadow falling in from its top edge make the face look inset. */
 .button {
   position: fixed;
   left: var(--jump-x, 50%);
@@ -12,10 +15,11 @@
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: var(--color-primary);
-  color: var(--color-primary-contrast);
+  background: #eaffdf;
+  color: #000000;
   box-shadow:
-    inset 0 -4px 0 rgba(0, 0, 0, 0.18),
+    inset 0 0 0 3px var(--color-primary),
+    inset 0 4px 6px rgba(0, 0, 0, 0.16),
     0 4px 14px rgba(0, 0, 0, 0.25);
   cursor: pointer;
   translate: -50% 0;
@@ -23,12 +27,13 @@
 }
 
 .button:hover {
-  background: var(--color-primary-hover);
+  background: #dcf8cc;
 }
 
 .button:active {
   box-shadow:
-    inset 0 -2px 0 rgba(0, 0, 0, 0.18),
+    inset 0 0 0 3px var(--color-primary-hover),
+    inset 0 6px 8px rgba(0, 0, 0, 0.22),
     0 2px 8px rgba(0, 0, 0, 0.25);
 }
 
@@ -45,14 +50,15 @@
   top: calc(var(--header-height, 0px) + var(--sticky-header-height, 0px) + var(--space-2));
 }
 
-/* The arrow sits behind the label, see-through so the button's color shows
-   through it. The two opposing hairline shadows (light above-left, dark
-   below-right) read as a shape pressed up out of the surface: embossed. */
+/* The arrow sits behind the label, a faint tint of the ring's green so the
+   light face shows through it. The two opposing hairline shadows (light
+   above-left, dark below-right) read as a shape pressed up out of the
+   surface: embossed. */
 .arrow {
   grid-area: 1 / 1;
   width: 72px;
   height: 72px;
-  fill: rgba(255, 255, 255, 0.22);
+  fill: rgba(88, 204, 2, 0.22);
   filter: drop-shadow(-1px -1px 0 rgba(255, 255, 255, 0.35)) drop-shadow(1px 1.5px 0 rgba(0, 0, 0, 0.25));
 }
 
@@ -71,7 +77,6 @@
   font-weight: 800;
   line-height: 1.15;
   text-align: center;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 @keyframes jump-appear {
