@@ -1,4 +1,4 @@
-import { useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { segmentAnnotatedText } from "../../domain/annotation";
 import type { TextDisplaySettings, WordHint } from "../../domain/romanization";
 import styles from "./AnnotatedText.module.css";
@@ -65,30 +65,74 @@ interface AnnotatedWordProps {
  * `:focus-visible > .wrap` rule.
  */
 const TOOLTIP_VIEWPORT_MARGIN = 8;
+/** Gap between the word and its tooltip, matching the old `margin-bottom`. */
+const TOOLTIP_GAP = 4;
+
+interface TooltipPosition {
+  x: number;
+  y: number;
+  /** Below the word instead of above, when there isn't room above it on screen. */
+  below: boolean;
+}
 
 export function AnnotatedWord({ word, hint, settings, focusable = true }: AnnotatedWordProps) {
+  const wrapRef = useRef<HTMLSpanElement>(null);
   const tooltipRef = useRef<HTMLSpanElement>(null);
-  // How far to nudge the tooltip off its default centered position so it
-  // stays on screen — recomputed each time it's about to show rather than
-  // tracked continuously, since a hidden tooltip's position never matters and
-  // most words on a page are never hovered at all. `visibility: hidden`
-  // (not `display: none`) means the element is still laid out and
-  // measurable before it's shown, so this has an answer ready before the
-  // fade-in transition starts.
-  const [shiftPx, setShiftPx] = useState(0);
+  // The tooltip is `position: fixed`, not absolute. That way no scrolling or
+  // overflow-clipped ancestor can cut it off; StoryTranscript's scroller used
+  // to hide a tall tooltip under the chapter title. Viewport coordinates are
+  // computed each time it's about to show, and again on scroll/resize while
+  // it's shown. `visibility: hidden` (not `display: none`) keeps the hidden
+  // tooltip laid out, so it can be measured before the fade-in starts.
+  const [position, setPosition] = useState<TooltipPosition | null>(null);
+  const [shown, setShown] = useState(false);
 
-  function clampToViewport() {
+  const place = useCallback(() => {
+    const wrap = wrapRef.current;
     const el = tooltipRef.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    if (rect.left < TOOLTIP_VIEWPORT_MARGIN) {
-      setShiftPx(TOOLTIP_VIEWPORT_MARGIN - rect.left);
-    } else if (rect.right > window.innerWidth - TOOLTIP_VIEWPORT_MARGIN) {
-      setShiftPx(window.innerWidth - TOOLTIP_VIEWPORT_MARGIN - rect.right);
-    } else {
-      setShiftPx(0);
-    }
-  }
+    if (!wrap || !el) return;
+    const anchor = wrap.getBoundingClientRect();
+    const halfWidth = el.offsetWidth / 2;
+    const minX = TOOLTIP_VIEWPORT_MARGIN + halfWidth;
+    const maxX = window.innerWidth - TOOLTIP_VIEWPORT_MARGIN - halfWidth;
+    const x = Math.min(Math.max(anchor.left + anchor.width / 2, minX), Math.max(minX, maxX));
+    const below = anchor.top - TOOLTIP_GAP - el.offsetHeight < TOOLTIP_VIEWPORT_MARGIN;
+    const y = below ? anchor.bottom + TOOLTIP_GAP : anchor.top - TOOLTIP_GAP;
+    setPosition({ x, y, below });
+  }, []);
+
+  const show = useCallback(() => {
+    place();
+    setShown(true);
+  }, [place]);
+  const hide = useCallback(() => setShown(false), []);
+
+  // A non-focusable word sits inside a focusable control (a word-bank tile),
+  // and its tooltip reveals on that control's focus. See the
+  // `:focus-visible > .wrap` rule in AnnotatedText.module.css.
+  useEffect(() => {
+    if (focusable) return;
+    const parent = wrapRef.current?.parentElement;
+    if (!parent) return;
+    parent.addEventListener("focus", show);
+    parent.addEventListener("blur", hide);
+    return () => {
+      parent.removeEventListener("focus", show);
+      parent.removeEventListener("blur", hide);
+    };
+  }, [focusable, show, hide]);
+
+  // Fixed coordinates go stale when anything scrolls, so follow the word while
+  // the tooltip is up. Capture phase catches inner scrollers like the transcript.
+  useEffect(() => {
+    if (!shown) return;
+    window.addEventListener("scroll", place, { capture: true, passive: true });
+    window.addEventListener("resize", place);
+    return () => {
+      window.removeEventListener("scroll", place, { capture: true });
+      window.removeEventListener("resize", place);
+    };
+  }, [shown, place]);
 
   const lines = hint
     ? assembleTooltipLines([
@@ -119,17 +163,23 @@ export function AnnotatedWord({ word, hint, settings, focusable = true }: Annota
 
   return (
     <span
+      ref={wrapRef}
       className={styles.wrap}
       tabIndex={focusable ? 0 : undefined}
-      onMouseEnter={clampToViewport}
-      onFocus={clampToViewport}
+      onMouseEnter={show}
+      onMouseLeave={hide}
+      onFocus={show}
+      onBlur={hide}
     >
       {content}
       <span
         ref={tooltipRef}
         className={styles.tooltip}
         role="tooltip"
-        style={shiftPx !== 0 ? ({ "--tooltip-shift-x": `${shiftPx}px` } as CSSProperties) : undefined}
+        data-placement={position?.below ? "below" : "above"}
+        style={
+          position ? ({ "--tooltip-x": `${position.x}px`, "--tooltip-y": `${position.y}px` } as CSSProperties) : undefined
+        }
       >
         {lines.map((line, i) => (
           <span key={i} className={styles.tooltipLine}>

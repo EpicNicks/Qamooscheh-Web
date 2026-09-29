@@ -6,14 +6,14 @@
 }
 
 .tooltip {
-  position: absolute;
-  bottom: 100%;
-  left: 50%;
-  /* --tooltip-shift-x (AnnotatedText.tsx's clampToViewport) nudges this off
-     dead-center only when centering it on the word would run it past the
-     viewport's edge — 0px the rest of the time. */
-  transform: translate(calc(-50% + var(--tooltip-shift-x, 0px)), 2px);
-  margin-bottom: 4px;
+  /* Fixed, not absolute, so an overflow-clipped ancestor (StoryTranscript's
+     scroller) can't cut it off. --tooltip-x/--tooltip-y are viewport
+     coordinates from AnnotatedText.tsx's `place`: the horizontal center
+     (already clamped on screen) and the edge of the word it sits against. */
+  position: fixed;
+  top: var(--tooltip-y, 0px);
+  left: var(--tooltip-x, 0px);
+  transform: translate(-50%, calc(-100% + 2px));
   padding: 2px 6px;
   border-radius: var(--radius-sm);
   background: var(--color-text);
@@ -32,7 +32,7 @@
   visibility: hidden;
   transition: opacity 0.12s ease, transform 0.12s ease;
   pointer-events: none;
-  z-index: 20;
+  z-index: 200; /* above everything, modal overlays (100) included */
 }
 
 .tooltipLine {
@@ -50,7 +50,18 @@
 :focus-visible > .wrap .tooltip {
   opacity: 1;
   visibility: visible;
-  transform: translate(calc(-50% + var(--tooltip-shift-x, 0px)), 0);
+  transform: translate(-50%, -100%);
+}
+
+/* Flipped under the word when there's no room above it on screen. */
+.tooltip[data-placement="below"] {
+  transform: translate(-50%, -2px);
+}
+
+.wrap:hover .tooltip[data-placement="below"],
+.wrap:focus-visible .tooltip[data-placement="below"],
+:focus-visible > .wrap .tooltip[data-placement="below"] {
+  transform: translate(-50%, 0);
 }
 
 /*
