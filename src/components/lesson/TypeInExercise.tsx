@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Button } from "../common/Button";
 import { useScriptEngine, type ScriptEngine, type ScriptKeyboardHandlers } from "./keyboard/scriptEngines";
 import { ExercisePrompt } from "./ExercisePrompt";
@@ -10,6 +10,8 @@ import type { ExerciseProps } from "./ExerciseRenderer";
 import styles from "./Exercise.module.css";
 
 const LETTER_KEY = /^[a-zA-Z']$/;
+/** Keys whose default action moves the caret or edits past it. Buffered engine state is resolved before they act (see handleKeyDown). */
+const CARET_KEY = /^(Arrow(Left|Right|Up|Down)|Home|End|PageUp|PageDown|Delete)$/;
 
 /**
  * Whether a keystroke landed on a control that has its own meaning for Enter
@@ -31,14 +33,27 @@ function isInteractiveTarget(target: EventTarget | null, except: HTMLElement | n
  * keyboard kind means writing one engine there; nothing here changes.
  */
 export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keyboardMode, autoplayAudio, hintMap, textSettings, advance, wrongAnswer }: ExerciseProps) {
-  const [text, setText] = useState(wrongAnswer ?? "");
+  const initialText = wrongAnswer ?? "";
+  const [text, setText] = useState(initialText);
   const [usedHint, setUsedHint] = useState(false);
   const [hintShown, setHintShown] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   // Mirrors `text` synchronously (state updates are batched/async, but
   // submit() needs the just-finalized value immediately — see submit()) —
   // every mutation goes through updateText so the two never drift.
-  const textRef = useRef(wrongAnswer ?? "");
+  const textRef = useRef(initialText);
+  // The selection every edit applies to, mirrored synchronously for the same
+  // reason as textRef: one handler can make several edits in a row (pressSpace
+  // finalizes and then inserts), before React has re-rendered the input and
+  // the DOM's own selection has caught up.
+  const selectionRef = useRef({ start: initialText.length, end: initialText.length });
+  // The caret as state, so engines that draw around it (the phonetic picker,
+  // the kana keyboard's dakuten key) re-render when the learner moves it.
+  const [caret, setCaret] = useState(initialText.length);
+  // Set by an edit this component made itself. Setting the input's value from
+  // code puts the browser's caret at the end, so the layout effect below puts
+  // it back where the edit left it.
+  const restoreSelectionRef = useRef(false);
 
   const inputWrapRef = useRef<HTMLDivElement>(null);
 
@@ -58,10 +73,47 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
       ? getKeyboardKind(courseCode, exercise.scriptMode, { fa: fa.method, ja: ja.method })
       : null;
 
+  /**
+   * Every engine edit goes through here. Engines only ever edit the END of
+   * the string they're handed (append, slice(0, -1), replace the last N
+   * characters), so they're handed just the text before the caret: whatever
+   * is after it stays put, and editing at the caret falls out of that.
+   * Anything selected is replaced, like typing over a selection normally does.
+   */
   function updateText(updater: (prev: string) => string) {
-    textRef.current = updater(textRef.current);
+    const { start, end } = selectionRef.current;
+    const head = updater(textRef.current.slice(0, start));
+    textRef.current = head + textRef.current.slice(end);
+    selectionRef.current = { start: head.length, end: head.length };
+    restoreSelectionRef.current = true;
     setText(textRef.current);
+    setCaret(head.length);
   }
+
+  /** The whole value at once, with the caret wherever `caretAt` says (the end by default). */
+  function replaceText(value: string, caretAt = value.length, caretEnd = caretAt) {
+    textRef.current = value;
+    selectionRef.current = { start: caretAt, end: caretEnd };
+    setText(value);
+    setCaret(caretAt);
+  }
+
+  // A native caret move (click, tap, arrow keys, selecting) — mirror it.
+  function syncSelection() {
+    const el = inputRef.current;
+    if (!el || restoreSelectionRef.current) return;
+    const start = el.selectionStart ?? textRef.current.length;
+    const end = el.selectionEnd ?? start;
+    selectionRef.current = { start, end };
+    setCaret(start);
+  }
+
+  useLayoutEffect(() => {
+    if (!restoreSelectionRef.current) return;
+    restoreSelectionRef.current = false;
+    const { start, end } = selectionRef.current;
+    inputRef.current?.setSelectionRange(start, end);
+  });
 
   // Assigned below, once this render's active engine is known — every
   // function here is only ever CALLED from an event handler (fired well
@@ -95,19 +147,31 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
   }
 
   function backspace() {
-    engine.backspace();
+    const { start, end } = selectionRef.current;
+    if (start !== end) {
+      // A selection is deleted as a whole, the same as a native backspace.
+      // Engines don't know about selections: their backspace would take
+      // the selection plus one more character before it.
+      engine.finalize();
+      updateText((prev) => prev);
+    } else {
+      engine.backspace();
+    }
     inputRef.current?.focus();
   }
 
   const handlers: ScriptKeyboardHandlers = { pressLetter, pressSpace, pressZwnj, backspace };
-  engine = useScriptEngine({ keyboardKind, updateText, keyboardMode, disabled, text, languageInfo, inputWrapRef, handlers, fa, ja, deviceInput });
+  // `text` for the engines is only what's before the caret: the candidate
+  // picker floats over the character just before it, and the kana keyboard's
+  // dakuten key modifies that same character.
+  engine = useScriptEngine({ keyboardKind, updateText, keyboardMode, disabled, text: text.slice(0, caret), languageInfo, inputWrapRef, handlers, fa, ja, deviceInput });
 
   const arabicVariantHits = isPersian(courseCode) && exercise.scriptMode === "native" ? detectArabicVariants(text) : [];
 
   function submit() {
     engine.finalize();
     onSubmit(textRef.current, { usedHint });
-    updateText(() => "");
+    replaceText("");
     setUsedHint(false);
     setHintShown(false);
   }
@@ -118,21 +182,29 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
    * the first place (see VirtualKey's/SegmentedToggle's mousedown
    * preventDefault), but as a second layer, typing still has to work even
    * if focus ends up somewhere else anyway: every handler above
-   * (pressLetter, pressSpace, backspace, ...) already appends/edits via
-   * `prev => prev + x`, never reading a cursor/selection position, so
-   * "process it and add it to the end of the string" falls out of the
-   * existing append-only design for free — this just has to make sure the
-   * keystroke actually reaches that code regardless of DOM focus.
+   * (pressLetter, pressSpace, backspace, ...) edits at the last known caret
+   * (selectionRef, see updateText), which doesn't depend on DOM focus — this
+   * just has to make sure the keystroke actually reaches that code.
    */
   function handleKeyDown(event: KeyboardEvent) {
-    // Never intercept a browser/OS shortcut (Ctrl/Cmd/Alt-anything) — only
-    // Shift is ever part of a combo this exercise itself defines (Shift+Space).
-    if (event.ctrlKey || event.metaKey || event.altKey) return;
+    const hasModifier = event.ctrlKey || event.metaKey || event.altKey;
 
-    if (engine.interceptKeyDown?.(event)) {
+    if (!hasModifier && engine.interceptKeyDown?.(event)) {
       event.preventDefault();
       return;
     }
+
+    // About to move the caret (or select, or delete past it): resolve any
+    // buffered phonetic input first, while the caret is still where that
+    // input belongs. The browser's own default action then moves it.
+    if (CARET_KEY.test(event.key) || (hasModifier && event.key.length === 1)) {
+      engine.finalize();
+      return;
+    }
+
+    // Never intercept a browser/OS shortcut (Ctrl/Cmd/Alt-anything) — only
+    // Shift is ever part of a combo this exercise itself defines (Shift+Space).
+    if (hasModifier) return;
 
     if (engine.supportsZwnj && event.code === "Space" && event.shiftKey) {
       event.preventDefault();
@@ -189,7 +261,10 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
           ref={inputRef}
           className={wrongAnswer !== undefined ? `${styles.input} ${styles.inputWrong}` : styles.input}
           value={text}
-          onChange={(e) => updateText(() => e.target.value)}
+          onChange={(e) => replaceText(e.target.value, e.target.selectionStart ?? e.target.value.length, e.target.selectionEnd ?? undefined)}
+          onSelect={syncSelection}
+          // A click or tap is about to move the caret: same as CARET_KEY above.
+          onPointerDown={() => engine.finalize()}
           disabled={disabled}
           autoFocus
           // A keyboardKind means an on-screen keyboard (engine.keyboardNode)
