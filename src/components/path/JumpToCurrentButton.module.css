@@ -1,40 +1,33 @@
-/* Floats over the road's column (--jump-x, JumpToCurrentButton.tsx), at the
-   bottom of the screen or just under the sticky headers at the top. Above
-   .stickyHeader (6) and the unit titles (4), below modal overlays (100).
-   A very light green face with black text in both themes (so not
-   --color-success-bg, which turns dark green in dark mode). The green ring
-   and the shadow falling in from its top edge make the face look inset. */
+/* Pinned to the bottom of the screen at the road column's right edge
+   (--jump-right, JumpToCurrentButton.tsx). Above .stickyHeader (6)
+   and the unit titles (4), below modal overlays (100). A white face with a
+   green ring and a black arrow in both themes. */
 .button {
   position: fixed;
-  left: var(--jump-x, 50%);
+  right: max(var(--jump-right, 0px), env(safe-area-inset-right, 0px));
+  bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
   z-index: 50;
-  width: 88px;
-  height: 88px;
-  padding: 0 var(--space-2);
-  border: none;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  border: 3px solid var(--color-primary);
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: #eaffdf;
+  background: #ffffff;
   color: #000000;
-  box-shadow:
-    inset 0 0 0 3px var(--color-primary),
-    inset 0 4px 6px rgba(0, 0, 0, 0.16),
-    0 4px 14px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
   cursor: pointer;
-  translate: -50% 0;
   animation: jump-appear 0.18s ease-out;
 }
 
 .button:hover {
-  background: #dcf8cc;
+  background: #f2f2f2;
 }
 
 .button:active {
-  box-shadow:
-    inset 0 0 0 3px var(--color-primary-hover),
-    inset 0 6px 8px rgba(0, 0, 0, 0.22),
-    0 2px 8px rgba(0, 0, 0, 0.25);
+  border-color: var(--color-primary-hover);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
 }
 
 .button:focus-visible {
@@ -42,41 +35,16 @@
   outline-offset: 3px;
 }
 
-.bottom {
-  bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
-}
-
-.top {
-  top: calc(var(--header-height, 0px) + var(--sticky-header-height, 0px) + var(--space-2));
-}
-
-/* The arrow sits behind the label, a faint tint of the ring's green so the
-   light face shows through it. The two opposing hairline shadows (light
-   above-left, dark below-right) read as a shape pressed up out of the
-   surface: embossed. */
 .arrow {
-  grid-area: 1 / 1;
-  width: 72px;
-  height: 72px;
-  fill: rgba(88, 204, 2, 0.22);
-  filter: drop-shadow(-1px -1px 0 rgba(255, 255, 255, 0.35)) drop-shadow(1px 1.5px 0 rgba(0, 0, 0, 0.25));
+  width: 28px;
+  height: 28px;
+  fill: currentColor;
+  transition: rotate 0.15s ease-out;
 }
 
 /* The arrow's path points up; the lesson is below. */
-.bottom .arrow {
+.down .arrow {
   rotate: 180deg;
-  /* Rotation flips the shadows too, so the light edge would end up at the
-     bottom-right: mirror them back so the light still comes from above. */
-  filter: drop-shadow(1px 1.5px 0 rgba(255, 255, 255, 0.35)) drop-shadow(-1px -1px 0 rgba(0, 0, 0, 0.25));
-}
-
-.label {
-  grid-area: 1 / 1;
-  position: relative;
-  font-size: 0.72rem;
-  font-weight: 800;
-  line-height: 1.15;
-  text-align: center;
 }
 
 @keyframes jump-appear {
@@ -89,5 +57,9 @@
 @media (prefers-reduced-motion: reduce) {
   .button {
     animation: none;
+  }
+
+  .arrow {
+    transition: none;
   }
 }
