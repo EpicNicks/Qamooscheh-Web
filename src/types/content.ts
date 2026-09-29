@@ -74,6 +74,8 @@ export interface ExerciseArtifact {
   tiles: string[] | null;
   answer: string[];
   tags: string[];
+  /** word_bank/match only: every other correct tile order, each shaped like `answer` — null or missing when there are none (domain/wordBankOrders.ts). */
+  alternativeAnswers?: string[][] | null;
   /** Authored hint text, or null when this exercise doesn't have one — not every artifact on the CDN carries this field yet, so callers should treat a missing property the same as null. */
   hint?: string | null;
 }

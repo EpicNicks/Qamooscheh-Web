@@ -18,6 +18,7 @@ import { gateLexemeHintMap } from "../../domain/romanization";
 import { useNativeTextAlign } from "../../hooks/useNativeTextAlign";
 import type { ExerciseSession } from "../../hooks/useExerciseSession";
 import type { WalkthroughExerciseInstance, WalkthroughAnswerResult } from "../../hooks/useSkillWalkthrough";
+import { revealedTileOrder } from "../../domain/wordBankOrders";
 import type { ExerciseArtifact } from "../../types/content";
 import styles from "./StoryTranscript.module.css";
 
@@ -109,11 +110,14 @@ export function StoryTranscript({
             const result = resultsByOrdinal.get(instance.ordinal);
             const hintMap = hintMapFor(instance.exercise);
             // Same tokenized-vs-alternatives join AnswerFeedback uses: a
-            // word_bank/match answer is one ordered set of tokens, every
-            // other type's `answer` is a list of interchangeable whole
+            // word_bank/match answer is one ordered set of tokens (the correct
+            // order closest to what was submitted, when it has several),
+            // every other type's `answer` is a list of interchangeable whole
             // answers to show side by side.
             const answerIsTokenized = instance.exercise.type === "word_bank" || instance.exercise.type === "match";
-            const answerText = instance.exercise.answer.join(answerIsTokenized ? " " : " / ");
+            const answerText = answerIsTokenized
+              ? revealedTileOrder(instance.exercise, result?.submittedText).join(" ")
+              : instance.exercise.answer.join(" / ");
             return (
               <div key={instance.key} className={styles.pastLine} ref={instance.ordinal === historyCount - 1 ? previousRef : undefined}>
                 {/* A fixed-position gutter, outside the dir="rtl" text below —
@@ -152,14 +156,19 @@ export function StoryTranscript({
 
           if (answeredItem && feedback && instance.ordinal === answeredItem.ordinal) {
             const hintMap = hintMapFor(answeredItem.exercise);
+            const answerIsTokenized = answeredItem.exercise.type === "word_bank" || answeredItem.exercise.type === "match";
             return (
               <div key={instance.key} className={styles.activeLine} ref={activeRef}>
                 <AnswerFeedback
                   key={confirmation.submissionCount}
                   correct={feedback.correct}
                   note={feedback.note}
-                  answer={answeredItem.exercise.answer}
-                  answerIsTokenized={answeredItem.exercise.type === "word_bank" || answeredItem.exercise.type === "match"}
+                  answer={
+                    answerIsTokenized
+                      ? revealedTileOrder(answeredItem.exercise, feedback.submittedText)
+                      : answeredItem.exercise.answer
+                  }
+                  answerIsTokenized={answerIsTokenized}
                   // A type-in or word-bank answer stays visible in the (red/green)
                   // exercise below, so the feedback box shows only the correct answer.
                   submittedText={answeredItem.renderType === "type_in" || answeredItem.renderType === "word_bank" ? undefined : feedback.submittedText}

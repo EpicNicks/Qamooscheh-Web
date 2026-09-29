@@ -24,6 +24,7 @@ import { ExercisePrompt } from "./ExercisePrompt";
 import { AnnotatedText } from "./AnnotatedText";
 import { EMPTY_HINT_MAP, PLAIN_TEXT, type TextDisplaySettings, type WordHint } from "../../domain/romanization";
 import { detectScriptDirection } from "../../domain/language";
+import { acceptedTileOrders, closestTileOrder, tilesForSubmission, type TileMark } from "../../domain/wordBankOrders";
 import type { ExerciseProps } from "./ExerciseRenderer";
 import styles from "./Exercise.module.css";
 
@@ -104,80 +105,6 @@ function reinsertAtOriginalPosition(order: number[], tileIndex: number, original
   const next = order.slice();
   next.splice(insertAt, 0, tileIndex);
   return next;
-}
-
-// Recovers which tiles a submitted answer string was built from — the
-// review screen is a fresh mount that only gets the submitted TEXT (tiles
-// joined with spaces). A backtracking search rather than splitting on
-// spaces, since a single tile can itself contain a space. Falls back to an
-// empty selection if nothing matches (shouldn't happen for a real
-// submission).
-function tilesForSubmission(tiles: string[], submitted: string): number[] {
-  const used = new Set<number>();
-  const picked: number[] = [];
-  function search(rest: string): boolean {
-    if (rest === "") return true;
-    for (let i = 0; i < tiles.length; i++) {
-      if (used.has(i) || tiles[i] === "") continue;
-      const tile = tiles[i];
-      if (rest === tile || rest.startsWith(tile + " ")) {
-        used.add(i);
-        picked.push(i);
-        if (search(rest.slice(tile.length).replace(/^ /, ""))) return true;
-        used.delete(i);
-        picked.pop();
-      }
-    }
-    return false;
-  }
-  return search(submitted) ? picked : [];
-}
-
-type TileMark = "right" | "swapped" | "wrong";
-
-// Grades each submitted tile for the wrong-answer review. The same special
-// case Duolingo makes: if the answer is off by EXACTLY one swap of two
-// tiles (every tile present, only that pair trading places), the pair is
-// marked "swapped" (yellow) and everything else green. Otherwise, the
-// tiles in the right ORDER are the longest common subsequence of the two
-// token lists — unlike a straight index-by-index comparison, one extra or
-// misplaced tile doesn't shift every tile after it out of line and turn
-// them all red; only the tiles outside the best alignment are wrong.
-function gradeTiles(submitted: string[], answer: string[]): TileMark[] {
-  const n = submitted.length;
-  const m = answer.length;
-
-  if (n === m) {
-    const mismatches = submitted.flatMap((token, i) => (token === answer[i] ? [] : [i]));
-    if (mismatches.length === 2) {
-      const [a, b] = mismatches;
-      if (submitted[a] === answer[b] && submitted[b] === answer[a]) {
-        return submitted.map((_, i) => (i === a || i === b ? "swapped" : "right"));
-      }
-    }
-  }
-
-  const lcs = Array.from({ length: n + 1 }, () => new Array<number>(m + 1).fill(0));
-  for (let i = n - 1; i >= 0; i--) {
-    for (let j = m - 1; j >= 0; j--) {
-      lcs[i][j] = submitted[i] === answer[j] ? lcs[i + 1][j + 1] + 1 : Math.max(lcs[i + 1][j], lcs[i][j + 1]);
-    }
-  }
-  const marks = new Array<TileMark>(n).fill("wrong");
-  let i = 0;
-  let j = 0;
-  while (i < n && j < m) {
-    if (submitted[i] === answer[j]) {
-      marks[i] = "right";
-      i++;
-      j++;
-    } else if (lcs[i + 1][j] >= lcs[i][j + 1]) {
-      i++;
-    } else {
-      j++;
-    }
-  }
-  return marks;
 }
 
 interface SortableTileProps {
@@ -291,10 +218,11 @@ export function WordBankExercise({
   const bankOrder = order.bank;
   const answerOrder = order.answer;
   // Reviewing a wrong answer: the learner's own tiles stay in the answer
-  // row, colored by gradeTiles.
+  // row, colored against whichever correct order they came closest to —
+  // the same one AnswerFeedback reveals (domain/wordBankOrders.ts).
   const tileMarks = useMemo(
-    () => (wrongAnswer === undefined ? null : gradeTiles(answerOrder.map((i) => tiles[i]), exercise.answer)),
-    [wrongAnswer, answerOrder, tiles, exercise.answer],
+    () => (wrongAnswer === undefined ? null : closestTileOrder(answerOrder.map((i) => tiles[i]), acceptedTileOrders(exercise)).marks),
+    [wrongAnswer, answerOrder, tiles, exercise],
   );
   // Which tile is currently being dragged, if any — drives the DragOverlay
   // clone below, which is what actually tracks the pointer. Without it, the

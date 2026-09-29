@@ -22,6 +22,7 @@ import { LanguageSettingsButton } from "./languageSettings/LanguageSettingsButto
 import { gateLexemeHintMap } from "../../domain/romanization";
 import type { ExerciseSession } from "../../hooks/useExerciseSession";
 import type { ExerciseType } from "../../domain/enums";
+import { revealedTileOrder } from "../../domain/wordBankOrders";
 import type { ExerciseArtifact } from "../../types/content";
 import styles from "./ExerciseSessionScreen.module.css";
 
@@ -104,6 +105,7 @@ export function ExerciseSessionScreen<TItem extends ExerciseSessionItem, TFeedba
   const { answeredItem, feedback } = confirmation;
   if (answeredItem && feedback) {
     const hintMap = hintMapFor(answeredItem.exercise);
+    const answerIsTokenized = answeredItem.exercise.type === "word_bank" || answeredItem.exercise.type === "match";
     return (
       <div className={styles.wrap}>
         {topRow()}
@@ -113,8 +115,12 @@ export function ExerciseSessionScreen<TItem extends ExerciseSessionItem, TFeedba
           correct={feedback.correct}
           note={feedback.note}
           xp={feedbackXp?.(feedback)}
-          answer={answeredItem.exercise.answer}
-          answerIsTokenized={answeredItem.exercise.type === "word_bank" || answeredItem.exercise.type === "match"}
+          answer={
+            answerIsTokenized
+              ? revealedTileOrder(answeredItem.exercise, feedback.submittedText)
+              : answeredItem.exercise.answer
+          }
+          answerIsTokenized={answerIsTokenized}
           // A type-in or word-bank answer stays visible in the (red/green)
           // exercise below, so the feedback box shows only the correct answer.
           submittedText={answeredItem.renderType === "type_in" || answeredItem.renderType === "word_bank" ? undefined : feedback.submittedText}

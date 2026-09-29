@@ -7,6 +7,7 @@
 // lib/textMatch.ts's plain exact-match check.
 import { isPersian } from "./language";
 import { looksCorrect } from "../lib/textMatch";
+import { acceptedTileOrders } from "./wordBankOrders";
 import { compareExact, compareNative, compareRomanized, compareSpeak, type CorrectionReason } from "./persian/comparators";
 import type { ExerciseArtifact } from "../types/content";
 
@@ -32,7 +33,7 @@ function describeReasons(reasons: CorrectionReason[]): string | null {
 
 export function checkAnswer(
   courseCode: string | null | undefined,
-  exercise: Pick<ExerciseArtifact, "type" | "scriptMode" | "answer">,
+  exercise: Pick<ExerciseArtifact, "type" | "scriptMode" | "answer" | "alternativeAnswers">,
   submittedText: string,
 ): AnswerFeedback {
   if (exercise.type === "word_bank" || exercise.type === "match") {
@@ -40,8 +41,9 @@ export function checkAnswer(
     // every other exercise type, `answer` here is the ordered tokens of ONE
     // correct selection (matching `tiles`' granularity), not a list of
     // alternative whole-answer strings — WordBankExercise submits them
-    // space-joined, so join here too before comparing.
-    const acceptedAnswer = [exercise.answer.join(" ")];
+    // space-joined, so join here too before comparing. Any listed
+    // alternative order is just as correct (domain/wordBankOrders.ts).
+    const acceptedAnswer = acceptedTileOrders(exercise).map((order) => order.join(" "));
     const result = isPersian(courseCode) ? compareExact(submittedText, acceptedAnswer) : null;
     const correct = result ? result.verdict === "correct" : looksCorrect(submittedText, acceptedAnswer);
     return { verdict: correct ? "correct" : "incorrect", note: null };
