@@ -26,7 +26,11 @@
    doesn't give this a height to fill (the page itself scrolls everywhere
    else), and a story needs its own internal scroller regardless. */
 .transcript {
-  max-height: calc(100vh - 220px);
+  /* A fixed height, not a max: the current line is scrolled to the top of
+     this box (StoryTranscript.tsx), so the box has to reach the bottom of
+     the screen even while the chapter is still short. */
+  position: relative; /* children's offsetTop is measured against this */
+  height: calc(100dvh - 220px);
   min-height: 240px;
   overflow-y: auto;
   /* Explicit, or `overflow-y: auto` makes this axis auto too, and word-bank
@@ -95,4 +99,11 @@
   flex-direction: column;
   gap: var(--space-3);
   scroll-margin: var(--space-4);
+}
+
+/* Room to scroll the current line up to the top early in a chapter; sized
+   by StoryTranscript.tsx. Negative margin cancels the flex gap before it. */
+.spacer {
+  flex: none;
+  margin-top: calc(-1 * var(--space-4));
 }

@@ -5,7 +5,7 @@
 // on renders at full strength with its actual exercise widget. Lines still
 // ahead render nothing at all — finishing the current line is what reveals
 // the next one, rather than the whole chapter's shape being visible upfront.
-import { useEffect, useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 import { ExerciseRenderer } from "./ExerciseRenderer";
 import { SessionProgressBar } from "./SessionProgressBar";
 import { AnswerFeedback } from "./AnswerFeedback";
@@ -46,7 +46,10 @@ export function StoryTranscript({
   onSubmit,
 }: StoryTranscriptProps) {
   const { skip, confirmation, textSettings, courseHintMap, keyboardMode, autoplayAudio } = session;
+  const transcriptRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<HTMLDivElement>(null);
+  const previousRef = useRef<HTMLDivElement>(null);
+  const spacerRef = useRef<HTMLDivElement>(null);
   const { align: nativeTextAlign } = useNativeTextAlign();
 
   const hintMapFor = (exercise: ExerciseArtifact) =>
@@ -64,11 +67,31 @@ export function StoryTranscript({
   // and rendered by its own branch below instead of as a collapsed past line.
   const historyCount = answeredItem ? answeredItem.ordinal : progress.completed;
 
-  // Keeps the line actually being worked on in view as the chapter advances —
-  // a story reads top-to-bottom, so the natural place to land is centered
-  // rather than snapped to an edge.
-  useEffect(() => {
-    activeRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  // As the chapter advances, the line being worked on sits at the top of the
+  // transcript with only the most recent answered line above it; older lines
+  // are a scroll up away. Early in a chapter there isn't enough content below
+  // that line to scroll it to the top, so a spacer at the end supplies the
+  // difference. It's resized whenever the active line changes height
+  // (feedback appearing, an on-screen keyboard opening), without re-scrolling.
+  useLayoutEffect(() => {
+    const transcript = transcriptRef.current;
+    const active = activeRef.current;
+    const spacer = spacerRef.current;
+    if (!transcript || !active || !spacer) return;
+    const anchor = previousRef.current ?? active;
+    const paddingTop = parseFloat(getComputedStyle(transcript).paddingTop) || 0;
+    // offsetTop is relative to .transcript (position: relative).
+    const anchorTop = () => anchor.offsetTop - paddingTop;
+    const fitSpacer = () => {
+      const contentBelowAnchor = active.offsetTop + active.offsetHeight - anchor.offsetTop;
+      spacer.style.height = `${Math.max(0, transcript.clientHeight - contentBelowAnchor - paddingTop)}px`;
+    };
+    fitSpacer();
+    transcript.scrollTo({ top: anchorTop(), behavior: "smooth" });
+    const observer = new ResizeObserver(fitSpacer);
+    observer.observe(active);
+    observer.observe(transcript);
+    return () => observer.disconnect();
   }, [current?.key, answeredItem?.key]);
 
   return (
@@ -80,7 +103,7 @@ export function StoryTranscript({
       </div>
       {title && <h1 className={styles.chapterTitle}>{title}</h1>}
 
-      <div className={styles.transcript}>
+      <div className={styles.transcript} ref={transcriptRef}>
         {instances.map((instance) => {
           if (instance.ordinal < historyCount) {
             const result = resultsByOrdinal.get(instance.ordinal);
@@ -92,7 +115,7 @@ export function StoryTranscript({
             const answerIsTokenized = instance.exercise.type === "word_bank" || instance.exercise.type === "match";
             const answerText = instance.exercise.answer.join(answerIsTokenized ? " " : " / ");
             return (
-              <div key={instance.key} className={styles.pastLine}>
+              <div key={instance.key} className={styles.pastLine} ref={instance.ordinal === historyCount - 1 ? previousRef : undefined}>
                 {/* A fixed-position gutter, outside the dir="rtl" text below —
                     inline placement inside RTL text gets reordered to the
                     visual right along with the words, which defeats the
@@ -184,6 +207,7 @@ export function StoryTranscript({
           // being visible below.
           return null;
         })}
+        <div ref={spacerRef} className={styles.spacer} aria-hidden="true" />
       </div>
 
       {skip.isConfirming && <SkipLessonModal onCancel={skip.cancelSkip} onConfirm={skip.confirmSkip} />}
