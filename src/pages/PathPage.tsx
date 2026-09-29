@@ -5,6 +5,7 @@ import { findNextStandardTarget, findNextUnitEntryTarget } from "../domain/pathP
 import { SkillRoad } from "../components/path/SkillRoad";
 import { PlacementTestNode } from "../components/path/PlacementTestNode";
 import { DailyGoalRing } from "../components/path/DailyGoalRing";
+import { JumpToCurrentButton } from "../components/path/JumpToCurrentButton";
 import { CourseUpdateBanner } from "../components/course/CourseUpdateBanner";
 import { PathThemeProvider } from "../theme/PathThemeProvider";
 import { Spinner } from "../components/common/Spinner";
@@ -92,6 +93,7 @@ export function PathPage() {
           <SkillRoad positions={unit.standardPositions} nextSkipTarget={nextSkipTarget} />
         </section>
       ))}
+      <JumpToCurrentButton containerRef={pageRef} watchKey={path} />
     </PathThemeProvider>
   );
 }
