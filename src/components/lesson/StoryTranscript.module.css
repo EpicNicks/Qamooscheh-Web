@@ -29,6 +29,9 @@
   max-height: calc(100vh - 220px);
   min-height: 240px;
   overflow-y: auto;
+  /* Explicit, or `overflow-y: auto` makes this axis auto too, and word-bank
+     tiles shifting mid-drag could widen it into a horizontal scroller. */
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
   gap: var(--space-4);

@@ -211,7 +211,11 @@ function SortableTile({ tileIndex, container, text, disabled, courseCode, hintMa
     data: { container },
   });
   const style: CSSProperties = {
-    transform: CSS.Transform.toString(transform),
+    // Translate only. `transform` also carries scaleX/scaleY so that one
+    // tile can morph into the size of the tile it's displacing, which
+    // stretched and squashed tiles of different widths as they passed each
+    // other mid-drag.
+    transform: CSS.Translate.toString(transform),
     transition,
     opacity: isDragging ? 0.4 : undefined,
   };
@@ -469,6 +473,11 @@ export function WordBankExercise({
     <DndContext
       sensors={sensors}
       collisionDetection={collisionDetection}
+      // Off: both rows are always on screen together, so there's nothing to
+      // scroll toward, and dnd-kit's auto-scroll scrolls ancestors from code,
+      // even along an `overflow: hidden` axis. Dragging near an edge was
+      // scrolling the page and StoryTranscript's scroller in both directions.
+      autoScroll={false}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
