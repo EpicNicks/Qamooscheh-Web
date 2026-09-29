@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -301,6 +301,20 @@ export function WordBankExercise({
   // pointer smoothly regardless of what the underlying lists are doing.
   const [activeTileIndex, setActiveTileIndex] = useState<number | null>(null);
 
+  // At most one cross-container move per frame (the same guard dnd-kit's own
+  // multiple-containers example uses). Moving a tile reflows both rows, which
+  // can leave the pointer over the row the tile just left. dnd-kit then fires
+  // onDragOver again from inside its commit effects, the tile moves back, and
+  // so on, until React throws "Maximum update depth exceeded" (#185).
+  // Waiting a frame lets the new layout be measured first.
+  const recentlyMovedToNewContainer = useRef(false);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      recentlyMovedToNewContainer.current = false;
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [order]);
+
   // Mouse and TouchSensor only (no PointerSensor covering both, and no
   // KeyboardSensor): dnd-kit's KeyboardSensor binds its drag-pickup
   // shortcut to Space/Enter on the focused draggable node, which would
@@ -373,7 +387,7 @@ export function WordBankExercise({
   // hand-derive an insert-before-vs-after position from scratch.
   function handleDragOver(event: DragOverEvent) {
     const { active, over } = event;
-    if (!over) return;
+    if (!over || recentlyMovedToNewContainer.current) return;
     const activeId = String(active.id);
     const overId = String(over.id);
     const activeContainer = resolveContainer(activeId, active.data.current?.container);
@@ -381,6 +395,7 @@ export function WordBankExercise({
     if (!activeContainer || !overContainer || activeContainer === overContainer) return;
     const activeIndex = tileIndexFromId(activeId);
 
+    recentlyMovedToNewContainer.current = true;
     setOrder((prev) => {
       const activeItems = prev[activeContainer];
       const overItems = prev[overContainer];
