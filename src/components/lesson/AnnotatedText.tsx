@@ -36,6 +36,12 @@ interface AnnotatedWordProps {
   focusable?: boolean;
   /** Called each time the tooltip is shown — how an English word's hint marks its exercise as hinted (EnglishAnnotatedText). */
   onReveal?: () => void;
+  /**
+   * Off for a copy moved under a CSS transform (WordBankExercise's drag
+   * overlay): a transformed ancestor becomes what `position: fixed` is
+   * relative to, so the tooltip's viewport coordinates land far off to the side.
+   */
+  tooltip?: boolean;
 }
 
 /**
@@ -79,7 +85,7 @@ interface TooltipPosition {
   below: boolean;
 }
 
-export function AnnotatedWord({ word, hint, settings, focusable = true, onReveal }: AnnotatedWordProps) {
+export function AnnotatedWord({ word, hint, settings, focusable = true, onReveal, tooltip = true }: AnnotatedWordProps) {
   const wrapRef = useRef<HTMLSpanElement>(null);
   const tooltipRef = useRef<HTMLSpanElement>(null);
   // The tooltip is `position: fixed`, not absolute. That way no scrolling or
@@ -198,7 +204,7 @@ export function AnnotatedWord({ word, hint, settings, focusable = true, onReveal
       base
     );
 
-  if (tooltipLines.length === 0) return <>{content}</>;
+  if (!tooltip || tooltipLines.length === 0) return <>{content}</>;
 
   return (
     <span
@@ -249,18 +255,21 @@ export function AnnotatedText({
   settings,
   focusable,
   tags,
+  tooltip,
 }: {
   text: string;
   hintMap: ReadonlyMap<string, WordHint>;
   settings: TextDisplaySettings;
   focusable?: boolean;
   tags?: readonly string[];
+  /** See AnnotatedWord's `tooltip`. */
+  tooltip?: boolean;
 }) {
   return (
     <>
       {segmentAnnotatedText(text, hintMap, tags).map((segment, i) =>
         segment.isWord ? (
-          <AnnotatedWord key={i} word={segment.text} hint={segment.hint} settings={settings} focusable={focusable} />
+          <AnnotatedWord key={i} word={segment.text} hint={segment.hint} settings={settings} focusable={focusable} tooltip={tooltip} />
         ) : settings.vowelMarks ? (
           segment.text
         ) : (

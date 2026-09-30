@@ -495,7 +495,9 @@ export function WordBankExercise({
         {activeTileIndex !== null ? (
           <DirectionalText courseCode={tileCourseCode}>
             <div className={styles.tile} style={{ cursor: "grabbing" }}>
-              <AnnotatedText text={tiles[activeTileIndex]} hintMap={hintMap} settings={textSettings} tags={exercise.tags} focusable={false} />
+              {/* tooltip={false}: this copy moves under a transform, which
+                  throws a fixed-position tooltip off to the side. */}
+              <AnnotatedText text={tiles[activeTileIndex]} hintMap={hintMap} settings={textSettings} tags={exercise.tags} focusable={false} tooltip={false} />
             </div>
           </DirectionalText>
         ) : null}
