@@ -214,6 +214,10 @@ export interface SubmittedSessionResponse {
   outcome: SessionOutcome;
   rejectionReason: string | null;
   cards: CardState[];
+  /** First-attempt score, 0..1 (domain/lessonScore.ts) — null unless `outcome` is "Processed". */
+  score?: number | null;
+  /** Whether this session completed its skill: every exercise answered and `score` at or above the pass mark. Null unless `outcome` is "Processed". */
+  lessonCompleted?: boolean | null;
 }
 
 export interface SubmitSessionsResponse {

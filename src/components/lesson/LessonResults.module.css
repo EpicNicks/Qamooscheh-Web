@@ -42,6 +42,17 @@
   }
 }
 
+/* Where passing starts — a thin notch across the bar, above the fill. */
+.passMark {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--color-text);
+  opacity: 0.45;
+}
+
 .number {
   position: absolute;
   inset: 0;

@@ -6,11 +6,14 @@ import { useNativeTextAlign } from "../../hooks/useNativeTextAlign";
 import { PlayAudioButton } from "./PlayAudioButton";
 import { NoVoiceButton } from "./NoVoiceButton";
 import { AnnotatedText } from "./AnnotatedText";
+import { SentenceRomanization } from "./SentenceRomanization";
 import { EMPTY_HINT_MAP, PLAIN_TEXT, type TextDisplaySettings, type WordHint } from "../../domain/romanization";
 import styles from "./Exercise.module.css";
 
 interface ExercisePromptProps {
   text: string;
+  /** The prompt's authored whole-sentence romanization (ExerciseArtifact.promptRomanization), for SentenceRomanization. */
+  romanization?: string | null;
   courseCode?: string | null;
   /** user_prefs.autoplay_audio — plays this prompt once, the moment it's shown, when true. */
   autoplayAudio?: boolean;
@@ -33,6 +36,7 @@ interface ExercisePromptProps {
  */
 export function ExercisePrompt({
   text,
+  romanization,
   courseCode,
   autoplayAudio,
   hintMap = EMPTY_HINT_MAP,
@@ -61,19 +65,22 @@ export function ExercisePrompt({
   const direction = displayDirection(text, textSettings.display);
 
   return (
-    <div className={styles.promptRow}>
-      {/* The alignment setting only applies to RTL blocks — see
-          localAppPrefs.ts's NativeTextAlign — an LTR prompt keeps its
-          natural browser default either way. */}
-      <p className={styles.prompt} dir={direction} style={direction === "rtl" ? { textAlign: align } : undefined}>
-        <AnnotatedText text={text} hintMap={hintMap} settings={textSettings} />
-      </p>
-      {speechLang &&
-        (voiceAvailable ? (
-          <PlayAudioButton status={audio.status} onClick={audio.play} />
-        ) : (
-          <NoVoiceButton languageName={speechLang === languageInfo!.speechLang ? languageInfo!.displayName : "English"} />
-        ))}
-    </div>
+    <>
+      <SentenceRomanization text={text} authored={romanization} hintMap={hintMap} settings={textSettings} />
+      <div className={styles.promptRow}>
+        {/* The alignment setting only applies to RTL blocks — see
+            localAppPrefs.ts's NativeTextAlign — an LTR prompt keeps its
+            natural browser default either way. */}
+        <p className={styles.prompt} dir={direction} style={direction === "rtl" ? { textAlign: align } : undefined}>
+          <AnnotatedText text={text} hintMap={hintMap} settings={textSettings} />
+        </p>
+        {speechLang &&
+          (voiceAvailable ? (
+            <PlayAudioButton status={audio.status} onClick={audio.play} />
+          ) : (
+            <NoVoiceButton languageName={speechLang === languageInfo!.speechLang ? languageInfo!.displayName : "English"} />
+          ))}
+      </div>
+    </>
   );
 }

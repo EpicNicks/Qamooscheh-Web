@@ -8,9 +8,24 @@ const ANIMATION_MS = 900;
  * that "crunches" out to the target percentage (a slight overshoot-then-
  * settle, via the `crunch` keyframes in the CSS module) with the percentage
  * counted up in sync and revealed once the fill lands.
+ *
+ * `score` (0..1), when given, is the weighted score the pass mark is measured
+ * on (a forgiven typo is half a point — domain/lessonScore.ts) and sets the
+ * percentage in place of the plain fraction. `passMark` (0..1) draws a tick
+ * on the bar where passing starts.
  */
-export function LessonResults({ correct, total }: { correct: number; total: number }) {
-  const pct = total === 0 ? 0 : Math.round((correct / total) * 100);
+export function LessonResults({
+  correct,
+  total,
+  score,
+  passMark,
+}: {
+  correct: number;
+  total: number;
+  score?: number;
+  passMark?: number;
+}) {
+  const pct = Math.round((score ?? (total === 0 ? 0 : correct / total)) * 100);
   const [displayed, setDisplayed] = useState(0);
 
   useEffect(() => {
@@ -33,6 +48,9 @@ export function LessonResults({ correct, total }: { correct: number; total: numb
       </p>
       <div className={styles.track} role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
         <div className={styles.fill} style={{ "--pct": `${pct}%` } as CSSProperties} />
+        {passMark !== undefined && (
+          <div className={styles.passMark} style={{ left: `${passMark * 100}%` }} title={`Pass mark: ${Math.round(passMark * 100)}%`} />
+        )}
         <span className={styles.number}>{displayed}%</span>
       </div>
     </div>

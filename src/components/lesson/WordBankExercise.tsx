@@ -24,7 +24,7 @@ import { ExercisePrompt } from "./ExercisePrompt";
 import { AnnotatedText } from "./AnnotatedText";
 import { EMPTY_HINT_MAP, PLAIN_TEXT, type TextDisplaySettings, type WordHint } from "../../domain/romanization";
 import { detectScriptDirection } from "../../domain/language";
-import { acceptedTileOrders, closestTileOrder, tilesForSubmission, type TileMark } from "../../domain/wordBankOrders";
+import { acceptedTileOrders, closestTileOrder, missingBankTiles, tilesForSubmission, type TileMark } from "../../domain/wordBankOrders";
 import type { ExerciseProps } from "./ExerciseRenderer";
 import styles from "./Exercise.module.css";
 
@@ -115,15 +115,16 @@ interface SortableTileProps {
   courseCode: string | null;
   hintMap: ReadonlyMap<string, WordHint>;
   textSettings: TextDisplaySettings;
-  /** Set only while reviewing a wrong answer — colors the tile green/yellow/red. */
-  mark?: TileMark;
+  /** Set only while reviewing an answer — colors the tile green/yellow/red, or outlines a bank tile that belonged in the answer ("missing"). */
+  mark?: TileMark | "missing";
   onActivate: () => void;
 }
 
-const TILE_MARK_CLASS: Record<TileMark, string> = {
+const TILE_MARK_CLASS: Record<TileMark | "missing", string> = {
   right: styles.tileRight,
   swapped: styles.tileSwapped,
   wrong: styles.tileWrong,
+  missing: styles.tileMissing,
 };
 
 function SortableTile({ tileIndex, container, text, disabled, courseCode, hintMap, textSettings, mark, onActivate }: SortableTileProps) {
@@ -197,7 +198,7 @@ export function WordBankExercise({
   hintMap = EMPTY_HINT_MAP,
   textSettings = PLAIN_TEXT,
   advance,
-  wrongAnswer,
+  reviewedAnswer,
 }: ExerciseProps) {
   const tiles = exercise.tiles ?? [];
   // Shuffled once per exercise (this component is remounted per exercise via
@@ -211,19 +212,22 @@ export function WordBankExercise({
   // a render effect) in a transient state that's missing or duplicating the
   // dragged tile.
   const [order, setOrder] = useState<Record<ContainerId, number[]>>(() => {
-    if (wrongAnswer === undefined) return { bank: originalBankOrder, answer: [] };
-    const answer = tilesForSubmission(tiles, wrongAnswer);
+    if (reviewedAnswer === undefined) return { bank: originalBankOrder, answer: [] };
+    const answer = tilesForSubmission(tiles, reviewedAnswer.text);
     return { bank: originalBankOrder.filter((i) => !answer.includes(i)), answer };
   });
   const bankOrder = order.bank;
   const answerOrder = order.answer;
-  // Reviewing a wrong answer: the learner's own tiles stay in the answer
-  // row, colored against whichever correct order they came closest to —
-  // the same one AnswerFeedback reveals (domain/wordBankOrders.ts).
-  const tileMarks = useMemo(
-    () => (wrongAnswer === undefined ? null : closestTileOrder(answerOrder.map((i) => tiles[i]), acceptedTileOrders(exercise)).marks),
-    [wrongAnswer, answerOrder, tiles, exercise],
-  );
+  // Reviewing an answer: the learner's own tiles stay in the answer row,
+  // colored against whichever correct order they came closest to — the same
+  // one AnswerFeedback reveals (domain/wordBankOrders.ts) — and the bank
+  // tiles that order needed but they left out are outlined where they sit.
+  const review = useMemo(() => {
+    if (reviewedAnswer === undefined) return null;
+    const submitted = answerOrder.map((i) => tiles[i]);
+    const closest = closestTileOrder(submitted, acceptedTileOrders(exercise));
+    return { marks: closest.marks, missing: missingBankTiles(tiles, bankOrder, submitted, closest.marks, closest.order) };
+  }, [reviewedAnswer, answerOrder, bankOrder, tiles, exercise]);
   // Which tile is currently being dragged, if any — drives the DragOverlay
   // clone below, which is what actually tracks the pointer. Without it, the
   // "real" sortable tile is the only thing following the cursor, and every
@@ -374,8 +378,9 @@ export function WordBankExercise({
   }
 
   function submit() {
+    // The tiles stay where they are: the review screen shows this same
+    // answer, marked, until the learner moves on.
     onSubmit(answerOrder.map((i) => tiles[i]).join(" "));
-    setOrder((prev) => ({ ...prev, answer: [] }));
   }
 
   // Enter submits, the same as TypeInExercise's own window-level handling —
@@ -412,7 +417,7 @@ export function WordBankExercise({
       onDragCancel={handleDragEndOrCancel}
     >
       <div className={styles.wrap}>
-        <ExercisePrompt text={exercise.prompt} courseCode={courseCode} autoplayAudio={autoplayAudio} hintMap={hintMap} textSettings={textSettings} />
+        <ExercisePrompt text={exercise.prompt} romanization={exercise.promptRomanization} courseCode={courseCode} autoplayAudio={autoplayAudio} hintMap={hintMap} textSettings={textSettings} />
         <DroppableRow id="answer" className={isNativeScript ? `${styles.answerRow} ${styles.answerRowRtl}` : styles.answerRow} dir="ltr">
           <SortableContext items={answerOrder.map(tileId)} strategy={rectSortingStrategy}>
             {answerOrder.map((tileIndex, position) => (
@@ -422,7 +427,7 @@ export function WordBankExercise({
                 container="answer"
                 text={tiles[tileIndex]}
                 disabled={disabled}
-                mark={tileMarks?.[position]}
+                mark={review?.marks[position]}
                 courseCode={tileCourseCode}
                 hintMap={hintMap}
                 textSettings={textSettings}
@@ -448,6 +453,7 @@ export function WordBankExercise({
                 container="bank"
                 text={tiles[tileIndex]}
                 disabled={disabled}
+                mark={review?.missing.has(tileIndex) ? "missing" : undefined}
                 courseCode={tileCourseCode}
                 hintMap={hintMap}
                 textSettings={textSettings}

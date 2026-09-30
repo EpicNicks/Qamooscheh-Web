@@ -34,6 +34,16 @@
   gap: var(--space-1);
 }
 
+/* One accepted answer, with its romanization above it when that's on. */
+.revealedLine {
+  display: flex;
+  flex-direction: column;
+}
+
+.revealedLine > p {
+  margin: 0;
+}
+
 .yourAnswer {
   font-size: 0.85em;
   font-weight: 400;

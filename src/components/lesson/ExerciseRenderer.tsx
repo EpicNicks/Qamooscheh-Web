@@ -6,6 +6,12 @@ import { TypeInExercise } from "./TypeInExercise";
 import { MatchExercise } from "./MatchExercise";
 import { SpeakExercise } from "./SpeakExercise";
 
+export interface ReviewedAnswer {
+  /** Exactly what was handed to the grader. */
+  text: string;
+  correct: boolean;
+}
+
 export interface ExerciseProps {
   exercise: ExerciseArtifact;
   onSubmit: (submittedText: string, opts?: { usedHint?: boolean }) => void;
@@ -37,14 +43,15 @@ export interface ExerciseProps {
    */
   advance?: { label: string; onAdvance: () => void };
   /**
-   * What the learner submitted, set only while reviewing a WRONG answer —
-   * TypeInExercise prefills its (disabled) input with it and styles it red;
-   * WordBankExercise puts the submitted tiles back in the answer row, green
-   * where they're in the right order and red otherwise — so the mistake
-   * stays visible next to the revealed correct answer. Other exercise types
-   * ignore it.
+   * What the learner submitted and whether it was right, set only while
+   * reviewing an answer — the answer never disappears once it's checked.
+   * TypeInExercise shows the typed words in place of its input, each green
+   * or red; WordBankExercise puts the submitted tiles back in the answer
+   * row, green where they're in the right order and red otherwise, and
+   * outlines the bank tiles that should have been used. Other exercise
+   * types ignore it.
    */
-  wrongAnswer?: string;
+  reviewedAnswer?: ReviewedAnswer;
 }
 
 /**
@@ -64,7 +71,7 @@ export function ExerciseRenderer({
   hintMap,
   textSettings,
   advance,
-  wrongAnswer,
+  reviewedAnswer,
 }: ExerciseProps & { renderType: ExerciseType }) {
   switch (renderType) {
     case "word_bank":
@@ -78,7 +85,7 @@ export function ExerciseRenderer({
           hintMap={hintMap}
           textSettings={textSettings}
           advance={advance}
-          wrongAnswer={wrongAnswer}
+          reviewedAnswer={reviewedAnswer}
         />
       );
     case "type_in":
@@ -93,7 +100,7 @@ export function ExerciseRenderer({
           hintMap={hintMap}
           textSettings={textSettings}
           advance={advance}
-          wrongAnswer={wrongAnswer}
+          reviewedAnswer={reviewedAnswer}
         />
       );
     case "match":

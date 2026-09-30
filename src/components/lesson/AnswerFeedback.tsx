@@ -2,6 +2,8 @@ import { useState } from "react";
 import { XpBurst } from "./XpBurst";
 import { ReportIssue } from "./ReportIssue";
 import { AnnotatedText } from "./AnnotatedText";
+import { SentenceRomanization } from "./SentenceRomanization";
+import { stripReadingAids } from "../../domain/persian/normalize";
 import { displayDirection } from "../../domain/annotation";
 import { EMPTY_HINT_MAP, PLAIN_TEXT, type TextDisplaySettings, type WordHint } from "../../domain/romanization";
 import styles from "./AnswerFeedback.module.css";
@@ -17,8 +19,8 @@ export interface AnswerFeedbackProps {
    * word_bank/match's `answer` is the ordered TOKENS of one correct
    * selection (matching `tiles`' granularity, joined with spaces to
    * display) — every other exercise type's `answer` is a list of
-   * alternative whole-answer strings (joined with " / " to display all of
-   * them). See domain/answerFeedback.ts's identical dispatch.
+   * alternative whole-answer strings (each shown on its own line). See
+   * domain/answerFeedback.ts's identical dispatch.
    */
   answerIsTokenized?: boolean;
   /** What the learner actually submitted, exactly as handed to the grader — shown as "Your answer" alongside the revealed correct answer, so a mismatched word-bank tile order (say) is visible rather than just "wrong". */
@@ -27,6 +29,8 @@ export interface AnswerFeedbackProps {
   hintMap?: ReadonlyMap<string, WordHint>;
   /** How the base text renders, and which of a word's hints are enabled — see domain/romanization.ts's TextDisplaySettings. */
   textSettings?: TextDisplaySettings;
+  /** The first accepted answer's authored romanization and the text it romanizes — used over the assembled one for the revealed line that is that answer (SentenceRomanization). */
+  answerRomanization?: { text: string; romanization: string | null | undefined };
   /** Cites which lesson part a report is about — omit to hide the Report control entirely. */
   reportContext?: { exerciseTags: string[]; prompt: string };
 }
@@ -47,6 +51,7 @@ export function AnswerFeedback({
   submittedText,
   hintMap = EMPTY_HINT_MAP,
   textSettings = PLAIN_TEXT,
+  answerRomanization,
   reportContext,
 }: AnswerFeedbackProps) {
   const [revealed, setRevealed] = useState(false);
@@ -67,17 +72,22 @@ export function AnswerFeedback({
       <div className={`${styles.incorrect} ${styles.shake}`} role="status">
         {revealed ? (
           <div className={styles.revealed}>
-            <span className={styles.verdict} dir={answer ? displayDirection(answer.join(" "), textSettings.display) : undefined}>
-              {answer && (
-                <AnnotatedText
-                  text={answerIsTokenized ? answer.join(" ") : answer.join(" / ")}
-                  hintMap={hintMap}
-                  settings={textSettings}
-                />
-              )}
-            </span>
+            {answer &&
+              (answerIsTokenized ? [answer.join(" ")] : answer).map((line, i) => (
+                <span key={i} className={styles.revealedLine}>
+                  <SentenceRomanization
+                    text={line}
+                    authored={answerRomanization?.text === line ? answerRomanization.romanization : null}
+                    hintMap={hintMap}
+                    settings={textSettings}
+                  />
+                  <span className={styles.verdict} dir={displayDirection(line, textSettings.display)}>
+                    <AnnotatedText text={line} hintMap={hintMap} settings={textSettings} />
+                  </span>
+                </span>
+              ))}
             {submittedText !== undefined && (
-              <span className={styles.yourAnswer}>Your answer: {submittedText || "(nothing submitted)"}</span>
+              <span className={styles.yourAnswer}>Your answer: {(textSettings.vowelMarks ? submittedText : submittedText && stripReadingAids(submittedText)) || "(nothing submitted)"}</span>
             )}
           </div>
         ) : (

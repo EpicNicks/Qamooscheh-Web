@@ -4,6 +4,8 @@ import { getLanguageInfo, type Language } from "../../../domain/language";
 import { usePrefs, useUpdatePrefs } from "../../../hooks/usePrefs";
 import { useShowFurigana } from "../../../hooks/useShowFurigana";
 import { useShowRomanizationHints } from "../../../hooks/useShowRomanizationHints";
+import { useShowVowelMarks } from "../../../hooks/useShowVowelMarks";
+import { useShowSentenceRomanization } from "../../../hooks/useShowSentenceRomanization";
 import { useShowTranslationHints } from "../../../hooks/useShowTranslationHints";
 import { useNativeTextAlign } from "../../../hooks/useNativeTextAlign";
 import { PersianScriptSettings } from "./PersianScriptSettings";
@@ -49,6 +51,8 @@ export function LanguageSettingsButton({ courseCode, onReplayTutorial }: Languag
   const romanizationHints = useShowRomanizationHints();
   const translationHints = useShowTranslationHints();
   const nativeTextAlign = useNativeTextAlign();
+  const vowelMarks = useShowVowelMarks();
+  const sentenceRomanization = useShowSentenceRomanization();
 
   if (!SettingsPanel && !onReplayTutorial) return null;
 
@@ -69,6 +73,10 @@ export function LanguageSettingsButton({ courseCode, onReplayTutorial }: Languag
               onChangeShowRomanizationHints={romanizationHints.setShowRomanizationHints}
               showTranslationHints={translationHints.enabled}
               onChangeShowTranslationHints={translationHints.setShowTranslationHints}
+              showVowelMarks={vowelMarks.enabled}
+              onChangeShowVowelMarks={vowelMarks.setShowVowelMarks}
+              showSentenceRomanization={sentenceRomanization.enabled}
+              onChangeShowSentenceRomanization={sentenceRomanization.setShowSentenceRomanization}
               nativeTextAlign={nativeTextAlign.align}
               onChangeNativeTextAlign={nativeTextAlign.setNativeTextAlign}
             />

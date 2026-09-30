@@ -76,6 +76,10 @@ export interface ExerciseArtifact {
   tags: string[];
   /** word_bank/match only: every other correct tile order, each shaped like `answer` — null or missing when there are none (domain/wordBankOrders.ts). */
   alternativeAnswers?: string[][] | null;
+  /** The native-script prompt romanized whole, ezafe included ("ketāb-e man") — shown above it when the learner asks (components/lesson/SentenceRomanization.tsx). Missing or null when not authored. */
+  promptRomanization?: string | null;
+  /** The same for the first accepted answer (a word bank's tiles joined). */
+  answerRomanization?: string | null;
   /** Authored hint text, or null when this exercise doesn't have one — not every artifact on the CDN carries this field yet, so callers should treat a missing property the same as null. */
   hint?: string | null;
 }
@@ -88,6 +92,8 @@ export interface LexemeIndexEntry {
   romanizationIsAuthored: boolean;
   /** The reading printed ABOVE this surface in "both" script display: Japanese kana furigana. No course publishes this yet, so a missing property means null, same as `ExerciseArtifact.hint` — callers fall back to `romanization` (see domain/romanization.ts's buildLexemeHintMap). */
   reading?: string | null;
+  /** Other written forms of this lexeme — an attached ending's spelling after a vowel (ـم is written ‌ام after one). Missing or null when there are none. */
+  forms?: string[] | null;
 }
 
 /** lexemes.json itself: a flat tag -> entry map. */

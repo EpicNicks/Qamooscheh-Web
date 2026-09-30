@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { segmentAnnotatedText } from "../../domain/annotation";
-import type { TextDisplaySettings, WordHint } from "../../domain/romanization";
+import { registerLabel, type TextDisplaySettings, type WordHint } from "../../domain/romanization";
+import { stripReadingAids } from "../../domain/persian/normalize";
 import styles from "./AnnotatedText.module.css";
 
 interface TooltipPart {
@@ -134,18 +135,51 @@ export function AnnotatedWord({ word, hint, settings, focusable = true }: Annota
     };
   }, [shown, place]);
 
+  const register = registerLabel(hint?.register);
+  // The ezafe (domain/ezafe.ts) is shown as its own piece after the word —
+  // [book](-e) in the tooltip, ketāb(-e) in a romanized line — never folded
+  // into the word's own text.
+  const ezafe = hint?.ezafe;
+  const ezafeMark = (className: string) => (ezafe ? <span className={className}>{ezafe}</span> : null);
   const lines = hint
     ? assembleTooltipLines([
-        { include: settings.translationEnabled, text: hint.translation },
+        { include: settings.translationEnabled, text: register ? `${hint.translation} [${register}]` : hint.translation },
         {
           include: settings.romanizationEnabled && settings.display === "native",
-          text: hint.romanization,
+          text: hint.romanization !== null && ezafe ? hint.romanization + ezafe : hint.romanization,
           format: (text, isOnlyLine) => (isOnlyLine ? text : `[${text}]`),
         },
       ])
     : [];
+  const tooltipLines: ReactNode[] = lines.map((line, i) =>
+    i === 0 && settings.translationEnabled && ezafe ? (
+      <>
+        {line} {ezafeMark(styles.ezafeChip)}
+      </>
+    ) : (
+      line
+    ),
+  );
+  // A marked ezafe is worth pointing out even with the translation hint off.
+  if (ezafe && !settings.translationEnabled) {
+    tooltipLines.push(
+      <>
+        {ezafeMark(styles.ezafeChip)} ezafe
+      </>,
+    );
+  }
 
-  const base = settings.display === "romanized" ? (hint?.romanization ?? word) : word;
+  const base =
+    settings.display === "romanized" && hint?.romanization != null ? (
+      <>
+        {hint.romanization}
+        {ezafeMark(styles.ezafeInline)}
+      </>
+    ) : settings.vowelMarks ? (
+      word
+    ) : (
+      stripReadingAids(word)
+    );
 
   const content: ReactNode =
     settings.display === "both" ? (
@@ -153,18 +187,20 @@ export function AnnotatedWord({ word, hint, settings, focusable = true }: Annota
         {base}
         <rt className={styles.rt} dir="ltr">
           {hint?.ruby ?? " "}
+          {hint?.ruby != null && ezafeMark(styles.ezafeInline)}
         </rt>
       </ruby>
     ) : (
       base
     );
 
-  if (lines.length === 0) return <>{content}</>;
+  if (tooltipLines.length === 0) return <>{content}</>;
 
   return (
     <span
       ref={wrapRef}
       className={styles.wrap}
+      data-ezafe={ezafe ? "" : undefined}
       tabIndex={focusable ? 0 : undefined}
       onMouseEnter={show}
       onMouseLeave={hide}
@@ -181,7 +217,7 @@ export function AnnotatedWord({ word, hint, settings, focusable = true }: Annota
           position ? ({ "--tooltip-x": `${position.x}px`, "--tooltip-y": `${position.y}px` } as CSSProperties) : undefined
         }
       >
-        {lines.map((line, i) => (
+        {tooltipLines.map((line, i) => (
           <span key={i} className={styles.tooltipLine}>
             {line}
           </span>
@@ -218,8 +254,10 @@ export function AnnotatedText({
       {segmentAnnotatedText(text, hintMap).map((segment, i) =>
         segment.isWord ? (
           <AnnotatedWord key={i} word={segment.text} hint={segment.hint} settings={settings} focusable={focusable} />
-        ) : (
+        ) : settings.vowelMarks ? (
           segment.text
+        ) : (
+          stripReadingAids(segment.text)
         ),
       )}
     </>

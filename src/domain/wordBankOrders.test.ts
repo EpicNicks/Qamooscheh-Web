@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { checkAnswer } from "./answerFeedback";
-import { closestTileOrder, gradeTiles, revealedTileOrder } from "./wordBankOrders";
+import { closestTileOrder, gradeTiles, missingBankTiles, revealedTileOrder } from "./wordBankOrders";
 import type { ExerciseArtifact } from "../types/content";
 
 // "I go to school tomorrow": the pronoun is optional and the time word can
@@ -68,5 +68,30 @@ describe("checkAnswer with alternative orders", () => {
       expect(checkAnswer(course, exercise, order.join(" ")).verdict).toBe("correct");
     }
     expect(checkAnswer(course, exercise, "به فردا مدرسه می‌روم").verdict).toBe("incorrect");
+  });
+});
+
+describe("missingBankTiles", () => {
+  const tiles = exercise.tiles!;
+
+  it("outlines the bank tiles the closest order still needed", () => {
+    // Submitted "من به مدرسه" — فردا and می‌روم were left in the bank, کتاب is a decoy.
+    const submitted = ["من", "به", "مدرسه"];
+    const { order, marks } = closestTileOrder(submitted, [exercise.answer, ...exercise.alternativeAnswers!]);
+    expect(missingBankTiles(tiles, [1, 4, 5], submitted, marks, order)).toEqual(new Set([1, 4]));
+  });
+
+  it("outlines nothing once every needed tile was used", () => {
+    const submitted = exercise.answer;
+    const marks = gradeTiles(submitted, exercise.answer);
+    expect(missingBankTiles(tiles, [5], submitted, marks, exercise.answer).size).toBe(0);
+  });
+
+  it("still outlines a needed tile whose only submitted copy was marked wrong", () => {
+    const repeated = ["a", "b", "a"];
+    const submitted = ["b", "a"];
+    const marks = gradeTiles(submitted, repeated);
+    // One "a" of the two the order needs is placed; the other is in the bank.
+    expect(missingBankTiles(["a", "b", "a"], [2], submitted, marks, repeated)).toEqual(new Set([2]));
   });
 });

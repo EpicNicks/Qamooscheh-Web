@@ -9,8 +9,9 @@
 // exercise's own `tags` list happens to reference it. Built once per
 // lexemeIndex fetch and reused across every exercise on screen.
 import type { LexemeIndex } from "../types/content";
-import type { ExerciseScriptMode } from "./enums";
+import type { ExerciseScriptMode, Register } from "./enums";
 import type { ScriptDisplay } from "./annotation";
+import type { Ezafe } from "./ezafe";
 
 /**
  * What a hovered/focused word can offer, plus what an annotated rendering
@@ -24,6 +25,31 @@ export interface WordHint {
   romanization: string | null;
   /** The small text printed above this surface in "both" display: Japanese kana furigana where authored, otherwise the Latin romanization. Persian has no separate reading, so for fa these are always the same string. */
   ruby: string | null;
+  /** The lexeme's register, shown after its translation in the tooltip ("house [informal]"). "both" or null means it isn't specific to one, so nothing is shown. */
+  register?: Register | null;
+  /**
+   * Set when the word as written carries an ezafe mark (domain/ezafe.ts):
+   * the "-e"/"-ye" linking it to the next word. Kept apart from
+   * `romanization` (which is the bare word's) so the display can show it as
+   * its own highlighted piece.
+   */
+  ezafe?: Ezafe;
+  /** Every lexeme written this way, with its part of speech (the tag's "<n>", "<poss>", "<v><spoken>" …) — how domain/attachedEndings.ts tells an ending's senses apart (ـم "my" after a noun, "am" after an adjective). */
+  senses?: WordSense[];
+}
+
+export interface WordSense {
+  /** The tag's part-of-speech markers, e.g. "<poss>" or "<v><spoken>". */
+  pos: string;
+  translation: string;
+  romanization: string | null;
+}
+
+/** The tooltip label for a register — nothing for a word that isn't specific to one. */
+export function registerLabel(register: Register | null | undefined): string | null {
+  if (register === "spoken") return "informal";
+  if (register === "written") return "formal";
+  return null;
 }
 
 export function buildLexemeHintMap(lexemeIndex: LexemeIndex | null | undefined): Map<string, WordHint> {
@@ -32,16 +58,23 @@ export function buildLexemeHintMap(lexemeIndex: LexemeIndex | null | undefined):
   for (const [tag, entry] of Object.entries(lexemeIndex)) {
     const surface = tag.split("<", 1)[0];
     if (!surface) continue;
-    // Two lexemes can share a surface (the same word tagged as a noun and a
-    // verb, or in two registers) — merge onto whatever's already there
-    // instead of last-write-wins overwriting, so a homograph missing a
-    // romanization can never clobber a sibling entry that has one.
-    const existing = map.get(surface);
-    map.set(surface, {
-      translation: existing?.translation ?? entry.gloss,
-      romanization: existing?.romanization ?? entry.romanization,
-      ruby: existing?.ruby ?? entry.reading ?? entry.romanization,
-    });
+    const sense: WordSense = { pos: tag.slice(surface.length), translation: entry.gloss, romanization: entry.romanization };
+    for (const written of [surface, ...(entry.forms ?? [])]) {
+      // Two lexemes can share a surface (the same word tagged as a noun and a
+      // verb, or in two registers) — merge onto whatever's already there
+      // instead of last-write-wins overwriting, so a homograph missing a
+      // romanization can never clobber a sibling entry that has one.
+      const existing = map.get(written);
+      map.set(written, {
+        translation: existing?.translation ?? entry.gloss,
+        romanization: existing?.romanization ?? entry.romanization,
+        ruby: existing?.ruby ?? entry.reading ?? entry.romanization,
+        // The same surface in two different registers is used in both, so it
+        // gets no label rather than whichever sibling happened to come first.
+        register: existing && existing.register !== entry.register ? "both" : entry.register,
+        senses: [...(existing?.senses ?? []), sense],
+      });
+    }
   }
   return map;
 }
@@ -50,7 +83,13 @@ export function buildLexemeHintMap(lexemeIndex: LexemeIndex | null | undefined):
 export const EMPTY_HINT_MAP: ReadonlyMap<string, WordHint> = new Map();
 
 /** Shared "nothing enabled, native display" instance for components whose caller omitted `TextDisplaySettings` entirely — kept beside EMPTY_HINT_MAP since the two defaults are a matched pair (an empty map with settings enabled, or vice versa, would still correctly show nothing, but every component here defaults both together). */
-export const PLAIN_TEXT: TextDisplaySettings = { display: "native", translationEnabled: false, romanizationEnabled: false };
+export const PLAIN_TEXT: TextDisplaySettings = {
+  display: "native",
+  translationEnabled: false,
+  romanizationEnabled: false,
+  vowelMarks: false,
+  sentenceRomanization: false,
+};
 
 /**
  * Everything that decides how a word/tile/prompt actually renders: which
@@ -68,6 +107,10 @@ export interface TextDisplaySettings {
   display: ScriptDisplay;
   translationEnabled: boolean;
   romanizationEnabled: boolean;
+  /** Show native text's reading aids (vowel and ezafe marks) rather than stripping them — localAppPrefs.ts's showVowelMarks. */
+  vowelMarks: boolean;
+  /** Show a native sentence's whole romanization above it — localAppPrefs.ts's showSentenceRomanization. */
+  sentenceRomanization: boolean;
 }
 
 /**
@@ -103,7 +146,13 @@ export function gateLexemeHintMap(
     exerciseScriptMode: ExerciseScriptMode;
   },
 ): ReadonlyMap<string, WordHint> {
-  const nothingToShow = !opts.settings.translationEnabled && !opts.settings.romanizationEnabled && opts.settings.display === "native";
+  // The sentence romanization needs it too, for a sentence with no authored
+  // romanization (domain/annotation.ts's romanizeSentence).
+  const nothingToShow =
+    !opts.settings.translationEnabled &&
+    !opts.settings.romanizationEnabled &&
+    !opts.settings.sentenceRomanization &&
+    opts.settings.display === "native";
   if (nothingToShow || opts.exerciseScriptMode !== "native") {
     return EMPTY_HINT_MAP;
   }

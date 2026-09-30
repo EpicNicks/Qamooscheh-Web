@@ -136,3 +136,25 @@ export function revealedTileOrder(
   if (submitted.length === 0) return exercise.answer;
   return closestTileOrder(submitted, orders).order;
 }
+
+/**
+ * The bank tiles (by tile index) the learner left out but the correct order
+ * needed: each of `order`'s tokens that no right or swapped submitted tile
+ * already accounts for claims one unused bank tile with the same text.
+ */
+export function missingBankTiles(tiles: string[], bankIndices: number[], submitted: string[], marks: TileMark[], order: string[]): Set<number> {
+  const needed = new Map<string, number>();
+  for (const token of order) needed.set(token, (needed.get(token) ?? 0) + 1);
+  submitted.forEach((token, i) => {
+    if (marks[i] !== "wrong" && (needed.get(token) ?? 0) > 0) needed.set(token, needed.get(token)! - 1);
+  });
+  const missing = new Set<number>();
+  for (const index of bankIndices) {
+    const count = needed.get(tiles[index]) ?? 0;
+    if (count > 0) {
+      missing.add(index);
+      needed.set(tiles[index], count - 1);
+    }
+  }
+  return missing;
+}

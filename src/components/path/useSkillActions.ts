@@ -39,7 +39,9 @@ export function useSkillActions(
   function primaryAction() {
     if (!skill) return;
     if (skill.status === "current") {
-      navigate("/lesson");
+      // Names the lesson tapped, since a fork's alternates are all "current"
+      // and the session runs just one of them (useLessonEngine's selectedSkillKey).
+      navigate(`/lesson?skill=${encodeURIComponent(skill.skillKey)}`);
     } else {
       // An unlocked-but-not-current standard skill is BEHIND the learner's
       // cursor (see pathProgress.ts) — already passed, being revisited. The

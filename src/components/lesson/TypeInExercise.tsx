@@ -6,10 +6,18 @@ import { getLanguageInfo, getKeyboardKind, isPersian } from "../../domain/langua
 import { detectArabicVariants, ZWNJ } from "../../domain/persian/normalize";
 import { useKeyboardInputMethod } from "../../hooks/useKeyboardInputMethod";
 import { useDeviceInputEnabled } from "../../hooks/useDeviceInputEnabled";
+import { markTypedAnswer } from "../../domain/typedAnswerMarks";
+import type { TileMark } from "../../domain/wordBankOrders";
 import type { ExerciseProps } from "./ExerciseRenderer";
 import styles from "./Exercise.module.css";
 
 const LETTER_KEY = /^[a-zA-Z']$/;
+
+const WORD_MARK_CLASS: Record<TileMark, string> = {
+  right: styles.wordRight,
+  swapped: styles.wordSwapped,
+  wrong: styles.wordWrong,
+};
 /** Keys whose default action moves the caret or edits past it. Buffered engine state is resolved before they act (see handleKeyDown). */
 const CARET_KEY = /^(Arrow(Left|Right|Up|Down)|Home|End|PageUp|PageDown|Delete)$/;
 
@@ -32,8 +40,8 @@ function isInteractiveTarget(target: EventTarget | null, except: HTMLElement | n
  * this component asks for — see keyboard/scriptEngines.tsx. Adding a new
  * keyboard kind means writing one engine there; nothing here changes.
  */
-export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keyboardMode, autoplayAudio, hintMap, textSettings, advance, wrongAnswer }: ExerciseProps) {
-  const initialText = wrongAnswer ?? "";
+export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keyboardMode, autoplayAudio, hintMap, textSettings, advance, reviewedAnswer }: ExerciseProps) {
+  const initialText = reviewedAnswer?.text ?? "";
   const [text, setText] = useState(initialText);
   const [usedHint, setUsedHint] = useState(false);
   const [hintShown, setHintShown] = useState(false);
@@ -170,8 +178,9 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
 
   function submit() {
     engine.finalize();
+    // The text stays in the box: the review screen shows this same answer,
+    // marked word by word, until the learner moves on.
     onSubmit(textRef.current, { usedHint });
-    replaceText("");
     setUsedHint(false);
     setHintShown(false);
   }
@@ -255,41 +264,58 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
 
   return (
     <div className={styles.wrap}>
-      <ExercisePrompt text={exercise.prompt} courseCode={courseCode} autoplayAudio={autoplayAudio} hintMap={hintMap} textSettings={textSettings} />
-      <div className={styles.inputWrap} ref={inputWrapRef}>
-        <input
-          ref={inputRef}
-          className={wrongAnswer !== undefined ? `${styles.input} ${styles.inputWrong}` : styles.input}
-          value={text}
-          onChange={(e) => replaceText(e.target.value, e.target.selectionStart ?? e.target.value.length, e.target.selectionEnd ?? undefined)}
-          onSelect={syncSelection}
-          // A click or tap is about to move the caret: same as CARET_KEY above.
-          onPointerDown={() => engine.finalize()}
-          disabled={disabled}
-          autoFocus
-          // A keyboardKind means an on-screen keyboard (engine.keyboardNode)
-          // is already doing the typing — the phone's own keyboard popping
-          // up on top of it would eat the screen space that keyboard needs
-          // and offers no way to type the native script anyway. "none" keeps
-          // the input focusable/editable (letters still land here via the
-          // handlers above) without triggering the OS keyboard; a plain
-          // romanized exercise has no on-screen keyboard, so it keeps the
-          // normal one. deviceInput.enabled is the opt-out for that: the
-          // on-screen keyboard hides itself too (see scriptEngines.tsx) so
-          // the device's own keyboard is the only one shown, not a clutter
-          // of both.
-          inputMode={keyboardKind && !deviceInput.enabled ? "none" : undefined}
+      <ExercisePrompt text={exercise.prompt} romanization={exercise.promptRomanization} courseCode={courseCode} autoplayAudio={autoplayAudio} hintMap={hintMap} textSettings={textSettings} />
+      {reviewedAnswer ? (
+        // The checked answer, word by word: green where it matches the
+        // closest accepted answer, yellow for a swapped pair, red otherwise.
+        <div
+          className={`${styles.input} ${styles.reviewedInput} ${reviewedAnswer.correct ? styles.reviewedRight : styles.reviewedWrong}`}
           dir={isNativeScript ? languageInfo?.direction : "ltr"}
-          // Font-family only, not the per-script font-SIZE variable —
-          // unlike DirectionalText (which wraps arbitrary inline content),
-          // this element already has its own base size from
-          // Exercise.module.css's .input, and a percentage font-size here
-          // would resolve against the inherited size instead of scaling that
-          // base, discarding it rather than adjusting it.
           style={isNativeScript && languageInfo ? { fontFamily: `var(--font-script-${languageInfo.language})` } : undefined}
-        />
-        {engine.overlayNode}
-      </div>
+          aria-label={`Your answer: ${reviewedAnswer.text || "nothing"}`}
+        >
+          {markTypedAnswer(courseCode, exercise.answer, reviewedAnswer.text, reviewedAnswer.correct).map((word, i) => (
+            <span key={i} className={WORD_MARK_CLASS[word.mark]}>
+              {word.text}
+            </span>
+          ))}
+        </div>
+      ) : (
+        <div className={styles.inputWrap} ref={inputWrapRef}>
+          <input
+            ref={inputRef}
+            className={styles.input}
+            value={text}
+            onChange={(e) => replaceText(e.target.value, e.target.selectionStart ?? e.target.value.length, e.target.selectionEnd ?? undefined)}
+            onSelect={syncSelection}
+            // A click or tap is about to move the caret: same as CARET_KEY above.
+            onPointerDown={() => engine.finalize()}
+            disabled={disabled}
+            autoFocus
+            // A keyboardKind means an on-screen keyboard (engine.keyboardNode)
+            // is already doing the typing — the phone's own keyboard popping
+            // up on top of it would eat the screen space that keyboard needs
+            // and offers no way to type the native script anyway. "none" keeps
+            // the input focusable/editable (letters still land here via the
+            // handlers above) without triggering the OS keyboard; a plain
+            // romanized exercise has no on-screen keyboard, so it keeps the
+            // normal one. deviceInput.enabled is the opt-out for that: the
+            // on-screen keyboard hides itself too (see scriptEngines.tsx) so
+            // the device's own keyboard is the only one shown, not a clutter
+            // of both.
+            inputMode={keyboardKind && !deviceInput.enabled ? "none" : undefined}
+            dir={isNativeScript ? languageInfo?.direction : "ltr"}
+            // Font-family only, not the per-script font-SIZE variable —
+            // unlike DirectionalText (which wraps arbitrary inline content),
+            // this element already has its own base size from
+            // Exercise.module.css's .input, and a percentage font-size here
+            // would resolve against the inherited size instead of scaling that
+            // base, discarding it rather than adjusting it.
+            style={isNativeScript && languageInfo ? { fontFamily: `var(--font-script-${languageInfo.language})` } : undefined}
+          />
+          {engine.overlayNode}
+        </div>
+      )}
       {languageInfo && !isNativeScript && <p className={styles.note}>Type this one in Latin letters (romanized), not the native script.</p>}
       {arabicVariantHits.length > 0 && (
         // API_SPEC.md's Persian-invariants note: "the frontend rejects and

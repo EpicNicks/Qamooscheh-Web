@@ -10,6 +10,7 @@ import { ExerciseRenderer } from "./ExerciseRenderer";
 import { SessionProgressBar } from "./SessionProgressBar";
 import { AnswerFeedback } from "./AnswerFeedback";
 import { AnnotatedText } from "./AnnotatedText";
+import { SentenceRomanization } from "./SentenceRomanization";
 import { SkipLessonModal } from "./SkipLessonModal";
 import { CloseLessonButton } from "./CloseLessonButton";
 import { LanguageSettingsButton } from "./languageSettings/LanguageSettingsButton";
@@ -129,6 +130,12 @@ export function StoryTranscript({
                     {result && (result.correct ? "✓" : "✗")}
                   </div>
                   <div className={styles.pastLineBody}>
+                    <SentenceRomanization
+                      text={instance.exercise.prompt}
+                      authored={instance.exercise.promptRomanization}
+                      hintMap={hintMap}
+                      settings={textSettings}
+                    />
                     <p
                       className={styles.pastPrompt}
                       dir={displayDirection(instance.exercise.prompt, textSettings.display)}
@@ -174,6 +181,10 @@ export function StoryTranscript({
                   submittedText={answeredItem.renderType === "type_in" || answeredItem.renderType === "word_bank" ? undefined : feedback.submittedText}
                   hintMap={hintMap}
                   textSettings={textSettings}
+                  answerRomanization={{
+                    text: answerIsTokenized ? answeredItem.exercise.answer.join(" ") : answeredItem.exercise.answer[0],
+                    romanization: answeredItem.exercise.answerRomanization,
+                  }}
                   reportContext={{ exerciseTags: answeredItem.exercise.tags, prompt: answeredItem.exercise.prompt }}
                 />
                 <ExerciseRenderer
@@ -187,7 +198,7 @@ export function StoryTranscript({
                   hintMap={hintMap}
                   textSettings={textSettings}
                   advance={{ label: "Continue", onAdvance: confirmation.confirm }}
-                  wrongAnswer={feedback.correct ? undefined : feedback.submittedText}
+                  reviewedAnswer={{ text: feedback.submittedText, correct: feedback.correct }}
                 />
               </div>
             );

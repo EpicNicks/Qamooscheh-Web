@@ -13,6 +13,7 @@ import { loadCardStates } from "../lib/cardStateStore";
 import { ExerciseSessionScreen } from "../components/lesson/ExerciseSessionScreen";
 import { RealLessonOverlay } from "../components/tutorial/RealLessonOverlay";
 import { LessonResults } from "../components/lesson/LessonResults";
+import { LESSON_PASS_THRESHOLD } from "../domain/lessonScore";
 import { Spinner } from "../components/common/Spinner";
 import { ErrorBanner } from "../components/common/ErrorBanner";
 import { Button } from "../components/common/Button";
@@ -121,6 +122,7 @@ export function LessonPage() {
 
   const engine = useLessonEngine(
     isThemeRemixRoute ? themeRemixKeys : isRemixRoute ? remixKeys : isDeepDive && lessonKey ? [lessonKey] : undefined,
+    searchParams.get("skill"),
   );
   const session = useExerciseSession<LessonExerciseInstance, SubmitAnswerResult>(engine.course);
   const { confirmation } = session;
@@ -256,14 +258,49 @@ export function LessonPage() {
       );
     }
 
+    // Only a graded journey or single-lesson run can leave a lesson
+    // unfinished — below the pass mark (see useLessonEngine's
+    // lessonCompleted) — and that learner needs another real attempt to move
+    // on, not a practice round.
+    if (engine.status === "done" && engine.lessonCompleted === false) {
+      return (
+        <div className={styles.done}>
+          <h1>Not passed yet</h1>
+          <p>
+            You need {Math.round(LESSON_PASS_THRESHOLD * 100)}% on your first tries to pass this lesson
+            {isDeepDive ? "" : " and unlock the next one"}. Your answers still count toward your reviews — take it
+            again to pass.
+          </p>
+          <LessonResults
+            correct={engine.score.correct}
+            total={engine.score.total}
+            score={engine.score.score}
+            passMark={LESSON_PASS_THRESHOLD}
+          />
+          <div className={styles.doneActions}>
+            <Button variant="secondary" onClick={() => navigate(isDeepDive ? "/themes" : "/path")}>
+              {isDeepDive ? "Back to browsing" : "Back to path"}
+            </Button>
+            <Button onClick={engine.retake}>Try again</Button>
+          </div>
+        </div>
+      );
+    }
+
     if (engine.status === "done") {
       return (
         <div className={styles.done}>
           <h1>Lesson complete!</h1>
+          {engine.lessonCompleted && !isDeepDive && <p className={styles.practiceNote}>The next lesson is unlocked.</p>}
           {engine.isPracticeMode && <p className={styles.practiceNote}>Practice round — doesn't count toward your review schedule.</p>}
           {engine.result && engine.result.outcome === "AlreadyProcessed" && <p>Already recorded.</p>}
           {engine.journeyAdvanced && <p className={styles.practiceNote}>This also moved you forward in your Journey.</p>}
-          <LessonResults correct={engine.score.correct} total={engine.score.total} />
+          <LessonResults
+            correct={engine.score.correct}
+            total={engine.score.total}
+            score={engine.score.score}
+            passMark={engine.lessonCompleted != null ? LESSON_PASS_THRESHOLD : undefined}
+          />
           <div className={styles.doneActions}>
             <Button onClick={() => navigate("/path")}>Back to path</Button>
             <Button variant="secondary" onClick={engine.startPractice}>

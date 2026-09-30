@@ -126,6 +126,10 @@ export function ExerciseSessionScreen<TItem extends ExerciseSessionItem, TFeedba
           submittedText={answeredItem.renderType === "type_in" || answeredItem.renderType === "word_bank" ? undefined : feedback.submittedText}
           hintMap={hintMap}
           textSettings={textSettings}
+          answerRomanization={{
+            text: answerIsTokenized ? answeredItem.exercise.answer.join(" ") : answeredItem.exercise.answer[0],
+            romanization: answeredItem.exercise.answerRomanization,
+          }}
           reportContext={{ exerciseTags: answeredItem.exercise.tags, prompt: answeredItem.exercise.prompt }}
         />
         <ExerciseRenderer
@@ -140,7 +144,7 @@ export function ExerciseSessionScreen<TItem extends ExerciseSessionItem, TFeedba
           hintMap={hintMap}
           textSettings={textSettings}
           advance={{ label: "Continue", onAdvance: confirmation.confirm }}
-          wrongAnswer={feedback.correct ? undefined : feedback.submittedText}
+          reviewedAnswer={{ text: feedback.submittedText, correct: feedback.correct }}
         />
         {skipModal}
       </div>

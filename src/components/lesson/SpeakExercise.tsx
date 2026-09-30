@@ -25,7 +25,7 @@ export function SpeakExercise({ exercise, onSubmit, disabled, courseCode, autopl
 
   return (
     <div className={styles.wrap}>
-      <ExercisePrompt text={exercise.prompt} courseCode={courseCode} autoplayAudio={autoplayAudio} hintMap={hintMap} textSettings={textSettings} />
+      <ExercisePrompt text={exercise.prompt} romanization={exercise.promptRomanization} courseCode={courseCode} autoplayAudio={autoplayAudio} hintMap={hintMap} textSettings={textSettings} />
       <p className={styles.note}>Speech capture isn't wired up yet — type what you'd say.</p>
       <input
         className={styles.input}

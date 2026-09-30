@@ -97,6 +97,16 @@
   opacity: 1;
 }
 
+/* A bank tile the correct answer needed but the learner left out —
+   outlined where it sits, so it's easy to see which tiles were missing. */
+.tileMissing,
+.tileMissing:disabled {
+  border-color: var(--color-success);
+  border-style: dashed;
+  color: var(--color-success);
+  opacity: 1;
+}
+
 .answerRow {
   min-height: 44px;
   display: flex;
@@ -130,36 +140,62 @@
   border: 2px solid var(--color-border);
   background: var(--color-bg);
   color: var(--color-text);
-  /* An <input>'s default intrinsic width (`size`) plus this padding can be
-     wider than a 320px column; cap it rather than letting it set the page's
-     scroll width. */
+  /* The full column's width, so a long sentence fits without scrolling
+     inside a short box. */
+  width: 100%;
   max-width: 100%;
 }
 
-/* Reviewing a wrong answer — the learner's own text stays in the (disabled)
-   input, marked red. Opacity/text-fill override the browser's greyed-out
-   disabled styling so the red actually reads. */
-.inputWrong,
-.inputWrong:disabled {
-  border-color: var(--color-danger);
-  background: var(--color-danger-bg);
-  color: var(--color-danger);
-  -webkit-text-fill-color: var(--color-danger);
-  opacity: 1;
+/* Reviewing a checked answer — the learner's own words stay where the input
+   was, each colored like a word-bank tile (TypeInExercise's WORD_MARK_CLASS).
+   Wraps instead of scrolling, since nothing is typed here any more. */
+.reviewedInput {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3em;
+  min-height: calc(1.2rem * 1.5 + 2 * var(--space-3));
+  overflow-wrap: anywhere;
 }
 
-/* Positioning context for the floating Persian candidate picker — sized to
-   the input itself (inline-block), not a full-width block, so it doesn't
-   change the input's own layout. */
+.reviewedRight {
+  border-color: var(--color-success);
+}
+
+.reviewedWrong {
+  border-color: var(--color-danger);
+}
+
+.wordRight {
+  color: var(--color-success);
+}
+
+.wordSwapped {
+  color: var(--color-warning);
+  background: var(--color-warning-bg);
+  border-radius: 4px;
+}
+
+.wordWrong {
+  color: var(--color-danger);
+  background: var(--color-danger-bg);
+  border-radius: 4px;
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+/* Positioning context for the floating Persian candidate picker — the
+   input's own full-width box. */
 .inputWrap {
   position: relative;
-  display: inline-block;
-  max-width: 100%;
+  display: block;
+  width: 100%;
 }
 
 /* An invisible twin of the input (same class, same font metrics) used only
    to measure where the last character sits on screen — see TypeInExercise's
-   layout effect. Never shown, never interactive. */
+   layout effect. Never shown, never interactive. Full width like the input
+   itself (it shares .input), so right-to-left text lines up at the same
+   edge the input puts it. */
 .mirror {
   position: absolute;
   top: 0;
@@ -230,11 +266,20 @@
   }
 }
 
-/* The Japanese phonetic keyboard's still-buffering romaji — sits right
-   after the input, inside the same inline-block wrap, so it visually reads
+/* The Japanese phonetic keyboard's still-buffering romaji — sits just
+   under the (full-width) input, inside the same wrap, so it visually reads
    as "what comes next" rather than a separate element. */
 .pendingRomaji {
   margin-left: var(--space-2);
   color: var(--color-text-muted);
   font-style: italic;
+}
+
+/* A native sentence's whole romanization, above it (SentenceRomanization). */
+.sentenceRomanization {
+  margin: 0 0 calc(-1 * var(--space-3));
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+  font-style: italic;
+  overflow-wrap: anywhere;
 }

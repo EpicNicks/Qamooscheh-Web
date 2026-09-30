@@ -2,6 +2,9 @@
 // script-display preference (user_prefs.scriptMode, plus Japanese's local
 // showFurigana toggle) — see components/lesson/AnnotatedText.tsx for the
 // renderer this feeds, and domain/romanization.ts for WordHint/gateLexemeHintMap.
+import { attachedEndingsHint } from "./attachedEndings";
+import { ezafeHint } from "./ezafe";
+import { stripReadingAids } from "./persian/normalize";
 import type { WordHint } from "./romanization";
 import type { ScriptMode } from "./enums";
 import type { Language, WritingDirection } from "./language";
@@ -75,6 +78,18 @@ export function segmentWords(text: string): TextPiece[] {
   }));
 }
 
+/**
+ * One word's hint: its own entry; failing that, a known stem with endings
+ * attached (مادرم = mother + -am, domain/attachedEndings.ts); and either of
+ * those under an ezafe mark (کتابِ = book + -e, domain/ezafe.ts). Looked up
+ * without its reading aids (کِتاب is کتاب) — the ezafe mark is read first,
+ * since it's one of them.
+ */
+function wordHint(word: string, hintMap: ReadonlyMap<string, WordHint>): WordHint | null {
+  const lookup = (bare: string) => hintMap.get(bare) ?? attachedEndingsHint(bare, hintMap);
+  return ezafeHint(word, lookup) ?? lookup(stripReadingAids(word));
+}
+
 export interface AnnotatedSegment {
   /** The literal source substring this segment covers, spaces between phrase tokens included verbatim. */
   text: string;
@@ -110,7 +125,7 @@ export function segmentAnnotatedText(text: string, hintMap: ReadonlyMap<string, 
     // map. Every span tried is a legal stopping point (its own text plus
     // whatever trails it), so the last hit found is used.
     let bestEnd = i + 1;
-    let bestHint: WordHint | null = hintMap.get(piece.text) ?? null;
+    let bestHint: WordHint | null = wordHint(piece.text, hintMap);
     let wordCount = 0;
     let end = i;
     let joined = "";
@@ -121,7 +136,9 @@ export function segmentAnnotatedText(text: string, hintMap: ReadonlyMap<string, 
       // Only a span ending on a word token (not mid-trailing-space) is a
       // candidate — pieces[end-1] must be the word itself.
       if (pieces[end - 1].isWord) {
-        const hit = hintMap.get(joined);
+        // Phrases are keyed unmarked, and an ezafe inside one is already in
+        // its authored romanization (آخرِ هفته -> "ākhar-e hafte").
+        const hit = end - i > 1 ? hintMap.get(stripReadingAids(joined)) : undefined;
         if (hit) {
           bestEnd = end;
           bestHint = hit;
@@ -134,6 +151,27 @@ export function segmentAnnotatedText(text: string, hintMap: ReadonlyMap<string, 
   }
 
   return segments;
+}
+
+/** Persian punctuation, as it's written in a Latin line. */
+const LATIN_PUNCTUATION: Record<string, string> = { "؟": "?", "،": ",", "؛": ";" };
+
+/**
+ * A native-script sentence romanized word by word from the hint map — each
+ * word's (or phrase's) romanization with its ezafe (ketāb-e man), a word the
+ * map doesn't know left in the native script. The fallback for a sentence
+ * with no authored romanization (ExerciseArtifact.promptRomanization); null
+ * when no word of it is known at all, so there's nothing useful to show.
+ */
+export function romanizeSentence(text: string, hintMap: ReadonlyMap<string, WordHint>): string | null {
+  let known = false;
+  const parts = segmentAnnotatedText(text, hintMap).map((segment) => {
+    if (!segment.isWord) return [...segment.text].map((ch) => LATIN_PUNCTUATION[ch] ?? ch).join("");
+    if (segment.hint?.romanization == null) return stripReadingAids(segment.text);
+    known = true;
+    return segment.hint.romanization + (segment.hint.ezafe ?? "");
+  });
+  return known ? parts.join("").trim() : null;
 }
 
 /**

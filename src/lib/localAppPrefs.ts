@@ -64,6 +64,21 @@ export interface LocalAppPrefs {
    * not just how to say it), so this stays opt-in rather than on-by-default.
    */
   showTranslationHints: boolean;
+  /**
+   * Whether native-script text shows its reading aids: Persian's short-vowel
+   * marks and ezafe marks (domain/persian/normalize.ts's stripReadingAids),
+   * which lesson content carries but ordinary Persian doesn't write. A
+   * per-device reading aid like showRomanizationHints. Defaults OFF: a
+   * learner should get used to reading Persian as it's really written, and
+   * turn these on when they need the help.
+   */
+  showVowelMarks: boolean;
+  /**
+   * Whether a native-script sentence shows its whole romanization above it
+   * (ExerciseArtifact.promptRomanization/answerRomanization, ezafe included).
+   * A per-device reading aid like the others. Defaults off.
+   */
+  showSentenceRomanization: boolean;
   /** See NativeTextAlign's own doc. Defaults to "left". */
   nativeTextAlign: NativeTextAlign;
   /**
@@ -134,6 +149,8 @@ const DEFAULTS: LocalAppPrefs = {
   showFurigana: true,
   showRomanizationHints: true,
   showTranslationHints: false,
+  showVowelMarks: false,
+  showSentenceRomanization: false,
   nativeTextAlign: "left",
   seenLessonOverlay: { wordBank: false, typeIn: false },
   lastGoalCelebrationDay: null,

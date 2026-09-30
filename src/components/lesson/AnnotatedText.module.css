@@ -5,6 +5,30 @@
   cursor: help;
 }
 
+/* A word carrying a marked ezafe (domain/ezafe.ts) lights up on hover, so
+   the link to the next word reads as part of the phrase. */
+.wrap[data-ezafe]:hover,
+.wrap[data-ezafe]:focus-visible {
+  background: var(--color-warning-bg);
+  border-radius: 3px;
+}
+
+/* The ezafe itself, as its own piece: a chip in the tooltip ([book](-e)),
+   and an accented suffix on a romanized word (ketāb-e). */
+.ezafeChip {
+  display: inline-block;
+  padding: 0 4px;
+  border-radius: 3px;
+  background: var(--color-warning);
+  color: var(--color-bg);
+  font-weight: 700;
+}
+
+.ezafeInline {
+  color: var(--color-warning);
+  font-weight: 700;
+}
+
 .tooltip {
   /* Fixed, not absolute, so an overflow-clipped ancestor (StoryTranscript's
      scroller) can't cut it off. --tooltip-x/--tooltip-y are viewport

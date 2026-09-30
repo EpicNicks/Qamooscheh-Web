@@ -1,9 +1,14 @@
 // The core "take a lesson" state machine (API_SPEC.md §2.2/§2.3/§2.5):
 //   1. GET /v1/sessions/next -> which skill(s), which lexeme tags are due
 //      for review vs. new.
-//   2. Fetch that skill's exercises from the CDN, keep the ones whose tags
-//      intersect (reviewTags ∪ newTags) — Api never returns exercise
-//      content itself (§1).
+//   2. Fetch that skill's exercises from the CDN — Api never returns
+//      exercise content itself (§1). A lesson is served whole: the server
+//      only counts a skill complete (and moves the cursor past it) when a
+//      session covers EVERY exercise ordinal (§2.3 point 6), and the plan's
+//      due/new tags are capped (SessionPlanner's maxNew), so filtering on
+//      them left lessons that could never be finished. Only a multi-lesson
+//      remix, which completes nothing on its own terms, still keeps just the
+//      exercises whose tags intersect (reviewTags ∪ newTags).
 //   3. Resolve each composite exercise's first-shown render mode from local
 //      card state (domain/exerciseResolution.ts).
 //   4. Run the queue: correct -> drop it; incorrect -> requeue deeper
@@ -26,6 +31,7 @@ import { loadCardStates, mergeCardStates } from "../lib/cardStateStore";
 import { enqueue as enqueueOffline } from "../lib/offlineQueue";
 import { checkAnswer, type AnswerVerdict } from "../domain/answerFeedback";
 import { resolveExerciseType } from "../domain/exerciseResolution";
+import { LESSON_PASS_THRESHOLD, verdictWeight } from "../domain/lessonScore";
 import type { SessionPlanResponse, SkillRef, SubmittedItem, SubmittedSession, SubmittedSessionResponse } from "../types/api";
 import type { ExerciseArtifact } from "../types/content";
 import type { ExerciseType, SkillCategory } from "../domain/enums";
@@ -95,6 +101,10 @@ export interface SubmitAnswerResult {
 }
 
 /**
+ * @param selectedSkillKey Cursor mode only: which of the current position's
+ * alternate skills (a fork's 1a/1b) to run — the one the learner tapped on
+ * the path. Any one of them completes the position, so a session runs just
+ * that one, whole; unset or unknown falls back to the plan's first.
  * @param deepDiveLessonKeys When set (non-empty), this is a deep-dive
  * session for one or more explicitly chosen lessons (each via GET
  * /v1/sessions/for-lesson/{lessonKey}) rather than the cursor-driven
@@ -115,7 +125,7 @@ export interface SubmitAnswerResult {
  * finishLesson groups into one SubmittedSession each, regardless of how many
  * lessons that spans.
  */
-export function useLessonEngine(deepDiveLessonKeys?: string[]) {
+export function useLessonEngine(deepDiveLessonKeys?: string[], selectedSkillKey?: string | null) {
   const { userId } = useAuth();
   const queryClient = useQueryClient();
   // The ARRAY'S PRESENCE selects the mode, not its length — an empty array
@@ -233,10 +243,8 @@ export function useLessonEngine(deepDiveLessonKeys?: string[]) {
 
   /**
    * `dueTagsFilter: null` builds every exercise in these skills regardless of
-   * FSRS due-ness — used by startPractice() below, so a learner is never
-   * flat-out locked out of redoing a lesson just because nothing is
-   * currently due for it (see finishLesson's practice-mode branch: no
-   * credit, but the practice itself is always available).
+   * FSRS due-ness — every session except a remix, since only a whole lesson
+   * can complete its skill (see the header comment).
    */
   function buildInstances(skillRefs: readonly SkillRef[], dueTagsFilter: Set<string> | null): LessonExerciseInstance[] {
     if (!userId) return [];
@@ -271,12 +279,18 @@ export function useLessonEngine(deepDiveLessonKeys?: string[]) {
 
   const isRemix = !!deepDiveLessonKeys && deepDiveLessonKeys.length > 1;
 
+  /** The skills this session actually runs — see selectedSkillKey. A deep dive already names exactly the lesson(s) it wants. */
+  function lessonSkills(skills: readonly SkillRef[]): SkillRef[] {
+    if (isDeepDive || skills.length <= 1) return [...skills];
+    return [skills.find((ref) => ref.skillKey === selectedSkillKey) ?? skills[0]];
+  }
+
   const initialQueue = useMemo<LessonExerciseInstance[]>(() => {
     if (!skillsReady || !plan.data || !userId) return [];
-    const instances = buildInstances(plan.data.skills, dueTags);
-    return isRemix ? instances.slice(0, REMIX_MAX_EXERCISES) : instances;
+    if (!isRemix) return buildInstances(lessonSkills(plan.data.skills), null);
+    return buildInstances(plan.data.skills, dueTags).slice(0, REMIX_MAX_EXERCISES);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [skillsReady, plan.data, userId, dueTags, isRemix]);
+  }, [skillsReady, plan.data, userId, dueTags, isRemix, selectedSkillKey]);
 
   const [queue, setQueue] = useState<LessonExerciseInstance[] | null>(null);
   const [totalCount, setTotalCount] = useState(0);
@@ -288,12 +302,21 @@ export function useLessonEngine(deepDiveLessonKeys?: string[]) {
   // this, so the end-of-lesson fraction reflects "got it right the first
   // time" rather than "eventually got it", independent of the requeue depth.
   const [firstTryCorrect, setFirstTryCorrect] = useState(0);
+  // The same first attempts, weighted the way the pass mark is
+  // (domain/lessonScore.ts) — a forgiven typo is half a point.
+  const [firstTryPoints, setFirstTryPoints] = useState(0);
   // True for a session started via startPractice() rather than seeded from
   // the real due queue — finishLesson skips POST /v1/sessions/submit
   // entirely for these, so redoing a lesson never earns FSRS credit twice
   // (or grades a review that was never actually due) but is never blocked
   // either.
   const [isPracticeMode, setIsPracticeMode] = useState(false);
+  // Whether the finished run completed its lesson — every exercise answered
+  // and the pass mark met (API_SPEC.md §2.3 point 6). The server's verdict
+  // when it gives one, otherwise the same rule derived locally (an offline
+  // queue, a replay). Null until a graded, non-remix run finishes (practice
+  // rounds and remixes complete nothing).
+  const [lessonCompleted, setLessonCompleted] = useState<boolean | null>(null);
   // Snapshot of plan.data.skills taken once, when the queue is first built —
   // retained even after the queue empties (unlike plan.data itself, which a
   // background refetch could change). LessonPage's deep-dive recap needs this
@@ -365,13 +388,30 @@ export function useLessonEngine(deepDiveLessonKeys?: string[]) {
    */
   function startPractice() {
     if (!plan.data) return;
-    const refs = plan.data.skills.length > 0 ? plan.data.skills : positionRef ? [positionRef] : [];
+    const refs = plan.data.skills.length > 0 ? lessonSkills(plan.data.skills) : positionRef ? [positionRef] : [];
     if (refs.length === 0) return;
     const built = buildInstances(refs, null);
-    const instances = isRemix ? built.slice(0, REMIX_MAX_EXERCISES) : built;
-    setIsPracticeMode(true);
+    restart(isRemix ? built.slice(0, REMIX_MAX_EXERCISES) : built, true);
+  }
+
+  /**
+   * Take the same lesson again as a real, graded attempt — offered when a
+   * run ended without completing it (`lessonCompleted === false`), since
+   * that learner still has to finish it to move on, and a practice round
+   * (no submission) never could.
+   */
+  function retake() {
+    if (sessionSkillRefs.length === 0) return;
+    restart(buildInstances(sessionSkillRefs, null), false);
+  }
+
+  function restart(instances: LessonExerciseInstance[], practice: boolean) {
+    if (instances.length === 0) return;
+    setIsPracticeMode(practice);
+    setLessonCompleted(null);
     setItems([]);
     setFirstTryCorrect(0);
+    setFirstTryPoints(0);
     setResult(null);
     setRejection(null);
     setStatus("ready");
@@ -388,7 +428,13 @@ export function useLessonEngine(deepDiveLessonKeys?: string[]) {
     const latencyMs = Math.round(performance.now() - shownAt.current);
     const attempt = current.attempt + 1;
 
-    if (current.attempt === 0 && correct) setFirstTryCorrect((n) => n + 1);
+    // Computed here rather than read back from state, which won't have
+    // updated yet if this is the answer that finishes the lesson.
+    const points = firstTryPoints + (current.attempt === 0 ? verdictWeight(feedback.verdict) : 0);
+    if (current.attempt === 0) {
+      if (correct) setFirstTryCorrect((n) => n + 1);
+      setFirstTryPoints(points);
+    }
 
     const newItems = current.exercise.tags.map(
       (lexemeTag): RecordedItem => ({
@@ -425,13 +471,13 @@ export function useLessonEngine(deepDiveLessonKeys?: string[]) {
     // time too. The page calls markShown() when the next one is really shown.
 
     if (rest.length === 0) {
-      await finishLesson([...items, ...newItems]);
+      await finishLesson([...items, ...newItems], totalCount === 0 ? 0 : points / totalCount);
     }
 
     return { correct, requeued, note: feedback.note, verdict: feedback.verdict, attempt, submittedText };
   }
 
-  async function finishLesson(finalItems: RecordedItem[]) {
+  async function finishLesson(finalItems: RecordedItem[], score: number) {
     if (!plan.data || !current || !course) return;
     setStatus("submitting");
 
@@ -468,6 +514,13 @@ export function useLessonEngine(deepDiveLessonKeys?: string[]) {
     }
 
     const sessions = [...bySkill.values()];
+    if (!isRemix) {
+      const covered = sessions.some((session) => {
+        const exerciseCount = skillArtifacts.get(refKey(session))?.exercises.length ?? 0;
+        return exerciseCount > 0 && new Set(session.items.map((item) => item.exerciseOrdinal)).size >= exerciseCount;
+      });
+      setLessonCompleted(covered && score >= LESSON_PASS_THRESHOLD);
+    }
     if (sessions.length === 0) {
       setStatus("done");
       return;
@@ -479,6 +532,10 @@ export function useLessonEngine(deepDiveLessonKeys?: string[]) {
       // only drives the recap's "Already recorded." line, so the first
       // response stands in for the batch.
       setResult(response.sessions[0] ?? null);
+      // The server's verdict outranks the local one whenever it gave one —
+      // only a freshly processed session carries it (a replay reports null).
+      const verdicts = response.sessions.map((s) => s.lessonCompleted).filter((v): v is boolean => v != null);
+      if (!isRemix && verdicts.length > 0) setLessonCompleted(verdicts.some((v) => v));
       if (userId) {
         for (const sessionResult of response.sessions) {
           // A rejected session was never graded, so it has no card state worth
@@ -564,10 +621,14 @@ export function useLessonEngine(deepDiveLessonKeys?: string[]) {
     courseCode: course?.code ?? null,
     current,
     progress: { completed: totalCount - (queue?.length ?? totalCount), total: totalCount },
-    score: { correct: firstTryCorrect, total: totalCount },
+    /** `correct` counts first attempts accepted at all; `score` (0..1) is the weighted one the pass mark is measured on (domain/lessonScore.ts). */
+    score: { correct: firstTryCorrect, total: totalCount, score: totalCount === 0 ? 0 : firstTryPoints / totalCount },
     isPracticeMode,
     submitAnswer,
     startPractice,
+    retake,
+    /** See the state's own comment — false means this run ended without finishing the lesson, so it didn't unlock what comes next. */
+    lessonCompleted,
     markShown,
     result,
     /** Non-null exactly when `status === "rejected"` — what the server refused, and how much of the batch. */

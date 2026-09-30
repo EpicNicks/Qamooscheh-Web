@@ -19,6 +19,8 @@ import { useMemo } from "react";
 import { usePrefs } from "./usePrefs";
 import { useLexemeIndex } from "./useCourseContent";
 import { useShowRomanizationHints } from "./useShowRomanizationHints";
+import { useShowVowelMarks } from "./useShowVowelMarks";
+import { useShowSentenceRomanization } from "./useShowSentenceRomanization";
 import { useShowTranslationHints } from "./useShowTranslationHints";
 import { useShowFurigana } from "./useShowFurigana";
 import { useSkipConfirmation, type SkipConfirmation } from "./useSkipConfirmation";
@@ -56,6 +58,8 @@ export function useExerciseSession<TItem, TFeedback>(
   const romanizationHints = useShowRomanizationHints();
   const translationHints = useShowTranslationHints();
   const furigana = useShowFurigana();
+  const vowelMarks = useShowVowelMarks();
+  const sentenceRomanization = useShowSentenceRomanization();
   const courseHintMap = useMemo(() => buildLexemeHintMap(lexemeIndex.data), [lexemeIndex.data]);
   const skip = useSkipConfirmation();
   // Enter confirms the answer — unless the skip modal is up, which claims
@@ -71,7 +75,13 @@ export function useExerciseSession<TItem, TFeedback>(
   return {
     keyboardMode: prefs.data?.keyboardMode,
     autoplayAudio: prefs.data?.autoplayAudio,
-    textSettings: { display, translationEnabled: translationHints.enabled, romanizationEnabled: romanizationHints.enabled },
+    textSettings: {
+      display,
+      translationEnabled: translationHints.enabled,
+      romanizationEnabled: romanizationHints.enabled,
+      vowelMarks: vowelMarks.enabled,
+      sentenceRomanization: sentenceRomanization.enabled,
+    },
     courseHintMap,
     skip,
     confirmation,

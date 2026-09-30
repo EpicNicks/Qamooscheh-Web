@@ -10,7 +10,8 @@
 //   Arabic Yeh U+064A, Arabic Kaf U+0643, Persian Keheh U+06A9,
 //   Teh Marbuta U+0629, Alef with Hamza Above U+0623, Alef U+0627,
 //   Alef with Hamza Below U+0625, Arabic-Indic digits U+0660-0669,
-//   Extended Arabic-Indic (Persian) digits U+06F0-06F9.
+//   Extended Arabic-Indic (Persian) digits U+06F0-06F9, Kasra U+0650,
+//   Hamza Above U+0654.
 
 /**
  * U+200C ZERO WIDTH NON-JOINER, written as an escape rather than the literal
@@ -24,6 +25,33 @@ export const ZWNJ = "\u200C";
 const HEH_GOAL = "ۀ";
 const HEH = "ه";
 const PERSIAN_YEH = "ی";
+/** The ezafe marks content writes: a kasra on the word (کتابِ من), or a hamza above after a silent heh (خانهٔ من). */
+export const KASRA = String.fromCharCode(0x0650);
+export const HAMZA_ABOVE = String.fromCharCode(0x0654);
+/** The short-vowel marks, fatha (U+064E) through sukun (U+0652): fatha, damma, kasra, shadda, sukun. */
+const FIRST_VOWEL_MARK = 0x064e;
+const LAST_VOWEL_MARK = 0x0652;
+
+function isReadingAid(ch: string, previous: string): boolean {
+  const code = ch.charCodeAt(0);
+  return (code >= FIRST_VOWEL_MARK && code <= LAST_VOWEL_MARK) || (ch === HAMZA_ABOVE && previous === HEH);
+}
+
+/**
+ * `input` without its reading aids and otherwise untouched — mirrors
+ * PersianNormalizer.StripReadingAids. Ordinary Persian writes neither short
+ * vowels nor the ezafe; lesson content marks both for the learner (کِتابِ
+ * مَن, خانهٔ مَن), and the app shows them only when the learner asks
+ * (localAppPrefs.ts's showVowelMarks). A hamza above only counts on a heh;
+ * elsewhere it's part of the letter. Tanvin (لطفاً) is spelling, not an aid.
+ */
+export function stripReadingAids(input: string): string {
+  let out = "";
+  for (const ch of input) {
+    if (!isReadingAid(ch, out.slice(-1))) out += ch;
+  }
+  return out;
+}
 
 /** Arabic-only codepoints folded to their Persian counterpart. Alef Madda (آ, U+0622) is a genuine, distinct Persian letter and is deliberately NOT folded. */
 const CODEPOINT_FOLD_MAP: Record<string, string> = {
@@ -44,13 +72,19 @@ function buildDigitFoldMap(): Record<string, string> {
 }
 const DIGIT_FOLD_MAP = buildDigitFoldMap();
 
-/** Always-safe: Unicode NFC, digit-system folding to ASCII, whitespace trim/collapse. Never itself a "correction". */
+/**
+ * Always-safe: Unicode NFC, digit-system folding to ASCII, whitespace
+ * trim/collapse, and reading aids dropped (see stripReadingAids). Never
+ * itself a "correction": nobody is expected to type a vowel or ezafe mark,
+ * and typing one isn't wrong either.
+ */
 export function normalizeStrict(input: string): string {
   const composed = input.normalize("NFC");
   let out = "";
   let lastWasSpace = false;
 
   for (const ch of composed) {
+    if (isReadingAid(ch, out.slice(-1))) continue;
     const mapped = DIGIT_FOLD_MAP[ch] ?? ch;
     if (/\s/.test(mapped)) {
       if (!lastWasSpace && out.length > 0) out += " ";

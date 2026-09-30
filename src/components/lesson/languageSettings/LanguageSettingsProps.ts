@@ -17,6 +17,11 @@ export interface LanguageSettingsProps {
   onChangeShowRomanizationHints: (enabled: boolean) => void;
   showTranslationHints: boolean;
   onChangeShowTranslationHints: (enabled: boolean) => void;
+  /** Only Persian's panel exposes these two — see localAppPrefs.ts's showVowelMarks/showSentenceRomanization. */
+  showVowelMarks: boolean;
+  onChangeShowVowelMarks: (enabled: boolean) => void;
+  showSentenceRomanization: boolean;
+  onChangeShowSentenceRomanization: (enabled: boolean) => void;
   /** Only Persian's panel exposes this — a non-RTL language has nothing to align. See NativeTextAlign's own doc. */
   nativeTextAlign: NativeTextAlign;
   onChangeNativeTextAlign: (align: NativeTextAlign) => void;
