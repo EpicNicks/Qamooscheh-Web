@@ -65,6 +65,15 @@ export interface LocalAppPrefs {
    */
   showTranslationHints: boolean;
   /**
+   * The other direction (domain/englishHints.ts): whether hovering an English
+   * word in a prompt shows the course-language word for it (its romanization
+   * too when showRomanizationHints is on). Defaults OFF, like
+   * showTranslationHints and for a stronger reason: on an English->Persian
+   * exercise it hands over part of the answer, which is why revealing one
+   * marks the exercise as hinted.
+   */
+  showNativeHints: boolean;
+  /**
    * Whether native-script text shows its reading aids: Persian's short-vowel
    * marks and ezafe marks (domain/persian/normalize.ts's stripReadingAids),
    * which lesson content carries but ordinary Persian doesn't write. A
@@ -149,6 +158,7 @@ const DEFAULTS: LocalAppPrefs = {
   showFurigana: true,
   showRomanizationHints: true,
   showTranslationHints: false,
+  showNativeHints: false,
   showVowelMarks: false,
   showSentenceRomanization: false,
   nativeTextAlign: "left",

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties, type Reac
 import { segmentAnnotatedText } from "../../domain/annotation";
 import { registerLabel, type TextDisplaySettings, type WordHint } from "../../domain/romanization";
 import { stripReadingAids } from "../../domain/persian/normalize";
+import { englishCandidates, segmentEnglish } from "../../domain/englishHints";
 import styles from "./AnnotatedText.module.css";
 
 interface TooltipPart {
@@ -33,6 +34,8 @@ interface AnnotatedWordProps {
   settings: TextDisplaySettings;
   /** Off when the caller already renders this inside a focusable control (WordBankExercise's tiles). */
   focusable?: boolean;
+  /** Called each time the tooltip is shown — how an English word's hint marks its exercise as hinted (EnglishAnnotatedText). */
+  onReveal?: () => void;
 }
 
 /**
@@ -76,7 +79,7 @@ interface TooltipPosition {
   below: boolean;
 }
 
-export function AnnotatedWord({ word, hint, settings, focusable = true }: AnnotatedWordProps) {
+export function AnnotatedWord({ word, hint, settings, focusable = true, onReveal }: AnnotatedWordProps) {
   const wrapRef = useRef<HTMLSpanElement>(null);
   const tooltipRef = useRef<HTMLSpanElement>(null);
   // The tooltip is `position: fixed`, not absolute. That way no scrolling or
@@ -105,7 +108,8 @@ export function AnnotatedWord({ word, hint, settings, focusable = true }: Annota
   const show = useCallback(() => {
     place();
     setShown(true);
-  }, [place]);
+    onReveal?.();
+  }, [place, onReveal]);
   const hide = useCallback(() => setShown(false), []);
 
   // A non-focusable word sits inside a focusable control (a word-bank tile),
@@ -258,6 +262,48 @@ export function AnnotatedText({
           segment.text
         ) : (
           stripReadingAids(segment.text)
+        ),
+      )}
+    </>
+  );
+}
+
+/**
+ * An English prompt with the other direction's hover (domain/englishHints.ts):
+ * a word matching one of this exercise's lexemes shows that lexeme as it's
+ * written, plus its romanization when the learner's romanization hint is on.
+ * Reuses AnnotatedWord's tooltip by handing it the native word as the line to
+ * show, in plain "native" display. `onReveal` fires when a hover is shown —
+ * the exercise counts as hinted, since on an English->native exercise this
+ * gives away part of the answer.
+ */
+export function EnglishAnnotatedText({
+  text,
+  tags,
+  hintMap,
+  settings,
+  onReveal,
+}: {
+  text: string;
+  tags: readonly string[];
+  hintMap: ReadonlyMap<string, WordHint>;
+  settings: TextDisplaySettings;
+  onReveal?: () => void;
+}) {
+  const wordSettings: TextDisplaySettings = { ...settings, display: "native", translationEnabled: true };
+  return (
+    <>
+      {segmentEnglish(text, englishCandidates(tags, hintMap)).map((segment, i) =>
+        segment.hint ? (
+          <AnnotatedWord
+            key={i}
+            word={segment.text}
+            hint={{ translation: segment.hint.native, romanization: segment.hint.romanization, ruby: null }}
+            settings={wordSettings}
+            onReveal={onReveal}
+          />
+        ) : (
+          segment.text
         ),
       )}
     </>

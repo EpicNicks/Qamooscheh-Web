@@ -12,6 +12,8 @@ export function PersianScriptSettings({
   onChangeShowRomanizationHints,
   showTranslationHints,
   onChangeShowTranslationHints,
+  showNativeHints,
+  onChangeShowNativeHints,
   nativeTextAlign,
   onChangeNativeTextAlign,
   showVowelMarks,
@@ -38,6 +40,10 @@ export function PersianScriptSettings({
           onChange={(e) => onChangeShowTranslationHints(e.target.checked)}
         />
         Hover a word for its translation
+      </label>
+      <label className={checkboxStyles.row}>
+        <input type="checkbox" checked={showNativeHints} onChange={(e) => onChangeShowNativeHints(e.target.checked)} />
+        Hover an English word for the Persian
       </label>
       <label className={checkboxStyles.row}>
         <input type="checkbox" checked={showVowelMarks} onChange={(e) => onChangeShowVowelMarks(e.target.checked)} />

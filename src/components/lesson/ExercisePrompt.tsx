@@ -5,13 +5,18 @@ import { useVoiceAvailability } from "../../hooks/useVoiceAvailability";
 import { useNativeTextAlign } from "../../hooks/useNativeTextAlign";
 import { PlayAudioButton } from "./PlayAudioButton";
 import { NoVoiceButton } from "./NoVoiceButton";
-import { AnnotatedText } from "./AnnotatedText";
+import { AnnotatedText, EnglishAnnotatedText } from "./AnnotatedText";
+import { isLatinText } from "../../domain/englishHints";
 import { SentenceRomanization } from "./SentenceRomanization";
 import { EMPTY_HINT_MAP, PLAIN_TEXT, type TextDisplaySettings, type WordHint } from "../../domain/romanization";
 import styles from "./Exercise.module.css";
 
 interface ExercisePromptProps {
   text: string;
+  /** The exercise's lexeme tags — what an English prompt's words are matched against (domain/englishHints.ts). */
+  tags?: readonly string[];
+  /** Called when an English word's hover is revealed: the exercise then counts as hinted. */
+  onHintReveal?: () => void;
   /** The prompt's authored whole-sentence romanization (ExerciseArtifact.promptRomanization), for SentenceRomanization. */
   romanization?: string | null;
   courseCode?: string | null;
@@ -36,6 +41,8 @@ interface ExercisePromptProps {
  */
 export function ExercisePrompt({
   text,
+  tags,
+  onHintReveal,
   romanization,
   courseCode,
   autoplayAudio,
@@ -72,7 +79,11 @@ export function ExercisePrompt({
             localAppPrefs.ts's NativeTextAlign — an LTR prompt keeps its
             natural browser default either way. */}
         <p className={styles.prompt} dir={direction} style={direction === "rtl" ? { textAlign: align } : undefined}>
+          {textSettings.nativeEnabled && tags && isLatinText(text) ? (
+          <EnglishAnnotatedText text={text} tags={tags} hintMap={hintMap} settings={textSettings} onReveal={onHintReveal} />
+        ) : (
           <AnnotatedText text={text} hintMap={hintMap} settings={textSettings} />
+        )}
         </p>
         {speechLang &&
           (voiceAvailable ? (

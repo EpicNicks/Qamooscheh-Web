@@ -20,6 +20,7 @@ import { usePrefs } from "./usePrefs";
 import { useLexemeIndex } from "./useCourseContent";
 import { useShowRomanizationHints } from "./useShowRomanizationHints";
 import { useShowVowelMarks } from "./useShowVowelMarks";
+import { useShowNativeHints } from "./useShowNativeHints";
 import { useShowSentenceRomanization } from "./useShowSentenceRomanization";
 import { useShowTranslationHints } from "./useShowTranslationHints";
 import { useShowFurigana } from "./useShowFurigana";
@@ -59,6 +60,7 @@ export function useExerciseSession<TItem, TFeedback>(
   const translationHints = useShowTranslationHints();
   const furigana = useShowFurigana();
   const vowelMarks = useShowVowelMarks();
+  const nativeHints = useShowNativeHints();
   const sentenceRomanization = useShowSentenceRomanization();
   const courseHintMap = useMemo(() => buildLexemeHintMap(lexemeIndex.data), [lexemeIndex.data]);
   const skip = useSkipConfirmation();
@@ -79,6 +81,7 @@ export function useExerciseSession<TItem, TFeedback>(
       display,
       translationEnabled: translationHints.enabled,
       romanizationEnabled: romanizationHints.enabled,
+      nativeEnabled: nativeHints.enabled,
       vowelMarks: vowelMarks.enabled,
       sentenceRomanization: sentenceRomanization.enabled,
     },

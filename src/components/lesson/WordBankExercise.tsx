@@ -236,6 +236,8 @@ export function WordBankExercise({
   // overlay is a separate, un-sortable element that always tracks the
   // pointer smoothly regardless of what the underlying lists are doing.
   const [activeTileIndex, setActiveTileIndex] = useState<number | null>(null);
+  // Set once an English prompt word's hover has shown its Persian (domain/englishHints.ts).
+  const [usedHint, setUsedHint] = useState(false);
 
   // At most one cross-container move per frame (the same guard dnd-kit's own
   // multiple-containers example uses). Moving a tile reflows both rows, which
@@ -380,7 +382,7 @@ export function WordBankExercise({
   function submit() {
     // The tiles stay where they are: the review screen shows this same
     // answer, marked, until the learner moves on.
-    onSubmit(answerOrder.map((i) => tiles[i]).join(" "));
+    onSubmit(answerOrder.map((i) => tiles[i]).join(" "), { usedHint });
   }
 
   // Enter submits, the same as TypeInExercise's own window-level handling —
@@ -417,7 +419,16 @@ export function WordBankExercise({
       onDragCancel={handleDragEndOrCancel}
     >
       <div className={styles.wrap}>
-        <ExercisePrompt text={exercise.prompt} romanization={exercise.promptRomanization} courseCode={courseCode} autoplayAudio={autoplayAudio} hintMap={hintMap} textSettings={textSettings} />
+        <ExercisePrompt
+          text={exercise.prompt}
+          tags={exercise.tags}
+          onHintReveal={() => setUsedHint(true)}
+          romanization={exercise.promptRomanization}
+          courseCode={courseCode}
+          autoplayAudio={autoplayAudio}
+          hintMap={hintMap}
+          textSettings={textSettings}
+        />
         <DroppableRow id="answer" className={isNativeScript ? `${styles.answerRow} ${styles.answerRowRtl}` : styles.answerRow} dir="ltr">
           <SortableContext items={answerOrder.map(tileId)} strategy={rectSortingStrategy}>
             {answerOrder.map((tileIndex, position) => (

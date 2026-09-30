@@ -23,6 +23,8 @@ export function JapaneseScriptSettings({
   onChangeShowRomanizationHints,
   showTranslationHints,
   onChangeShowTranslationHints,
+  showNativeHints,
+  onChangeShowNativeHints,
 }: LanguageSettingsProps) {
   return (
     <div className={styles.wrap}>
@@ -46,6 +48,10 @@ export function JapaneseScriptSettings({
           onChange={(e) => onChangeShowTranslationHints(e.target.checked)}
         />
         Hover a word for its translation
+      </label>
+      <label className={checkboxStyles.row}>
+        <input type="checkbox" checked={showNativeHints} onChange={(e) => onChangeShowNativeHints(e.target.checked)} />
+        Hover an English word for the Japanese
       </label>
     </div>
   );

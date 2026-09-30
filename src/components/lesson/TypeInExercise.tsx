@@ -264,7 +264,16 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
 
   return (
     <div className={styles.wrap}>
-      <ExercisePrompt text={exercise.prompt} romanization={exercise.promptRomanization} courseCode={courseCode} autoplayAudio={autoplayAudio} hintMap={hintMap} textSettings={textSettings} />
+      <ExercisePrompt
+        text={exercise.prompt}
+        tags={exercise.tags}
+        onHintReveal={() => setUsedHint(true)}
+        romanization={exercise.promptRomanization}
+        courseCode={courseCode}
+        autoplayAudio={autoplayAudio}
+        hintMap={hintMap}
+        textSettings={textSettings}
+      />
       {reviewedAnswer ? (
         // The checked answer, word by word: green where it matches the
         // closest accepted answer, yellow for a swapped pair, red otherwise.

@@ -15,17 +15,27 @@ import styles from "./Exercise.module.css";
  */
 export function SpeakExercise({ exercise, onSubmit, disabled, courseCode, autoplayAudio, hintMap, textSettings, advance }: ExerciseProps) {
   const [text, setText] = useState("");
+  const [usedHint, setUsedHint] = useState(false);
   const languageInfo = getLanguageInfo(courseCode);
   const isNativeScript = exercise.scriptMode === "native";
 
   function submit() {
-    onSubmit(text);
+    onSubmit(text, { usedHint });
     setText("");
   }
 
   return (
     <div className={styles.wrap}>
-      <ExercisePrompt text={exercise.prompt} romanization={exercise.promptRomanization} courseCode={courseCode} autoplayAudio={autoplayAudio} hintMap={hintMap} textSettings={textSettings} />
+      <ExercisePrompt
+        text={exercise.prompt}
+        tags={exercise.tags}
+        onHintReveal={() => setUsedHint(true)}
+        romanization={exercise.promptRomanization}
+        courseCode={courseCode}
+        autoplayAudio={autoplayAudio}
+        hintMap={hintMap}
+        textSettings={textSettings}
+      />
       <p className={styles.note}>Speech capture isn't wired up yet — type what you'd say.</p>
       <input
         className={styles.input}

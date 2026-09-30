@@ -17,6 +17,8 @@ export interface LanguageSettingsProps {
   onChangeShowRomanizationHints: (enabled: boolean) => void;
   showTranslationHints: boolean;
   onChangeShowTranslationHints: (enabled: boolean) => void;
+  showNativeHints: boolean;
+  onChangeShowNativeHints: (enabled: boolean) => void;
   /** Only Persian's panel exposes these two — see localAppPrefs.ts's showVowelMarks/showSentenceRomanization. */
   showVowelMarks: boolean;
   onChangeShowVowelMarks: (enabled: boolean) => void;

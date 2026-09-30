@@ -87,6 +87,7 @@ export const PLAIN_TEXT: TextDisplaySettings = {
   display: "native",
   translationEnabled: false,
   romanizationEnabled: false,
+  nativeEnabled: false,
   vowelMarks: false,
   sentenceRomanization: false,
 };
@@ -107,6 +108,8 @@ export interface TextDisplaySettings {
   display: ScriptDisplay;
   translationEnabled: boolean;
   romanizationEnabled: boolean;
+  /** Hovering an English prompt word shows the course-language word for it — localAppPrefs.ts's showNativeHints. */
+  nativeEnabled: boolean;
   /** Show native text's reading aids (vowel and ezafe marks) rather than stripping them — localAppPrefs.ts's showVowelMarks. */
   vowelMarks: boolean;
   /** Show a native sentence's whole romanization above it — localAppPrefs.ts's showSentenceRomanization. */
@@ -153,6 +156,9 @@ export function gateLexemeHintMap(
     !opts.settings.romanizationEnabled &&
     !opts.settings.sentenceRomanization &&
     opts.settings.display === "native";
+  // The English side's hovers (domain/englishHints.ts) look lexemes up here
+  // too, whatever script the exercise itself is in.
+  if (opts.settings.nativeEnabled) return courseMap;
   if (nothingToShow || opts.exerciseScriptMode !== "native") {
     return EMPTY_HINT_MAP;
   }

@@ -5,6 +5,7 @@ import { usePrefs, useUpdatePrefs } from "../../../hooks/usePrefs";
 import { useShowFurigana } from "../../../hooks/useShowFurigana";
 import { useShowRomanizationHints } from "../../../hooks/useShowRomanizationHints";
 import { useShowVowelMarks } from "../../../hooks/useShowVowelMarks";
+import { useShowNativeHints } from "../../../hooks/useShowNativeHints";
 import { useShowSentenceRomanization } from "../../../hooks/useShowSentenceRomanization";
 import { useShowTranslationHints } from "../../../hooks/useShowTranslationHints";
 import { useNativeTextAlign } from "../../../hooks/useNativeTextAlign";
@@ -52,6 +53,7 @@ export function LanguageSettingsButton({ courseCode, onReplayTutorial }: Languag
   const translationHints = useShowTranslationHints();
   const nativeTextAlign = useNativeTextAlign();
   const vowelMarks = useShowVowelMarks();
+  const nativeHints = useShowNativeHints();
   const sentenceRomanization = useShowSentenceRomanization();
 
   if (!SettingsPanel && !onReplayTutorial) return null;
@@ -73,6 +75,8 @@ export function LanguageSettingsButton({ courseCode, onReplayTutorial }: Languag
               onChangeShowRomanizationHints={romanizationHints.setShowRomanizationHints}
               showTranslationHints={translationHints.enabled}
               onChangeShowTranslationHints={translationHints.setShowTranslationHints}
+              showNativeHints={nativeHints.enabled}
+              onChangeShowNativeHints={nativeHints.setShowNativeHints}
               showVowelMarks={vowelMarks.enabled}
               onChangeShowVowelMarks={vowelMarks.setShowVowelMarks}
               showSentenceRomanization={sentenceRomanization.enabled}
