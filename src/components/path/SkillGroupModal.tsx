@@ -136,9 +136,11 @@ export function SkillGroupModal({ skills, nextSkipTarget, originRef, onClose, on
                 className={i === listNav.activeIndex ? `${styles.row} ${styles.rowActive}` : styles.row}
                 onClick={() => listNav.setActiveIndex(i)}
               >
-                <span className={styles.rowIcon} aria-hidden="true">
-                  {theme.icons[s.category]}
-                </span>
+                {theme.icons[s.category] != null && (
+                  <span className={styles.rowIcon} aria-hidden="true">
+                    {theme.icons[s.category]}
+                  </span>
+                )}
                 <span className={styles.rowTitle}>{s.title}</span>
               </li>
             ))}

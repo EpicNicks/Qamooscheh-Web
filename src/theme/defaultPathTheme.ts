@@ -18,7 +18,7 @@ export interface PathTheme {
    * uses `layout` everywhere.
    */
   mobileLayout?: RoadLayoutConfig;
-  /** What each skill category's node shows. Previously a hardcoded map inside SkillNode. */
+  /** What each skill category's node shows. Previously a hardcoded map inside SkillNode. `null` shows no icon, leaving the card to its title. */
   icons: Record<SkillCategory, ReactNode>;
   /**
    * An optional decorative layer painted behind the road — where a
@@ -35,9 +35,9 @@ export interface PathTheme {
 }
 
 /**
- * Tuned to SkillNode's 84px card (--skill-node-width, defaultPathTheme.module.css)
+ * Tuned to SkillNode's 100px square card (--skill-node-width, defaultPathTheme.module.css)
  * inside a 320-unit logical width: `branchSpread` is small enough that no
- * node's centre comes within 42 logical units of either edge, so
+ * node's centre comes within 50 logical units of either edge, so
  * computeRoadLayout's clamp never actually has to fire for this theme.
  *
  * `mobileLayout` only lowers `rowHeight` (more of the road fits above the
@@ -55,16 +55,17 @@ export const defaultPathTheme: PathTheme = {
     rowHeight: 190,
     branchSpread: 110,
     logicalWidth: 320,
-    nodeHalfWidth: 42,
+    nodeHalfWidth: 50,
   },
   mobileLayout: {
     rowHeight: 150,
     branchSpread: 108,
     logicalWidth: 320,
-    nodeHalfWidth: 42,
+    nodeHalfWidth: 50,
   },
   icons: {
-    standard: "●",
+    // No bullet: an ordinary lesson is the default, so its card is just its title.
+    standard: null,
     story: "📖",
     conversation: "💬",
     song: "🎵",

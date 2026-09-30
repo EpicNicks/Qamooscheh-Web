@@ -10,7 +10,7 @@ import { useSkillActions } from "./useSkillActions";
 import styles from "./SkillNode.module.css";
 
 /**
- * `"node"` is the 84px square card the road places absolutely; `"row"` is the
+ * `"node"` is the square card the road places absolutely; `"row"` is the
  * same skill rendered as a full-width line for SkillList. One component with
  * two layouts rather than two components, so the status styling (locked /
  * unlocked / current) can't drift between them.
@@ -60,11 +60,13 @@ export function SkillNode({ skill, layout = "node", nextSkipTarget = null }: Ski
   }
 
   const classes = [styles.node, styles[skill.status], layout === "row" && styles.row].filter(Boolean).join(" ");
+  const icon = theme.icons[skill.category];
 
   return (
     <>
       <button ref={buttonRef} type="button" className={classes} disabled={locked} onClick={handleClick} title={skill.title}>
-        <span className={styles.icon}>{theme.icons[skill.category]}</span>
+        {layout === "node" && <span className={styles.fold} aria-hidden="true" />}
+        {icon != null && <span className={styles.icon}>{icon}</span>}
         <span className={styles.title}>{skill.title}</span>
       </button>
       {popoverOpen && (
