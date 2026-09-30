@@ -115,6 +115,8 @@ interface SortableTileProps {
   courseCode: string | null;
   hintMap: ReadonlyMap<string, WordHint>;
   textSettings: TextDisplaySettings;
+  /** The exercise's lexeme tags — how a tile's word with endings attached splits (domain/attachedEndings.ts). */
+  tags: readonly string[];
   /** Set only while reviewing an answer — colors the tile green/yellow/red, or outlines a bank tile that belonged in the answer ("missing"). */
   mark?: TileMark | "missing";
   onActivate: () => void;
@@ -127,7 +129,7 @@ const TILE_MARK_CLASS: Record<TileMark | "missing", string> = {
   missing: styles.tileMissing,
 };
 
-function SortableTile({ tileIndex, container, text, disabled, courseCode, hintMap, textSettings, mark, onActivate }: SortableTileProps) {
+function SortableTile({ tileIndex, container, text, disabled, courseCode, hintMap, textSettings, tags, mark, onActivate }: SortableTileProps) {
   // The sensors' activationConstraint (see the DndContext below) is what
   // lets this button double as both a tap-target and a drag handle: a press
   // that never crosses the active sensor's threshold releases as a plain
@@ -162,7 +164,7 @@ function SortableTile({ tileIndex, container, text, disabled, courseCode, hintMa
         {/* focusable={false}: the tile's own <button> is already the tab
             stop, and a focusable span inside it would be both invalid
             HTML and a second stop per tile. */}
-        <AnnotatedText text={text} hintMap={hintMap} settings={textSettings} focusable={false} />
+        <AnnotatedText text={text} hintMap={hintMap} settings={textSettings} tags={tags} focusable={false} />
       </button>
     </DirectionalText>
   );
@@ -442,6 +444,7 @@ export function WordBankExercise({
                 courseCode={tileCourseCode}
                 hintMap={hintMap}
                 textSettings={textSettings}
+                tags={exercise.tags}
                 onActivate={() => toggle(tileIndex)}
               />
             ))}
@@ -468,6 +471,7 @@ export function WordBankExercise({
                 courseCode={tileCourseCode}
                 hintMap={hintMap}
                 textSettings={textSettings}
+                tags={exercise.tags}
                 onActivate={() => toggle(tileIndex)}
               />
             ))}
@@ -491,7 +495,9 @@ export function WordBankExercise({
         {activeTileIndex !== null ? (
           <DirectionalText courseCode={tileCourseCode}>
             <div className={styles.tile} style={{ cursor: "grabbing" }}>
-              <AnnotatedText text={tiles[activeTileIndex]} hintMap={hintMap} settings={textSettings} focusable={false} />
+              {/* tooltip={false}: this copy moves under a transform, which
+                  throws a fixed-position tooltip off to the side. */}
+              <AnnotatedText text={tiles[activeTileIndex]} hintMap={hintMap} settings={textSettings} tags={exercise.tags} focusable={false} tooltip={false} />
             </div>
           </DirectionalText>
         ) : null}

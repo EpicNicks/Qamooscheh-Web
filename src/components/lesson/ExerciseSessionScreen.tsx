@@ -130,6 +130,7 @@ export function ExerciseSessionScreen<TItem extends ExerciseSessionItem, TFeedba
             text: answerIsTokenized ? answeredItem.exercise.answer.join(" ") : answeredItem.exercise.answer[0],
             romanization: answeredItem.exercise.answerRomanization,
           }}
+          tags={answeredItem.exercise.tags}
           reportContext={{ exerciseTags: answeredItem.exercise.tags, prompt: answeredItem.exercise.prompt }}
         />
         <ExerciseRenderer

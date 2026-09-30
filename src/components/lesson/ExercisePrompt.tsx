@@ -73,7 +73,7 @@ export function ExercisePrompt({
 
   return (
     <>
-      <SentenceRomanization text={text} authored={romanization} hintMap={hintMap} settings={textSettings} />
+      <SentenceRomanization text={text} authored={romanization} hintMap={hintMap} settings={textSettings} tags={tags} />
       <div className={styles.promptRow}>
         {/* The alignment setting only applies to RTL blocks — see
             localAppPrefs.ts's NativeTextAlign — an LTR prompt keeps its
@@ -82,7 +82,7 @@ export function ExercisePrompt({
           {textSettings.nativeEnabled && tags && isLatinText(text) ? (
           <EnglishAnnotatedText text={text} tags={tags} hintMap={hintMap} settings={textSettings} onReveal={onHintReveal} />
         ) : (
-          <AnnotatedText text={text} hintMap={hintMap} settings={textSettings} />
+          <AnnotatedText text={text} hintMap={hintMap} settings={textSettings} tags={tags} />
         )}
         </p>
         {speechLang &&

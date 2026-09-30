@@ -83,10 +83,11 @@ export function segmentWords(text: string): TextPiece[] {
  * attached (مادرم = mother + -am, domain/attachedEndings.ts); and either of
  * those under an ezafe mark (کتابِ = book + -e, domain/ezafe.ts). Looked up
  * without its reading aids (کِتاب is کتاب) — the ezafe mark is read first,
- * since it's one of them.
+ * since it's one of them. `tags` (the exercise's own) say which stem and
+ * endings a word is made of.
  */
-function wordHint(word: string, hintMap: ReadonlyMap<string, WordHint>): WordHint | null {
-  const lookup = (bare: string) => hintMap.get(bare) ?? attachedEndingsHint(bare, hintMap);
+function wordHint(word: string, hintMap: ReadonlyMap<string, WordHint>, tags: ReadonlySet<string>): WordHint | null {
+  const lookup = (bare: string) => hintMap.get(bare) ?? attachedEndingsHint(bare, hintMap, tags);
   return ezafeHint(word, lookup) ?? lookup(stripReadingAids(word));
 }
 
@@ -107,9 +108,12 @@ export interface AnnotatedSegment {
  * whole phrase (so e.g. "آخر هفته" gets one ruby reading, "ākhar-e hafte",
  * not two); a miss falls through to the single token, and a single token
  * with no hint of its own renders as plain, unannotated native text.
+ * `tags` are the lexeme tags of the exercise the text belongs to, when it
+ * has any: how a word with endings attached is split (domain/attachedEndings.ts).
  */
-export function segmentAnnotatedText(text: string, hintMap: ReadonlyMap<string, WordHint>): AnnotatedSegment[] {
+export function segmentAnnotatedText(text: string, hintMap: ReadonlyMap<string, WordHint>, tags: readonly string[] = []): AnnotatedSegment[] {
   const pieces = segmentWords(text);
+  const tagSet = new Set(tags);
   const segments: AnnotatedSegment[] = [];
 
   for (let i = 0; i < pieces.length; ) {
@@ -125,7 +129,7 @@ export function segmentAnnotatedText(text: string, hintMap: ReadonlyMap<string, 
     // map. Every span tried is a legal stopping point (its own text plus
     // whatever trails it), so the last hit found is used.
     let bestEnd = i + 1;
-    let bestHint: WordHint | null = wordHint(piece.text, hintMap);
+    let bestHint: WordHint | null = wordHint(piece.text, hintMap, tagSet);
     let wordCount = 0;
     let end = i;
     let joined = "";
@@ -163,9 +167,9 @@ const LATIN_PUNCTUATION: Record<string, string> = { "؟": "?", "،": ",", "؛": 
  * with no authored romanization (ExerciseArtifact.promptRomanization); null
  * when no word of it is known at all, so there's nothing useful to show.
  */
-export function romanizeSentence(text: string, hintMap: ReadonlyMap<string, WordHint>): string | null {
+export function romanizeSentence(text: string, hintMap: ReadonlyMap<string, WordHint>, tags: readonly string[] = []): string | null {
   let known = false;
-  const parts = segmentAnnotatedText(text, hintMap).map((segment) => {
+  const parts = segmentAnnotatedText(text, hintMap, tags).map((segment) => {
     if (!segment.isWord) return [...segment.text].map((ch) => LATIN_PUNCTUATION[ch] ?? ch).join("");
     if (segment.hint?.romanization == null) return stripReadingAids(segment.text);
     known = true;
