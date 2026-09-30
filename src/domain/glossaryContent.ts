@@ -249,23 +249,52 @@ const COLORS_ENTRY: GlossaryEntry = {
   id: "colors",
   title: "Colors",
   note:
-    "A color follows its noun with ezafe, like any other adjective: ماشین قرمز (māshin-e ghermez, \"red car\"). Several colors — نارنجی، صورتی، طلایی، نقره‌ای، خاکستری — are themselves nouns (orange the fruit, silver the metal, ...) with the ی suffix that turns a noun into \"of/like [that thing]\", the same pattern نارنج (nāranj, bitter orange) → نارنجی follows.",
+    "A color follows its noun with the ezafe, like any other adjective: ماشینِ قرمز (māshīn-e ghermez, \"red car\") — see Ezafe - Word Glue. Several colors — نارنجی، صورتی، طلایی، نقره‌ای، خاکستری، فیروزه‌ای — are themselves nouns (orange the fruit, silver the metal, turquoise the stone, ...) with the ی suffix that turns a noun into \"of/like [that thing]\", the same pattern نارنج (nāranj, bitter orange) → نارنجی follows. A shade takes the ezafe too: آبیِ تیره (ābī-ye tīre, dark blue).",
   terms: [
+    { term: "رنگ", romanization: "rang", definition: "color" },
     { term: "قرمز", romanization: "ghermez", definition: "red" },
-    { term: "آبی", romanization: "ābi", definition: "blue" },
+    { term: "آبی", romanization: "ābī", definition: "blue" },
     { term: "سبز", romanization: "sabz", definition: "green" },
-    { term: "سفید", romanization: "sefid", definition: "white" },
+    { term: "سفید", romanization: "sefīd", definition: "white" },
     { term: "سیاه", romanization: "siāh", definition: "black" },
     { term: "زرد", romanization: "zard", definition: "yellow" },
     { term: "بنفش", romanization: "banafsh", definition: "purple" },
-    { term: "قهوه‌ای", romanization: "ghahve-i", definition: "brown (literally: \"coffee-colored\")" },
-    { term: "نارنجی", romanization: "nārenji", definition: "orange" },
-    { term: "صورتی", romanization: "surati", definition: "pink" },
-    { term: "خاکستری", romanization: "khākestari", definition: "gray" },
-    { term: "طلایی", romanization: "talāyi", definition: "gold" },
-    { term: "نقره‌ای", romanization: "noghre-i", definition: "silver" },
-    { term: "روشن", romanization: "roshan", definition: "light (as in \"light blue\", آبی روشن)" },
-    { term: "تیره", romanization: "tire", definition: "dark (as in \"dark green\", سبز تیره)" },
+    { term: "قهوه‌ای", romanization: "ghahve-ī", definition: "brown (literally: \"coffee-colored\")" },
+    { term: "نارنجی", romanization: "nārenjī", definition: "orange" },
+    { term: "صورتی", romanization: "sūratī", definition: "pink" },
+    { term: "خاکستری", romanization: "khākestarī", definition: "gray (literally: \"ash-colored\")" },
+    { term: "طلایی", romanization: "talāyī", definition: "gold / golden" },
+    { term: "نقره‌ای", romanization: "noghre-ī", definition: "silver" },
+    { term: "فیروزه‌ای", romanization: "fīrūze-ī", definition: "turquoise (the color of Isfahan's tiles)" },
+    { term: "زرشکی", romanization: "zereshkī", definition: "maroon (literally: \"barberry-colored\")" },
+    { term: "لاجوردی", romanization: "lājvardī", definition: "deep blue (literally: \"lapis lazuli-colored\")" },
+    { term: "سرمه‌ای", romanization: "sorme-ī", definition: "navy blue (literally: \"kohl-colored\")" },
+    { term: "روشن", romanization: "rowshan", definition: "light (as in \"light blue\", آبیِ روشن)" },
+    { term: "تیره", romanization: "tīre", definition: "dark (as in \"dark green\", سبزِ تیره)" },
+  ],
+};
+
+// The ezafe has no letter of its own in ordinary writing, which is exactly why
+// it gets a page: learners can't see it, so they don't know it's there. The
+// lessons mark it (a kasra, or a hamza above after a silent heh), shown with
+// the "Show vowel marks and the ezafe" setting, and every sentence
+// romanization writes it out — this page is the rule behind both.
+const EZAFE_ENTRY: GlossaryEntry = {
+  id: "ezafe",
+  title: "Ezafe - Word Glue",
+  note:
+    "The ezafe is a short -e sound that glues a noun to whatever describes or owns it: کتابِ من (ketāb-e man, \"my book\", literally \"book-of me\"). Everyday Persian doesn't write it — you have to hear it — so the lessons mark it for you: a kasra (ِ) on the word it follows, or a small hamza (ٔ) on a silent ه. Turn on \"Show vowel marks and the ezafe\" in a lesson's settings to see the marks; hovering a word that carries one highlights it either way. After a vowel it becomes -ye, carried by a ی. It links a whole chain, one word at a time — but never a noun to its verb: کتاب خوب است (the book is good) has none, while کتابِ خوب (a good book) does.",
+  terms: [
+    { term: "کتابِ من", romanization: "ketāb-e man", definition: "my book — after a consonant: -e, marked with a kasra" },
+    { term: "هوایِ خوب", romanization: "havā-ye khūb", definition: "good weather — after ا or و: -ye, and a ی is written to carry it" },
+    { term: "خانهٔ من", romanization: "khāne-ye man", definition: "my house — after a silent ه: -ye, marked with a small hamza (or written خانه‌ی)" },
+    { term: "صندلیِ چوبی", romanization: "sandalī-ye chūbī", definition: "a wooden chair — after ی: -ye, marked with a kasra on the ی" },
+    { term: "کیفِ مادرم", romanization: "kīf-e mādaram", definition: "my mother's bag — possession: the owner comes after" },
+    { term: "پیراهنِ زرشکی", romanization: "pīrāhan-e zereshkī", definition: "a maroon shirt — an adjective comes after its noun" },
+    { term: "کتابِ قرمزِ علی", romanization: "ketāb-e ghermez-e Alī", definition: "Ali's red book — a chain: every link but the last takes it" },
+    { term: "نزدیکِ مدرسه", romanization: "nazdīk-e madrese", definition: "near the school — many prepositions take it too" },
+    { term: "آقایِ رضایی", romanization: "āghā-ye Rezāyī", definition: "Mr. Rezaei — titles before a name" },
+    { term: "کتاب خوب است", romanization: "ketāb khūb ast", definition: "the book is good — no ezafe before a verb (compare ketāb-e khūb, a good book)" },
   ],
 };
 
@@ -291,6 +320,7 @@ const GLOSSARY_BY_COURSE: Record<string, GlossaryEntry[]> = {
       children: [HOURS_MINUTES_ENTRY, TIME_EXPRESSIONS_ENTRY, RELATIVE_TIME_ENTRY],
     },
     COLORS_ENTRY,
+    EZAFE_ENTRY,
   ],
 };
 
