@@ -63,6 +63,9 @@ export function useOfflineQueueFlush() {
       queryClient.invalidateQueries({ queryKey: ["bootstrap"] });
       queryClient.invalidateQueries({ queryKey: ["sessionPlan"] });
       queryClient.invalidateQueries({ queryKey: ["league", "current"] });
+      // Each flushed session lands on its own occurredAt day, so a flush can
+      // fill in yesterday as well as today — the streak has to be re-read.
+      queryClient.invalidateQueries({ queryKey: ["streak"] });
     } catch {
       // Still offline, or the server is unreachable — leave the queue as is
       // and wait for the next 'online' event or queue-changed nudge.

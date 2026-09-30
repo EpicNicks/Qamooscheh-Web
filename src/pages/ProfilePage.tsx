@@ -1,5 +1,8 @@
 import { useState } from "react";
 import { useProfile, useUpdateProfile } from "../hooks/useProfile";
+import { useStreak } from "../hooks/useStreak";
+import { formatStreakDays } from "../domain/streak";
+import { StreakText } from "../components/common/StreakText";
 import { Button } from "../components/common/Button";
 import { Spinner } from "../components/common/Spinner";
 import { ErrorBanner } from "../components/common/ErrorBanner";
@@ -57,42 +60,78 @@ export function ProfilePage() {
   }
 
   return (
-    <form className={styles.form} onSubmit={handleSubmit}>
+    <div className={styles.page}>
       <h1>Profile</h1>
-      <p className={styles.hint}>
-        This is what friends and leaderboards see — nothing is shown publicly until you set a display name.
-      </p>
-      {updateProfile.isError && <ErrorBanner message={errorMessage(updateProfile.error, "Couldn't save your profile.")} />}
-      <label className={styles.field}>
-        Display name
-        <input
-          value={form.displayName}
-          onChange={(e) => editForm({ displayName: e.target.value })}
-          required
-          maxLength={64}
-        />
-      </label>
-      <label className={styles.field}>
-        Full name (optional, private)
-        <input
-          value={form.fullName}
-          onChange={(e) => editForm({ fullName: e.target.value })}
-          maxLength={128}
-        />
-      </label>
-      <label className={styles.field}>
-        Country (optional, ISO 2-letter, e.g. US)
-        <input
-          value={form.country}
-          onChange={(e) => editForm({ country: e.target.value.toUpperCase() })}
-          maxLength={2}
-          pattern="[A-Z]{2}"
-        />
-      </label>
-      <Button type="submit" disabled={updateProfile.isPending}>
-        {updateProfile.isPending ? "Saving…" : "Save"}
-      </Button>
-      {updateProfile.isSuccess && <p className={styles.saved}>Saved.</p>}
-    </form>
+      <StreakSummary />
+      <form className={styles.form} onSubmit={handleSubmit}>
+        <p className={styles.hint}>
+          This is what friends and leaderboards see — nothing is shown publicly until you set a display name.
+        </p>
+        {updateProfile.isError && <ErrorBanner message={errorMessage(updateProfile.error, "Couldn't save your profile.")} />}
+        <label className={styles.field}>
+          Display name
+          <input
+            value={form.displayName}
+            onChange={(e) => editForm({ displayName: e.target.value })}
+            required
+            maxLength={64}
+          />
+        </label>
+        <label className={styles.field}>
+          Full name (optional, private)
+          <input
+            value={form.fullName}
+            onChange={(e) => editForm({ fullName: e.target.value })}
+            maxLength={128}
+          />
+        </label>
+        <label className={styles.field}>
+          Country (optional, ISO 2-letter, e.g. US)
+          <input
+            value={form.country}
+            onChange={(e) => editForm({ country: e.target.value.toUpperCase() })}
+            maxLength={2}
+            pattern="[A-Z]{2}"
+          />
+        </label>
+        <Button type="submit" disabled={updateProfile.isPending}>
+          {updateProfile.isPending ? "Saving…" : "Save"}
+        </Button>
+        {updateProfile.isSuccess && <p className={styles.saved}>Saved.</p>}
+      </form>
+    </div>
+  );
+}
+
+/**
+ * Current and longest streak, side by side — the header only has room for the
+ * current one. Read-only and outside the form: nothing here is editable, and
+ * it's one streak across every language, not a per-course statistic. Renders
+ * nothing while loading or on error rather than holding up the profile form
+ * it sits above.
+ */
+function StreakSummary() {
+  const streak = useStreak();
+  if (!streak.data) return null;
+  const { currentStreakDays, longestStreakDays, practicedToday } = streak.data;
+
+  return (
+    <section className={styles.streak} aria-label="Streak">
+      <div className={styles.stat}>
+        <StreakText days={currentStreakDays} className={styles.statValue}>
+          {formatStreakDays(currentStreakDays)}
+        </StreakText>
+        <span className={styles.statLabel}>Current streak</span>
+      </div>
+      <div className={styles.stat}>
+        <StreakText days={longestStreakDays} className={styles.statValue}>
+          {formatStreakDays(longestStreakDays)}
+        </StreakText>
+        <span className={styles.statLabel}>Longest streak</span>
+      </div>
+      {currentStreakDays > 0 && !practicedToday && (
+        <p className={styles.streakHint}>Practice today to keep your streak going.</p>
+      )}
+    </section>
   );
 }

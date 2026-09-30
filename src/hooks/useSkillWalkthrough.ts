@@ -158,6 +158,7 @@ export function useSkillWalkthrough(unitKey: string, skillKey: string, options: 
       setResult(sessionResult ?? null);
       if (userId && sessionResult) mergeCardStates(userId, sessionResult.cards);
       queryClient.invalidateQueries({ queryKey: ["bootstrap"] });
+      queryClient.invalidateQueries({ queryKey: ["streak"] });
       setStatus("done");
     } catch {
       if (userId) enqueueOffline(userId, session);

@@ -550,6 +550,9 @@ export function useLessonEngine(deepDiveLessonKeys?: string[], selectedSkillKey?
       // journey or standalone — theme-browsing's grey-out relies on this
       // being fresh.
       queryClient.invalidateQueries({ queryKey: ["lessonsCompleted"] });
+      // A processed session lands today in daily_activity, which is what the
+      // header streak is folded from.
+      queryClient.invalidateQueries({ queryKey: ["streak"] });
 
       // 200 does NOT mean "every session landed": §2.3 answers per session,
       // and one can come back Rejected (stale course version, not
