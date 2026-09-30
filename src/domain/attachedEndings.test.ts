@@ -20,6 +20,9 @@ const lexemes: LexemeIndex = {
   "چای<n>": { gloss: "tea", register: null, romanization: "chāy", romanizationIsAuthored: true },
   "خوب<adj>": { gloss: "good", register: null, romanization: "khūb", romanizationIsAuthored: true },
   "خسته<adj>": { gloss: "tired", register: null, romanization: "khaste", romanizationIsAuthored: true },
+  "سر<n>": { gloss: "head", register: null, romanization: "sar", romanizationIsAuthored: true },
+  "سر<prep>": { gloss: "at (a meal / table): سر سفره = at the sofreh", register: null, romanization: "sar-e", romanizationIsAuthored: true },
+  "پا<n>": { gloss: "leg / foot", register: null, romanization: "pā", romanizationIsAuthored: true },
   "سال<n>": { gloss: "year", register: null, romanization: "sāl", romanizationIsAuthored: true },
   "نو<adj>": { gloss: "new", register: null, romanization: "no", romanizationIsAuthored: true },
   "عمو<n>": { gloss: "uncle (father's brother)", register: null, romanization: "amū", romanizationIsAuthored: true },
@@ -35,8 +38,8 @@ const lexemes: LexemeIndex = {
 };
 const hintMap = buildLexemeHintMap(lexemes);
 
-function hintFor(word: string) {
-  const [segment] = segmentAnnotatedText(word, hintMap);
+function hintFor(word: string, tags: string[] = []) {
+  const [segment] = segmentAnnotatedText(word, hintMap, tags);
   return segment.hint;
 }
 
@@ -69,12 +72,32 @@ describe("attached endings", () => {
     expect(hintFor("نون")).toBeNull();
   });
 
+  it("splits a short stem that ends in a consonant", () => {
+    expect(hintFor("سرم")).toMatchObject({ translation: "head + -am (am / my)", romanization: "saram" });
+  });
+
   it("doesn't read a ی written onto a vowel as an ending — that's the ezafe", () => {
     expect(hintFor("عموی")).toBeNull();
   });
 
   it("prefers a word's own entry over a split", () => {
     expect(hintFor("مادر")?.translation).toBe("mother");
+  });
+});
+
+describe("attached endings the exercise's tags spell out", () => {
+  it("names just the tagged senses", () => {
+    expect(hintFor("سرم", ["سر<n>", "ـم<poss>"])).toMatchObject({ translation: "head + -am (my)", romanization: "saram" });
+    expect(hintFor(`خسته${ZWNJ}ام`, ["خسته<adj>", "ـم<v><spoken>"])?.translation).toBe("tired + -am (am)");
+  });
+
+  it("trusts a short vowel-final stem the tags name", () => {
+    expect(hintFor("پام")).toBeNull();
+    expect(hintFor("پام", ["پا<n>", "ـم<poss>"])).toMatchObject({ translation: "leg / foot + -am (my)", romanization: "pām" });
+  });
+
+  it("falls back to any split for a word the tags don't cover", () => {
+    expect(hintFor("خوبم", ["سر<n>", "ـم<poss>"])?.translation).toBe("good + -am (am / my)");
   });
 });
 

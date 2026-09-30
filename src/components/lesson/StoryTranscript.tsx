@@ -135,13 +135,14 @@ export function StoryTranscript({
                       authored={instance.exercise.promptRomanization}
                       hintMap={hintMap}
                       settings={textSettings}
+                      tags={instance.exercise.tags}
                     />
                     <p
                       className={styles.pastPrompt}
                       dir={displayDirection(instance.exercise.prompt, textSettings.display)}
                       style={alignStyleFor(instance.exercise.prompt)}
                     >
-                      <AnnotatedText text={instance.exercise.prompt} hintMap={hintMap} settings={textSettings} />
+                      <AnnotatedText text={instance.exercise.prompt} hintMap={hintMap} settings={textSettings} tags={instance.exercise.tags} />
                     </p>
                     {answerText && (
                       <p
@@ -149,7 +150,7 @@ export function StoryTranscript({
                         dir={displayDirection(answerText, textSettings.display)}
                         style={alignStyleFor(answerText)}
                       >
-                        <AnnotatedText text={answerText} hintMap={hintMap} settings={textSettings} />
+                        <AnnotatedText text={answerText} hintMap={hintMap} settings={textSettings} tags={instance.exercise.tags} />
                       </p>
                     )}
                     {result && !result.correct && (
@@ -185,6 +186,7 @@ export function StoryTranscript({
                     text: answerIsTokenized ? answeredItem.exercise.answer.join(" ") : answeredItem.exercise.answer[0],
                     romanization: answeredItem.exercise.answerRomanization,
                   }}
+                  tags={answeredItem.exercise.tags}
                   reportContext={{ exerciseTags: answeredItem.exercise.tags, prompt: answeredItem.exercise.prompt }}
                 />
                 <ExerciseRenderer

@@ -39,6 +39,8 @@ export interface WordHint {
 }
 
 export interface WordSense {
+  /** The lexeme's whole tag, e.g. "ـم<poss>" — also on an entry for one of its `forms` (ـام) — so an exercise's `tags` can pick it out. */
+  tag: string;
   /** The tag's part-of-speech markers, e.g. "<poss>" or "<v><spoken>". */
   pos: string;
   translation: string;
@@ -58,7 +60,7 @@ export function buildLexemeHintMap(lexemeIndex: LexemeIndex | null | undefined):
   for (const [tag, entry] of Object.entries(lexemeIndex)) {
     const surface = tag.split("<", 1)[0];
     if (!surface) continue;
-    const sense: WordSense = { pos: tag.slice(surface.length), translation: entry.gloss, romanization: entry.romanization };
+    const sense: WordSense = { tag, pos: tag.slice(surface.length), translation: entry.gloss, romanization: entry.romanization };
     for (const written of [surface, ...(entry.forms ?? [])]) {
       // Two lexemes can share a surface (the same word tagged as a noun and a
       // verb, or in two registers) — merge onto whatever's already there

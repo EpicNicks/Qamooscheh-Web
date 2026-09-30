@@ -240,22 +240,25 @@ export function AnnotatedWord({ word, hint, settings, focusable = true, onReveal
  * caller (empty when nothing needs it — domain/romanization.ts's
  * gateLexemeHintMap): every word simply renders plain when its lookup
  * misses, so passing an empty map here is the same as not calling this at
- * all.
+ * all. `tags` are the exercise's lexeme tags, which say how a word with
+ * endings attached splits (سرم = سر<n> + ـم<poss>).
  */
 export function AnnotatedText({
   text,
   hintMap,
   settings,
   focusable,
+  tags,
 }: {
   text: string;
   hintMap: ReadonlyMap<string, WordHint>;
   settings: TextDisplaySettings;
   focusable?: boolean;
+  tags?: readonly string[];
 }) {
   return (
     <>
-      {segmentAnnotatedText(text, hintMap).map((segment, i) =>
+      {segmentAnnotatedText(text, hintMap, tags).map((segment, i) =>
         segment.isWord ? (
           <AnnotatedWord key={i} word={segment.text} hint={segment.hint} settings={settings} focusable={focusable} />
         ) : settings.vowelMarks ? (

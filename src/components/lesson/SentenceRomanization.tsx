@@ -16,14 +16,17 @@ export function SentenceRomanization({
   authored,
   hintMap,
   settings,
+  tags,
 }: {
   text: string;
   authored?: string | null;
   hintMap: ReadonlyMap<string, WordHint>;
   settings: TextDisplaySettings;
+  /** The exercise's lexeme tags — how a word with endings attached splits (domain/attachedEndings.ts). */
+  tags?: readonly string[];
 }) {
   if (!settings.sentenceRomanization || settings.display === "romanized") return null;
-  const romanization = authored || romanizeSentence(text, hintMap);
+  const romanization = authored || romanizeSentence(text, hintMap, tags);
   if (!romanization) return null;
   return (
     <p className={styles.sentenceRomanization} dir="ltr">

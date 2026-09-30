@@ -31,6 +31,8 @@ export interface AnswerFeedbackProps {
   textSettings?: TextDisplaySettings;
   /** The first accepted answer's authored romanization and the text it romanizes — used over the assembled one for the revealed line that is that answer (SentenceRomanization). */
   answerRomanization?: { text: string; romanization: string | null | undefined };
+  /** The exercise's lexeme tags — how a revealed answer's word with endings attached splits (domain/attachedEndings.ts). */
+  tags?: readonly string[];
   /** Cites which lesson part a report is about — omit to hide the Report control entirely. */
   reportContext?: { exerciseTags: string[]; prompt: string };
 }
@@ -52,6 +54,7 @@ export function AnswerFeedback({
   hintMap = EMPTY_HINT_MAP,
   textSettings = PLAIN_TEXT,
   answerRomanization,
+  tags,
   reportContext,
 }: AnswerFeedbackProps) {
   const [revealed, setRevealed] = useState(false);
@@ -80,9 +83,10 @@ export function AnswerFeedback({
                     authored={answerRomanization?.text === line ? answerRomanization.romanization : null}
                     hintMap={hintMap}
                     settings={textSettings}
+                    tags={tags}
                   />
                   <span className={styles.verdict} dir={displayDirection(line, textSettings.display)}>
-                    <AnnotatedText text={line} hintMap={hintMap} settings={textSettings} />
+                    <AnnotatedText text={line} hintMap={hintMap} settings={textSettings} tags={tags} />
                   </span>
                 </span>
               ))}
