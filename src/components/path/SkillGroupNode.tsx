@@ -42,7 +42,8 @@ export function SkillGroupNode({ position, nextSkipTarget }: { position: PathPos
         aria-label={`${position.skills.length} lesson choices: ${titles.join(", ")}`}
         title={titles.join(" · ")}
       >
-        <span className={nodeStyles.icon}>{theme.icons.standard}</span>
+        <span className={nodeStyles.fold} aria-hidden="true" />
+        {theme.icons.standard != null && <span className={nodeStyles.icon}>{theme.icons.standard}</span>}
         <span className={nodeStyles.title}>{position.skills.length} lessons</span>
         <span className={styles.countPill}>{position.skills.length}</span>
       </button>

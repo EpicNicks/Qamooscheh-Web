@@ -56,7 +56,7 @@ export function SkillRoad({
   const Motif = theme.motif;
 
   // On a phone a forked position renders as ONE composite node
-  // (SkillGroupNode) — an 84px card can't show real lesson titles legibly
+  // (SkillGroupNode) — a 100px card can't show real lesson titles legibly
   // for more than one skill on a narrow screen. The geometry module needs no
   // opinion about why: a collapsed fork is arithmetically a singleton, so it
   // is simply asked for one node at that position instead of N.
