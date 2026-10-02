@@ -204,11 +204,11 @@ export function WordBankExercise({
   advance,
   reviewedAnswer,
 }: ExerciseProps) {
-  const tiles = exercise.tiles ?? [];
+  const tiles = useMemo(() => exercise.tiles ?? [], [exercise.tiles]);
   // Shuffled once per exercise (this component is remounted per exercise via
   // ExerciseRenderer's `key`, so this only ever runs once per question) so
   // the bank's on-screen order never leaks the answer via tile position.
-  const originalBankOrder = useMemo(() => shuffleIndices(tiles.length), [exercise]);
+  const originalBankOrder = useMemo(() => shuffleIndices(tiles.length), [tiles.length]);
   // A single object updated atomically (one setState per drag event) rather
   // than two separate `bank`/`answer` state variables — a cross-container
   // move removes from one array and inserts into the other, and splitting
