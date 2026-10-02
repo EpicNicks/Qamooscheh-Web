@@ -150,6 +150,15 @@ export interface LocalAppPrefs {
    * also hides the on-screen keyboard rather than showing both).
    */
   deviceInputEnabled: boolean;
+  /**
+   * Whether picking a word-bank tile (tapping or dragging it into the answer
+   * row) reads that one word aloud. Only course-language tiles are spoken,
+   * through the same TTS fallback as the prompt (domain/tts.ts) until content
+   * ships recorded per-lexeme audio. A per-device sound choice like
+   * goalCelebrationEnabled. Defaults on, like other language apps, for
+   * hearing each word as it goes into the sentence.
+   */
+  speakWordBankTiles: boolean;
 }
 
 const DEFAULTS: LocalAppPrefs = {
@@ -173,6 +182,7 @@ const DEFAULTS: LocalAppPrefs = {
   suppressRemoveFontWarning: false,
   persianFlag: "pahlavi",
   deviceInputEnabled: false,
+  speakWordBankTiles: true,
 };
 
 function storageKey(userId: string): string {

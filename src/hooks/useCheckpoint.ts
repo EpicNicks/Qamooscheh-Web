@@ -61,24 +61,26 @@ export function useCheckpoint(targetUnitKey: string, targetSkillKey: string) {
     // a checkpoint question is presented the way a lesson would have
     // presented it rather than always as type-in.
     const localCards = userId ? loadCardStates(userId) : {};
-    const result: CheckpointExerciseInstance[] = [];
-    for (const skillPlan of plan.data.skills) {
-      const artifact = skillArtifacts.get(`${skillPlan.unitKey}/${skillPlan.skillKey}`);
-      if (!artifact) return [];
-      for (const ordinal of skillPlan.exerciseOrdinals) {
+    const artifactFor = (unitKey: string, skillKey: string) => skillArtifacts.get(`${unitKey}/${skillKey}`);
+    // Nothing until every skill's artifact has loaded, rather than a partial list.
+    if (!plan.data.skills.every((skillPlan) => artifactFor(skillPlan.unitKey, skillPlan.skillKey))) return [];
+    return plan.data.skills.flatMap((skillPlan) => {
+      const artifact = artifactFor(skillPlan.unitKey, skillPlan.skillKey)!;
+      return skillPlan.exerciseOrdinals.flatMap((ordinal) => {
         const exercise = artifact.exercises[ordinal];
-        if (!exercise) continue;
-        result.push({
-          key: `${skillPlan.unitKey}/${skillPlan.skillKey}/${ordinal}`,
-          unitKey: skillPlan.unitKey,
-          skillKey: skillPlan.skillKey,
-          ordinal,
-          exercise,
-          renderType: resolveExerciseType(exercise, localCards[exercise.tags[0]] ?? null),
-        });
-      }
-    }
-    return result;
+        if (!exercise) return [];
+        return [
+          {
+            key: `${skillPlan.unitKey}/${skillPlan.skillKey}/${ordinal}`,
+            unitKey: skillPlan.unitKey,
+            skillKey: skillPlan.skillKey,
+            ordinal,
+            exercise,
+            renderType: resolveExerciseType(exercise, localCards[exercise.tags[0]] ?? null),
+          },
+        ];
+      });
+    });
   }, [plan.data, skillArtifacts, userId]);
 
   const [answers, setAnswers] = useState<Map<string, string>>(new Map());

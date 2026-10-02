@@ -23,7 +23,9 @@ import { DirectionalText } from "../common/DirectionalText";
 import { ExercisePrompt } from "./ExercisePrompt";
 import { AnnotatedText } from "./AnnotatedText";
 import { EMPTY_HINT_MAP, PLAIN_TEXT, type TextDisplaySettings, type WordHint } from "../../domain/romanization";
-import { detectScriptDirection } from "../../domain/language";
+import { detectScriptDirection, getLanguageInfo, getSpeechLang } from "../../domain/language";
+import { hasVoiceFor, speak } from "../../domain/tts";
+import { useLocalAppPref } from "../../hooks/useLocalAppPref";
 import { acceptedTileOrders, closestTileOrder, missingBankTiles, tilesForSubmission, type TileMark } from "../../domain/wordBankOrders";
 import type { ExerciseProps } from "./ExerciseRenderer";
 import styles from "./Exercise.module.css";
@@ -202,11 +204,11 @@ export function WordBankExercise({
   advance,
   reviewedAnswer,
 }: ExerciseProps) {
-  const tiles = exercise.tiles ?? [];
+  const tiles = useMemo(() => exercise.tiles ?? [], [exercise.tiles]);
   // Shuffled once per exercise (this component is remounted per exercise via
   // ExerciseRenderer's `key`, so this only ever runs once per question) so
   // the bank's on-screen order never leaks the answer via tile position.
-  const originalBankOrder = useMemo(() => shuffleIndices(tiles.length), [exercise]);
+  const originalBankOrder = useMemo(() => shuffleIndices(tiles.length), [tiles.length]);
   // A single object updated atomically (one setState per drag event) rather
   // than two separate `bank`/`answer` state variables — a cross-container
   // move removes from one array and inserts into the other, and splitting
@@ -240,6 +242,25 @@ export function WordBankExercise({
   const [activeTileIndex, setActiveTileIndex] = useState<number | null>(null);
   // Set once an English prompt word's hover has shown its Persian (domain/englishHints.ts).
   const [usedHint, setUsedHint] = useState(false);
+
+  // Picking a tile reads that word aloud (localAppPrefs.ts's
+  // speakWordBankTiles). Only course-language tiles: an English tile is a
+  // word the learner already knows how to say. speak() cancels whatever is
+  // already talking, so tapping quickly through tiles (or picking one while
+  // the prompt is still playing) only ever voices the newest word.
+  const [speakTiles] = useLocalAppPref("speakWordBankTiles", true);
+  const stopTileAudio = useRef<() => void>(() => {});
+  useEffect(() => () => stopTileAudio.current(), []);
+  function speakTile(tileIndex: number) {
+    const speechLang = getLanguageInfo(courseCode)?.speechLang;
+    const text = tiles[tileIndex];
+    if (!speakTiles || !speechLang || getSpeechLang(courseCode, text) !== speechLang || !hasVoiceFor(speechLang)) return;
+    stopTileAudio.current = speak(text, speechLang, () => {}).stop;
+  }
+  // Which row the tile being dragged started in: a drag only counts as
+  // picking a tile (and speaks it) when it carries a bank tile into the
+  // answer, not when it reorders the answer row.
+  const dragOrigin = useRef<ContainerId | null>(null);
 
   // At most one cross-container move per frame (the same guard dnd-kit's own
   // multiple-containers example uses). Moving a tile reflows both rows, which
@@ -308,6 +329,7 @@ export function WordBankExercise({
         bank: prev.bank.filter((i) => i !== tileIndex),
         answer: [...prev.answer, tileIndex],
       }));
+      speakTile(tileIndex);
     }
   }
 
@@ -318,6 +340,7 @@ export function WordBankExercise({
 
   function handleDragStart(event: DragStartEvent) {
     setActiveTileIndex(tileIndexFromId(String(event.active.id)));
+    dragOrigin.current = resolveContainer(String(event.active.id), event.active.data.current?.container) ?? null;
   }
 
   // Moves the dragged tile across containers live, as the pointer crosses
@@ -371,6 +394,7 @@ export function WordBankExercise({
     const overContainer = resolveContainer(overId, over.data.current?.container);
     if (!activeContainer || !overContainer || activeContainer !== overContainer) return;
     const activeIndex = tileIndexFromId(activeId);
+    if (dragOrigin.current === "bank" && overContainer === "answer") speakTile(activeIndex);
 
     setOrder((prev) => {
       const items = prev[activeContainer];
