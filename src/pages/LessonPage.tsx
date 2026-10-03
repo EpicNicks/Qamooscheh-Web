@@ -341,10 +341,10 @@ export function LessonPage() {
     }
   }
 
-  async function handleSubmit(text: string, opts?: { usedHint?: boolean }) {
+  function handleSubmit(text: string, opts?: { usedHint?: boolean }) {
     const answered = engine.current; // snapshot before submitAnswer advances the queue
     if (!answered) return;
-    const result = await engine.submitAnswer(text, opts);
+    const result = engine.submitAnswer(text, opts);
     setLastUsedHint(opts?.usedHint ?? false);
     confirmation.record(answered, result);
   }

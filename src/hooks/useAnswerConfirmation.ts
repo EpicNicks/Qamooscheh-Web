@@ -1,8 +1,11 @@
 // Holds the just-answered exercise (and its feedback) on screen until the
 // learner explicitly confirms. Both useLessonEngine.submitAnswer and
 // useSkillWalkthrough.submitAnswer splice their own queue SYNCHRONOUSLY
-// inside that same call — by the time either resolves, `current` has
+// inside that same call — by the time either returns, `current` has
 // already moved on to the next exercise (or gone null, on the last one).
+// Both are synchronous, and a page calls record() right after in the same
+// handler, so the two state changes render together; an await between them
+// would render the next exercise alone for a frame (and start its prompt).
 // Without holding a snapshot here, the next exercise would render
 // immediately underneath feedback that's actually about the one just
 // answered, and answering the last exercise in a queue would jump straight

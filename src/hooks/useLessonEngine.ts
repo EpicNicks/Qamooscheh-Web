@@ -420,7 +420,14 @@ export function useLessonEngine(deepDiveLessonKeys?: string[], selectedSkillKey?
     shownAt.current = performance.now();
   }
 
-  async function submitAnswer(submittedText: string, opts?: { usedHint?: boolean }): Promise<SubmitAnswerResult> {
+  /**
+   * Synchronous on purpose: the page records this result for review in the
+   * same handler, so the queue advancing and the review appearing land in one
+   * render. Awaiting anything here would let React render the NEXT exercise
+   * for a frame first, mounting it and starting its prompt's autoplay. The
+   * end-of-lesson submit runs on its own (finishLesson owns its errors).
+   */
+  function submitAnswer(submittedText: string, opts?: { usedHint?: boolean }): SubmitAnswerResult {
     if (!current || !queue) return { correct: false, requeued: false, note: null, verdict: "incorrect", attempt: 1, submittedText };
 
     const feedback = checkAnswer(course?.code, current.exercise, submittedText);
@@ -471,7 +478,7 @@ export function useLessonEngine(deepDiveLessonKeys?: string[], selectedSkillKey?
     // time too. The page calls markShown() when the next one is really shown.
 
     if (rest.length === 0) {
-      await finishLesson([...items, ...newItems], totalCount === 0 ? 0 : points / totalCount);
+      void finishLesson([...items, ...newItems], totalCount === 0 ? 0 : points / totalCount);
     }
 
     return { correct, requeued, note: feedback.note, verdict: feedback.verdict, attempt, submittedText };
