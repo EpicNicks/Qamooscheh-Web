@@ -11,7 +11,7 @@ import { ErrorBanner } from "../components/common/ErrorBanner";
 import { Button } from "../components/common/Button";
 import styles from "./VocabularyReviewPage.module.css";
 
-type Scope = "lesson" | "unit" | "course";
+type Scope = "lesson" | "unit" | "course" | "saved";
 
 /**
  * Vocabulary at whichever scope the learner asks for — a single lesson, its
@@ -58,11 +58,15 @@ export function VocabularyReviewPage() {
   const lesson = unitKey && skillKey ? lessonVocab(vocabulary.units, unitKey, skillKey) : null;
 
   const tags: string[] =
-    scope === "lesson" && lesson
-      ? lesson.tags
-      : scope === "unit" && unitKey
-        ? unitVocabTags(vocabulary.units, unitKey)
-        : courseVocabTags(vocabulary.units);
+    scope === "saved"
+      ? [...starred.tags]
+      : scope === "lesson" && lesson
+        ? lesson.tags
+        : scope === "unit" && unitKey
+          ? unitVocabTags(vocabulary.units, unitKey)
+          : courseVocabTags(vocabulary.units);
+  // Saved words of THIS course — the saved list spans every course.
+  const savedHere = starred.tags.filter((tag) => lexemeIndex.data?.[tag] != null).length;
 
   const entries = tags
     .map((tag) => ({ tag, entry: lexemeIndex.data?.[tag] }))
@@ -84,13 +88,30 @@ export function VocabularyReviewPage() {
           ...(lesson ? [{ value: "lesson" as const, label: lesson.title }] : []),
           ...(unitTitle ? [{ value: "unit" as const, label: unitTitle }] : []),
           { value: "course" as const, label: "Whole course" },
+          { value: "saved" as const, label: "Saved" },
         ]}
         value={scope}
         onChange={setScope}
       />
 
+      <div className={styles.savedBar}>
+        <span className={styles.savedCount}>
+          {savedHere} saved here
+          {starred.limit != null && ` · ${starred.tags.length} / ${starred.limit} on your plan`}
+        </span>
+        <div className={styles.savedActions}>
+          <Button variant="secondary" disabled={savedHere === 0} onClick={() => navigate("/flashcards")}>
+            Flashcards
+          </Button>
+          <Button disabled={savedHere === 0} onClick={() => navigate("/saved-practice")}>
+            Practise saved words
+          </Button>
+        </div>
+      </div>
+      {starred.limitMessage && <ErrorBanner message={starred.limitMessage} />}
+
       {entries.length === 0 ? (
-        <p>Nothing here yet.</p>
+        <p>{scope === "saved" ? "No saved words yet. Tap ★ on a word to save it." : "Nothing here yet."}</p>
       ) : (
         <div className={styles.list}>
           {entries.map(({ tag, entry }) => (

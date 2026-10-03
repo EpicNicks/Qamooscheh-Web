@@ -16,6 +16,7 @@ import { useState, type ReactNode } from "react";
 import { ExerciseRenderer } from "./ExerciseRenderer";
 import { SessionProgressBar } from "./SessionProgressBar";
 import { AnswerFeedback } from "./AnswerFeedback";
+import { SaveWordsRow } from "../vocabulary/SaveWordsRow";
 import { SkipLessonModal } from "./SkipLessonModal";
 import { CloseLessonButton } from "./CloseLessonButton";
 import { LanguageSettingsButton } from "./languageSettings/LanguageSettingsButton";
@@ -137,6 +138,7 @@ export function ExerciseSessionScreen<TItem extends ExerciseSessionItem, TFeedba
           tags={answeredItem.exercise.tags}
           reportContext={{ exerciseTags: answeredItem.exercise.tags, prompt: answeredItem.exercise.prompt }}
         />
+        <SaveWordsRow tags={answeredItem.exercise.tags} />
         <ExerciseRenderer
           key={answeredItem.key}
           exercise={answeredItem.exercise}

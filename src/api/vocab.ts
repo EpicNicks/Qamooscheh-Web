@@ -3,7 +3,7 @@
 // the caller's full updated tag list so a write self-reconciles without a
 // follow-up GET.
 import { apiFetch } from "./httpClient";
-import type { BatchSetStarredRequest, SetStarredRequest, StarredVocabResponse } from "../types/api";
+import type { BatchSetStarredRequest, SetStarredRequest, StarredPracticeResponse, StarredVocabResponse } from "../types/api";
 
 export function getStarredVocab(): Promise<StarredVocabResponse> {
   return apiFetch<StarredVocabResponse>("/v1/vocab/starred");
@@ -15,4 +15,8 @@ export function setStarred(request: SetStarredRequest): Promise<StarredVocabResp
 
 export function batchSetStarred(request: BatchSetStarredRequest): Promise<StarredVocabResponse> {
   return apiFetch<StarredVocabResponse>("/v1/vocab/starred/batch", { method: "PUT", body: request });
+}
+
+export function getStarredPractice(words: number): Promise<StarredPracticeResponse> {
+  return apiFetch<StarredPracticeResponse>(`/v1/vocab/starred/practice?words=${words}`);
 }

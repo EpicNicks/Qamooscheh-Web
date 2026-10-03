@@ -28,7 +28,7 @@ export function StarButton({ starred, onToggle }: StarButtonProps) {
       type="button"
       className={classes}
       aria-pressed={starred}
-      aria-label={starred ? "Unstar this word" : "Star this word for review"}
+      aria-label={starred ? "Remove from saved words" : "Save this word"}
       onClick={handleClick}
       onAnimationEnd={() => setJustStarred(false)}
     >
