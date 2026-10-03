@@ -168,6 +168,16 @@ export interface LocalAppPrefs {
    * user_prefs.autoplay_audio, which is about prompts. Defaults on.
    */
   speakAnswers: boolean;
+  /**
+   * Whether resting the pointer on a course-language word in a sentence (a
+   * prompt, a revealed answer, a story line) reads that word aloud — or
+   * focusing or tapping it (hooks/useHoverSpeech.ts, issue #35). Not a
+   * word-bank tile: picking one already reads it (speakWordBankTiles).
+   * Defaults on.
+   */
+  speakHoveredWords: boolean;
+  /** The same for an English word (an English prompt) — off by default, since it's a word the learner already knows how to say. */
+  speakHoveredEnglish: boolean;
 }
 
 const DEFAULTS: LocalAppPrefs = {
@@ -193,6 +203,8 @@ const DEFAULTS: LocalAppPrefs = {
   deviceInputEnabled: false,
   speakWordBankTiles: true,
   speakAnswers: true,
+  speakHoveredWords: true,
+  speakHoveredEnglish: false,
 };
 
 function storageKey(userId: string): string {
