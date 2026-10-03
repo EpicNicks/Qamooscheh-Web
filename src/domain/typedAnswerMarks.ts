@@ -4,7 +4,7 @@
 // same "which part was off" feedback a word bank's tiles already give, applied
 // to free text by measuring its words against the closest accepted answer.
 import { isPersian } from "./language";
-import { foldCodepoints, normalizeStrict, ZWNJ } from "./persian/normalize";
+import { foldCodepoints, normalizeStrict } from "./persian/normalize";
 import { closestTileOrder, type TileMark } from "./wordBankOrders";
 
 export interface MarkedWord {
@@ -14,11 +14,11 @@ export interface MarkedWord {
 }
 
 // Punctuation never decides whether a word is right ("salam!" is "salam"),
-// and neither do case or, in Persian, an Arabic codepoint or a half-space the
-// comparator itself already forgives.
+// and neither do case or, in Persian, an Arabic codepoint the comparator
+// itself already forgives. A half-space does: it's spelling (issue #39).
 function wordKey(word: string, persian: boolean): string {
   const base = word.toLowerCase().replace(/[\p{P}\p{S}]/gu, "");
-  return persian ? foldCodepoints(normalizeStrict(base)).split(ZWNJ).join("") : base;
+  return persian ? foldCodepoints(normalizeStrict(base)) : base;
 }
 
 function words(text: string): string[] {

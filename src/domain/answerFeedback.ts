@@ -8,7 +8,15 @@
 import { isPersian } from "./language";
 import { looksCorrect } from "../lib/textMatch";
 import { acceptedTileOrders } from "./wordBankOrders";
-import { compareExact, compareNative, compareRomanized, compareSpeak, type CorrectionReason } from "./persian/comparators";
+import {
+  compareExact,
+  compareNative,
+  compareRomanized,
+  compareSpeak,
+  separatorMistakes,
+  type CorrectionReason,
+  type SeparatorMistake,
+} from "./persian/comparators";
 import type { ExerciseArtifact } from "../types/content";
 
 export type AnswerVerdict = "correct" | "accepted_with_correction" | "incorrect";
@@ -21,7 +29,6 @@ export interface AnswerFeedback {
 
 const REASON_LABEL: Record<CorrectionReason, string> = {
   codepoint_substitution: "used the Arabic form of a letter instead of the Persian one",
-  zwnj_or_spacing: "the half-space (ZWNJ) was off",
   edit_distance_typo: "a small typo",
   latinization_variance: "romanization spelling",
 };
@@ -29,6 +36,32 @@ const REASON_LABEL: Record<CorrectionReason, string> = {
 function describeReasons(reasons: CorrectionReason[]): string | null {
   if (reasons.length === 0) return null;
   return `Close — ${reasons.map((r) => REASON_LABEL[r]).join(", ")}.`;
+}
+
+/** A word in an English sentence, isolated so a Persian one keeps its place in the line. */
+function isolate(word: string): string {
+  return `\u2068${word}\u2069`;
+}
+
+function describeSeparator({ after, expected, typed }: SeparatorMistake): string {
+  const what =
+    expected === "none"
+      ? `no ${typed} after`
+      : typed === "none"
+        ? `a ${expected} after`
+        : `a ${expected}, not a ${typed}, after`;
+  return `${what} ${isolate(after)}`;
+}
+
+/**
+ * Where a typed answer's spacing went wrong when its letters are all right
+ * (issue #39) — "Needs a half-space after می." Null when some letter is off
+ * too, since then the spacing isn't the whole story.
+ */
+function describeSeparatorMistakes(submitted: string, acceptedAnswers: readonly string[]): string | null {
+  const mistakes = separatorMistakes(submitted, acceptedAnswers);
+  if (!mistakes || mistakes.length === 0) return null;
+  return `Needs ${mistakes.map(describeSeparator).join("; ")}.`;
 }
 
 export function checkAnswer(
@@ -63,5 +96,10 @@ export function checkAnswer(
         ? compareRomanized(submittedText, exercise.answer)
         : compareNative(submittedText, exercise.answer);
 
+  // Speech recognition, not the learner, decides a spoken answer's spacing,
+  // so only a typed one hears about it.
+  if (result.verdict === "incorrect" && exercise.type !== "speak" && exercise.scriptMode !== "romanized") {
+    return { verdict: "incorrect", note: describeSeparatorMistakes(submittedText, exercise.answer) };
+  }
   return { verdict: result.verdict, note: describeReasons(result.reasons) };
 }

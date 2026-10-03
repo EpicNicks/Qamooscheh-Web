@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compareExact, compareNative, compareRomanized, compareSpeak } from "./comparators";
+import { compareExact, compareNative, compareRomanized, compareSpeak, separatorMistakes } from "./comparators";
 import type { PersianComparisonResult } from "./comparators";
 
 // Codepoints spelled out as escapes for the same reason normalize.ts does it:
@@ -24,6 +24,10 @@ const MIZ_ARABIC = `م${ARABIC_YEH}ز`;
 const MIRAVAM = `م${PERSIAN_YEH}${ZWNJ}روم`;
 /** میروم — the same word with the ZWNJ omitted. */
 const MIRAVAM_NO_ZWNJ = `م${PERSIAN_YEH}روم`;
+/** می روم — the ZWNJ typed as a plain space. */
+const MIRAVAM_SPACE = `م${PERSIAN_YEH} روم`;
+/** من می‌روم "man miravam", two words. */
+const MAN_MIRAVAM = `من ${MIRAVAM}`;
 
 /** آب "ab" — only 2 letters, below the edit-tolerance minimum. */
 const AB = "آب";
@@ -70,10 +74,28 @@ describe("compareNative", () => {
       expected: { verdict: "accepted_with_correction", matchedAnswer: MIZ, reasons: ["codepoint_substitution"] },
     },
     {
-      name: "a missing ZWNJ is accepted as a spacing correction",
+      name: "a missing ZWNJ is incorrect: spacing is spelling, not a typo",
       submitted: MIRAVAM_NO_ZWNJ,
       accepted: [MIRAVAM],
-      expected: { verdict: "accepted_with_correction", matchedAnswer: MIRAVAM, reasons: ["zwnj_or_spacing"] },
+      expected: { verdict: "incorrect", matchedAnswer: null, reasons: [] },
+    },
+    {
+      name: "a ZWNJ typed as a space is incorrect",
+      submitted: MIRAVAM_SPACE,
+      accepted: [MIRAVAM],
+      expected: { verdict: "incorrect", matchedAnswer: null, reasons: [] },
+    },
+    {
+      name: "a missing space between words is incorrect, not a one-edit typo",
+      submitted: `من${MIRAVAM}`,
+      accepted: [MAN_MIRAVAM],
+      expected: { verdict: "incorrect", matchedAnswer: null, reasons: [] },
+    },
+    {
+      name: "a one-letter typo is still forgiven in a correctly spaced answer",
+      submitted: `من م${PERSIAN_YEH}${ZWNJ}رم`,
+      accepted: [MAN_MIRAVAM],
+      expected: { verdict: "accepted_with_correction", matchedAnswer: MAN_MIRAVAM, reasons: ["edit_distance_typo"] },
     },
     {
       name: "a one-letter typo is forgiven when the accepted answer is long enough",
@@ -147,6 +169,36 @@ describe("compareNative", () => {
       matchedAnswer: accepted,
       reasons: ["codepoint_substitution", "edit_distance_typo"],
     });
+  });
+});
+
+describe("separatorMistakes", () => {
+  it("says where a half-space was left out, or typed as a space", () => {
+    expect(separatorMistakes(MIRAVAM_NO_ZWNJ, [MIRAVAM])).toEqual([{ after: `م${PERSIAN_YEH}`, expected: "half-space", typed: "none" }]);
+    expect(separatorMistakes(MIRAVAM_SPACE, [MIRAVAM])).toEqual([{ after: `م${PERSIAN_YEH}`, expected: "half-space", typed: "space" }]);
+  });
+
+  it("names every place, each after its own word's letters", () => {
+    expect(separatorMistakes(`من${MIRAVAM_NO_ZWNJ}`, [MAN_MIRAVAM])).toEqual([
+      { after: "من", expected: "space", typed: "none" },
+      { after: `م${PERSIAN_YEH}`, expected: "half-space", typed: "none" },
+    ]);
+  });
+
+  it("catches a separator typed where none belongs", () => {
+    expect(separatorMistakes(`ک${ZWNJ}تاب`, [KETAB])).toEqual([{ after: "ک", expected: "none", typed: "half-space" }]);
+  });
+
+  it("is empty for a correctly spaced answer, and null when a letter is off too", () => {
+    expect(separatorMistakes(MAN_MIRAVAM, [MAN_MIRAVAM])).toEqual([]);
+    expect(separatorMistakes(`من م${PERSIAN_YEH}رم`, [MAN_MIRAVAM])).toBeNull();
+  });
+
+  it("goes by the closest accepted answer and forgives Arabic codepoints", () => {
+    const arabicNoZwnj = `م${ARABIC_YEH}روم`;
+    expect(separatorMistakes(arabicNoZwnj, [MAN_MIRAVAM, MIRAVAM])).toEqual([
+      { after: `م${PERSIAN_YEH}`, expected: "half-space", typed: "none" },
+    ]);
   });
 });
 

@@ -4,11 +4,11 @@
 // only — see normalize.ts's header comment. Tuning constants (edit-distance
 // budgets, minimum lengths) are copied verbatim from those files; if the
 // backend's tuning changes, this drifts until re-synced by re-reading them.
-import { foldCodepoints, normalizeStrict, stripSeparators } from "./normalize";
+import { foldCodepoints, normalizeStrict, stripSeparators, ZWNJ } from "./normalize";
 
 export type AnswerVerdict = "correct" | "accepted_with_correction" | "incorrect";
 
-export type CorrectionReason = "codepoint_substitution" | "zwnj_or_spacing" | "edit_distance_typo" | "latinization_variance";
+export type CorrectionReason = "codepoint_substitution" | "edit_distance_typo" | "latinization_variance";
 
 export interface PersianComparisonResult {
   verdict: AnswerVerdict;
@@ -41,7 +41,13 @@ function better(current: PersianComparisonResult, candidate: PersianComparisonRe
   return verdictRank(candidate.verdict) > verdictRank(current.verdict) ? candidate : current;
 }
 
-/** Mirrors TypeInComparator(maxEditDistance = 1, minLengthForEditTolerance = 4). */
+/**
+ * Mirrors TypeInComparator(maxEditDistance = 1, minLengthForEditTolerance = 4).
+ * Spaces and half-spaces are spelling, not typos: a missing or misplaced one
+ * is incorrect, and the typo tier never forgives an edit that only adds, drops
+ * or swaps one (the backend's "Mark a missing or misplaced half-space wrong in
+ * typed answers"). separatorMistakes says where one went wrong.
+ */
 export function compareNative(
   submitted: string,
   acceptedAnswers: readonly string[],
@@ -50,7 +56,7 @@ export function compareNative(
 ): PersianComparisonResult {
   const strictSubmitted = normalizeStrict(submitted);
   const foldedSubmitted = foldCodepoints(strictSubmitted);
-  const looseSubmitted = stripSeparators(foldedSubmitted);
+  const lettersSubmitted = stripSeparators(foldedSubmitted);
 
   let best = INCORRECT;
 
@@ -61,20 +67,21 @@ export function compareNative(
     }
 
     const foldedAccepted = foldCodepoints(strictAccepted);
-    const looseAccepted = stripSeparators(foldedAccepted);
+    const reasons: CorrectionReason[] =
+      foldedSubmitted !== strictSubmitted || foldedAccepted !== strictAccepted ? ["codepoint_substitution"] : [];
 
-    const reasons: CorrectionReason[] = [];
-    if (foldedSubmitted !== strictSubmitted || foldedAccepted !== strictAccepted) reasons.push("codepoint_substitution");
-    if (looseSubmitted !== foldedSubmitted || looseAccepted !== foldedAccepted) reasons.push("zwnj_or_spacing");
-
-    if (looseSubmitted === looseAccepted) {
+    if (foldedSubmitted === foldedAccepted) {
       best = better(best, { verdict: "accepted_with_correction", matchedAnswer: accepted, reasons });
       continue;
     }
 
-    if (maxEditDistance > 0 && looseAccepted.length >= minLengthForEditTolerance) {
-      const distance = levenshteinDistance(looseSubmitted, looseAccepted);
-      if (distance <= maxEditDistance) {
+    const lettersAccepted = stripSeparators(foldedAccepted);
+    if (maxEditDistance > 0 && lettersAccepted.length >= minLengthForEditTolerance) {
+      const distance = levenshteinDistance(foldedSubmitted, foldedAccepted);
+      // With separators removed the distance must be the same: if it
+      // shrinks, some of the edits were spaces or half-spaces, and those
+      // are spelling, not typos.
+      if (distance <= maxEditDistance && levenshteinDistance(lettersSubmitted, lettersAccepted) === distance) {
         best = better(best, {
           verdict: "accepted_with_correction",
           matchedAnswer: accepted,
@@ -84,6 +91,58 @@ export function compareNative(
     }
   }
 
+  return best;
+}
+
+export type Separator = "half-space" | "space" | "none";
+
+/** One place a separator went wrong: what belonged after `after` (the accepted word's letters up to it), and what was typed there. */
+export interface SeparatorMistake {
+  after: string;
+  expected: Separator;
+  typed: Separator;
+}
+
+function separatorAt(text: string, start: number): { separator: Separator; end: number } {
+  let end = start;
+  let separator: Separator = "none";
+  while (end < text.length && (text[end] === ZWNJ || text[end] === " ")) {
+    if (text[end] === " ") separator = "space";
+    else if (separator === "none") separator = "half-space";
+    end++;
+  }
+  return { separator, end };
+}
+
+/**
+ * When `submitted` has every letter right and only its spaces/half-spaces
+ * differ from an accepted answer, each place they differ (issue #39) —
+ * against whichever accepted answer it differs from least. Null when no
+ * accepted answer has the same letters.
+ */
+export function separatorMistakes(submitted: string, acceptedAnswers: readonly string[]): SeparatorMistake[] | null {
+  const typedText = foldCodepoints(normalizeStrict(submitted));
+  let best: SeparatorMistake[] | null = null;
+  for (const accepted of acceptedAnswers) {
+    const acceptedText = foldCodepoints(normalizeStrict(accepted));
+    if (stripSeparators(acceptedText) !== stripSeparators(typedText)) continue;
+    const mistakes: SeparatorMistake[] = [];
+    let wordStart = 0;
+    let i = 0;
+    let j = 0;
+    while (i < acceptedText.length) {
+      const expected = separatorAt(acceptedText, i);
+      const typed = separatorAt(typedText, j);
+      if (expected.separator !== typed.separator && i > 0) {
+        mistakes.push({ after: stripSeparators(acceptedText.slice(wordStart, i)), expected: expected.separator, typed: typed.separator });
+      }
+      if (expected.separator !== "none") wordStart = expected.end;
+      // Both now sit on the same letter: step past it.
+      i = expected.end + 1;
+      j = typed.end + 1;
+    }
+    if (best === null || mistakes.length < best.length) best = mistakes;
+  }
   return best;
 }
 
