@@ -73,7 +73,7 @@ export function AnswerFeedback({
         <XpBurst amount={xp} />
         {answerAudio && (
           <span className={styles.play}>
-            <PlayAudioButton status={answerAudio.status} onClick={answerAudio.play} />
+            <PlayAudioButton status={answerAudio.status} onClick={answerAudio.play} onSlowClick={answerAudio.playSlow} />
           </span>
         )}
       </div>
@@ -122,7 +122,7 @@ export function AnswerFeedback({
         )}
         {answerAudio && (
           <span className={styles.play}>
-            <PlayAudioButton status={answerAudio.status} onClick={answerAudio.play} />
+            <PlayAudioButton status={answerAudio.status} onClick={answerAudio.play} onSlowClick={answerAudio.playSlow} />
           </span>
         )}
       </div>

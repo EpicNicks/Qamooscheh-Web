@@ -17,6 +17,19 @@ export interface IconProps {
   className?: string;
 }
 
+/** A turtle — the slowed replay (PlayAudioButton). Drawn here rather than taken from Material Symbols: a shell, a head, two feet. */
+export function TurtleIcon({ size = "1em", className }: IconProps) {
+  return (
+    <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="currentColor" focusable="false" aria-hidden="true">
+      <path d="M3 15a8 7 0 0 1 16 0z" />
+      <circle cx="20.5" cy="13.5" r="2" />
+      <rect x="5" y="14.5" width="3" height="3.5" rx="1" />
+      <rect x="14" y="14.5" width="3" height="3.5" rx="1" />
+      <path d="M3 13.8 1 15.2l2.2.4z" />
+    </svg>
+  );
+}
+
 /** Material Symbols "Settings" (the cog). */
 export function SettingsIcon({ size = "1em", className }: IconProps) {
   return (

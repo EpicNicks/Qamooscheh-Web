@@ -12,7 +12,12 @@ export interface PlaybackRequest {
   text: string;
   /** BCP-47 tag for text-to-speech (domain/language.ts). Null means no fallback: without a recording, nothing plays. */
   speechLang: string | null;
+  /** Playback speed, 1 by default — SLOW_RATE for the slowed replay (issue #36). A recording keeps its pitch; text-to-speech reads slower. */
+  rate?: number;
 }
+
+/** The slowed replay's speed: slow enough to hear each word, not so slow a recording smears. */
+export const SLOW_RATE = 0.7;
 
 /** Whatever is playing now. One voice at a time, app-wide: picking a word-bank tile while the prompt is still being read cuts the prompt off, the same as speak() cancelling its own queue. */
 let active: { stop: () => void } | null = null;
@@ -35,7 +40,7 @@ export function play(request: PlaybackRequest, onEnd: () => void = () => {}): { 
   };
 }
 
-function start({ url, text, speechLang }: PlaybackRequest, onEnd: () => void): { stop: () => void } {
+function start({ url, text, speechLang, rate = 1 }: PlaybackRequest, onEnd: () => void): { stop: () => void } {
   let ended = false;
   const finish = () => {
     if (ended) return;
@@ -52,12 +57,14 @@ function start({ url, text, speechLang }: PlaybackRequest, onEnd: () => void): {
   let audio: HTMLAudioElement | null = null;
   const fallback = () => {
     if (stopped || speech) return;
-    if (speechLang) speech = speak(text, speechLang, finish);
+    if (speechLang) speech = speak(text, speechLang, finish, rate);
     else finish();
   };
 
   if (url) {
     audio = new Audio(url);
+    // Pitch is preserved by default: slowed, a voice still sounds like itself.
+    audio.playbackRate = rate;
     audio.onended = finish;
     audio.onerror = fallback;
     // Autoplay blocked, or the source failed before onerror fired: read it instead.

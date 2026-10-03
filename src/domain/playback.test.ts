@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { play } from "./playback";
+import { play, SLOW_RATE } from "./playback";
 
 // Stand-ins for the two browser APIs playback drives: an <audio> element that
 // a test can end or fail, and a speech engine that records what it was asked.
@@ -8,6 +8,7 @@ class FakeAudio {
   onended: (() => void) | null = null;
   onerror: (() => void) | null = null;
   paused = false;
+  playbackRate = 1;
   src: string;
   constructor(src: string) {
     this.src = src;
@@ -22,16 +23,21 @@ class FakeAudio {
 }
 
 let spoken: string[];
+let spokenRates: number[];
 let cancels: number;
 
 beforeEach(() => {
   FakeAudio.instances = [];
   spoken = [];
+  spokenRates = [];
   cancels = 0;
   vi.stubGlobal("Audio", FakeAudio);
   vi.stubGlobal("window", {
     speechSynthesis: {
-      speak: (u: { text: string }) => spoken.push(u.text),
+      speak: (u: { text: string; rate: number }) => {
+        spoken.push(u.text);
+        spokenRates.push(u.rate);
+      },
       cancel: () => cancels++,
       getVoices: () => [],
     },
@@ -40,6 +46,7 @@ beforeEach(() => {
     "SpeechSynthesisUtterance",
     class {
       lang = "";
+      rate = 1;
       voice = null;
       onend = null;
       onerror = null;
@@ -54,6 +61,15 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("play", () => {
+  it("plays slowed at the requested rate, recording or text-to-speech (issue #36)", () => {
+    play({ url: "https://cdn/a.mp3", text: "سلام", speechLang: "fa-IR", rate: SLOW_RATE });
+    expect(FakeAudio.instances[0].playbackRate).toBe(SLOW_RATE);
+    play({ url: null, text: "سلام", speechLang: "fa-IR", rate: SLOW_RATE });
+    expect(spokenRates).toEqual([SLOW_RATE]);
+    play({ url: null, text: "سلام", speechLang: "fa-IR" });
+    expect(spokenRates).toEqual([SLOW_RATE, 1]);
+  });
+
   it("plays the recording when there is one", () => {
     play({ url: "https://cdn/a.mp3", text: "سلام", speechLang: "fa-IR" });
     expect(FakeAudio.instances.map((a) => a.src)).toEqual(["https://cdn/a.mp3"]);
