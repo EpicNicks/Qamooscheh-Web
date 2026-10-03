@@ -79,8 +79,9 @@ const PROMPT_EQUIVALENTS: Record<string, string[]> = {
 /** The "be" a subject pronoun takes, for a verb gloss's progressive reading. */
 const BE: Record<string, string> = { i: "am", you: "are", we: "are", they: "are", he: "is", she: "is", it: "is" };
 
-/** A third-person verb back to its base form ("buys" -> buy, "watches" -> watch, "carries" -> carry). */
+/** A third-person verb back to its base form ("buys" -> buy, "watches" -> watch, "carries" -> carry, "has" -> have). */
 function baseVerb(verb: string): string {
+  if (verb === "has") return "have";
   if (verb.endsWith("ies")) return verb.slice(0, -3) + "y";
   if (/(s|x|z|ch|sh|o)es$/.test(verb)) return verb.slice(0, -2);
   if (verb.endsWith("s") && !verb.endsWith("ss")) return verb.slice(0, -1);
@@ -91,11 +92,15 @@ function baseVerb(verb: string): string {
  * Persian's present tense is English's simple and progressive present both:
  * می‌خرم, glossed "I buy", is just as much "I am buying" (issue #34). So a
  * subject-and-verb gloss also reads as subject + be + verb, and as be + verb
- * alone for "I'm buying" (whose "I'm" stands for "am" — see wordForms). The
+ * alone for "I'm buying" (whose "I'm" stands for "am" — see wordForms), and
+ * an infinitive gloss ("to build") reads as any be + verb ("are building"). The
  * verb is left in its base form; wordForms takes a prompt's "buying" back to it.
  */
 function progressiveForms(phrase: string[], pos: string): string[][] {
-  if (!pos.startsWith("<v>") || phrase.length !== 2 || !(phrase[0] in BE)) return [];
+  if (!pos.startsWith("<v>") || phrase.length !== 2) return [];
+  // An infinitive gloss ("to build") has no subject to agree with: any "be" will do.
+  if (phrase[0] === "to") return ["am", "is", "are"].map((be) => [be, phrase[1]]);
+  if (!(phrase[0] in BE)) return [];
   const [subject, verb] = phrase;
   const be = BE[subject];
   const base = be === "is" ? baseVerb(verb) : verb;
@@ -202,9 +207,10 @@ export function segmentEnglish(text: string, candidates: readonly Candidate[]): 
     }
     let match: { end: number; hint: NativeHint } | null = null;
     for (let length = run.length; length > 0 && !match; length--) {
-      const hit = candidates.find(
-        (c) => c.words.length === length && c.words.every((word, k) => run[k].forms.includes(word)),
-      );
+      const fits = candidates.filter((c) => c.words.length === length && c.words.every((word, k) => run[k].forms.includes(word)));
+      // A word as written beats a form derived from it: "evening" is the
+      // evening's lexeme before it's "even" + -ing.
+      const hit = fits.find((c) => c.words.every((word, k) => run[k].forms[0] === word)) ?? fits[0];
       if (hit) match = { end: run[length - 1].end, hint: hit.hint };
     }
     const end = match?.end ?? i + 1;

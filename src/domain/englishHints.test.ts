@@ -74,9 +74,25 @@ describe("English prompt hints", () => {
     expect(hinted("I buy a bag", ["می‌خرم<v><spoken>", "کیف<n>"])).toEqual(["I buy=می‌خرم", "bag=کیف"]);
   });
 
+  it("prefers a word as written over one derived from it", () => {
+    const lexemes: LexemeIndex = {
+      "حتی<adv>": { gloss: "even", register: null, romanization: "hattā", romanizationIsAuthored: true },
+      "عصر<n>": { gloss: "evening", register: null, romanization: "asr", romanizationIsAuthored: true },
+      "ساختن<v>": { gloss: "to build", register: null, romanization: "sākhtan", romanizationIsAuthored: true },
+      "ساختمان<n>": { gloss: "building", register: null, romanization: "sākhtemān", romanizationIsAuthored: true },
+    };
+    const map = buildLexemeHintMap(lexemes);
+    const hintedIn = (text: string, tags: string[]) =>
+      segmentEnglish(text, englishCandidates(tags, map))
+        .filter((s) => s.hint)
+        .map((s) => `${s.text}=${s.hint!.native}`);
+    expect(hintedIn("Even in the evening", ["حتی<adv>", "عصر<n>"])).toEqual(["Even=حتی", "evening=عصر"]);
+    expect(hintedIn("They are building a building", ["ساختن<v>", "ساختمان<n>"])).toEqual(["are building=ساختن", "building=ساختمان"]);
+  });
+
   it("takes an -ing word back to its verb", () => {
     expect(hinted("Buying books", ["خریدن<v><spoken>", "کتاب<n>"])).toEqual(["Buying=خریدن", "books=کتاب"]);
-    expect(hinted("We are having tea", ["داشتن<v>"])).toEqual(["having=داشتن"]);
+    expect(hinted("We are having tea", ["داشتن<v>"])).toEqual(["are having=داشتن"]);
   });
 
   it("skips suffix-only alternatives but keeps the rest", () => {
