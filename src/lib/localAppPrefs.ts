@@ -152,13 +152,22 @@ export interface LocalAppPrefs {
   deviceInputEnabled: boolean;
   /**
    * Whether picking a word-bank tile (tapping or dragging it into the answer
-   * row) reads that one word aloud. Only course-language tiles are spoken,
-   * through the same TTS fallback as the prompt (domain/tts.ts) until content
-   * ships recorded per-lexeme audio. A per-device sound choice like
+   * row) reads that one word aloud. Only course-language tiles are spoken:
+   * the word's own recording when the course has one, text-to-speech
+   * otherwise (domain/playback.ts). A per-device sound choice like
    * goalCelebrationEnabled. Defaults on, like other language apps, for
    * hearing each word as it goes into the sentence.
    */
   speakWordBankTiles: boolean;
+  /**
+   * Whether the correct answer is read aloud when an answer's review comes up
+   * (components/lesson/ExerciseSessionScreen.tsx), right or wrong — only when
+   * that answer is in the course's language: an English → Persian exercise
+   * says the Persian, a Persian → English one stays quiet. Plays the answer's
+   * recording (ExerciseArtifact.answerAudio) when there is one. Separate from
+   * user_prefs.autoplay_audio, which is about prompts. Defaults on.
+   */
+  speakAnswers: boolean;
 }
 
 const DEFAULTS: LocalAppPrefs = {
@@ -183,6 +192,7 @@ const DEFAULTS: LocalAppPrefs = {
   persianFlag: "pahlavi",
   deviceInputEnabled: false,
   speakWordBankTiles: true,
+  speakAnswers: true,
 };
 
 function storageKey(userId: string): string {
