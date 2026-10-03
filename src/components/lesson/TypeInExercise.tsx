@@ -8,6 +8,7 @@ import { detectArabicVariants, ZWNJ } from "../../domain/persian/normalize";
 import { useKeyboardInputMethod } from "../../hooks/useKeyboardInputMethod";
 import { useDeviceInputEnabled } from "../../hooks/useDeviceInputEnabled";
 import { markTypedAnswer } from "../../domain/typedAnswerMarks";
+import { submittedSpelling } from "../../domain/persian/typedAnswer";
 import type { TileMark } from "../../domain/wordBankOrders";
 import type { ExerciseProps } from "./ExerciseRenderer";
 import styles from "./Exercise.module.css";
@@ -154,7 +155,10 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
     // reconsidering right after Shift+Space) — a second one back-to-back has
     // no other reasonable reading, so treat it as "take it back" rather than
     // stacking an invisible second half-space.
-    updateText((prev) => (prev.endsWith(ZWNJ) ? prev.slice(0, -1) : prev + ZWNJ));
+    // In isolated mode every letter already has a ZWNJ of its own, so the one
+    // to take back is a second one (domain/persian/typedAnswer.ts).
+    const added = engine.isolatesLetters ? ZWNJ + ZWNJ : ZWNJ;
+    updateText((prev) => (prev.endsWith(added) ? prev.slice(0, -1) : prev + ZWNJ));
     inputRef.current?.focus();
   }
 
@@ -184,7 +188,8 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
     engine.finalize();
     // The text stays in the box: the review screen shows this same answer,
     // marked word by word, until the learner moves on.
-    onSubmit(textRef.current, { usedHint });
+    const typed = isPersian(courseCode) ? submittedSpelling(textRef.current, !!engine.isolatesLetters) : textRef.current;
+    onSubmit(typed, { usedHint });
     setUsedHint(false);
     setHintShown(false);
   }

@@ -63,6 +63,8 @@ export interface ScriptEngine {
   isExtraPhysicalKey(key: string): boolean;
   /** Whether Shift+Space (half-space) applies to this engine. */
   supportsZwnj: boolean;
+  /** True when this engine writes a ZWNJ after every letter to show it isolated (Persian layout, isolated keyboard mode) — those come out on submit (domain/persian/typedAnswer.ts). */
+  isolatesLetters?: boolean;
   /** First look at a keydown before the generic Enter/Backspace/Space handling — return true to say "fully handled, stop here" (e.g. arrow/Enter/Escape navigating an open candidate picker). */
   interceptKeyDown?(event: KeyboardEvent): boolean;
   /** The mode toggle plus on-screen keyboard for this engine, or null to show none. Already-built JSX (see the interface doc above), not a function to call. */
@@ -112,6 +114,7 @@ function usePersianLayoutEngine(params: {
     finalize() {},
     isExtraPhysicalKey: (key) => ISIRI_PUNCTUATION_KEY.test(key),
     supportsZwnj: true,
+    isolatesLetters: keyboardMode === "isolated",
     keyboardNode: (
       <>
         <div className={keyboardStyles.controlsRow}>
