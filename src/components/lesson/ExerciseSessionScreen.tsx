@@ -87,7 +87,13 @@ export function ExerciseSessionScreen<TItem extends ExerciseSessionItem, TFeedba
   const [topRowEl, setTopRowEl] = useState<HTMLDivElement | null>(null);
   const [exerciseEl, setExerciseEl] = useState<HTMLDivElement | null>(null);
   // Says the correct answer when its review comes up (localAppPrefs.speakAnswers).
-  const answerAudio = useAnswerAudio(confirmation.answeredItem?.exercise ?? null, courseCode, confirmation.submissionCount);
+  const answerAudio = useAnswerAudio(
+    confirmation.answeredItem?.exercise ?? null,
+    courseCode,
+    confirmation.submissionCount,
+    confirmation.answeredItem?.renderType ?? null,
+    confirmation.feedback?.correct ?? false,
+  );
 
   /** Whether this exercise has any native-script text worth hovering — see gateLexemeHintMap's own conditions. */
   const hintMapFor = (exercise: ExerciseArtifact) =>
