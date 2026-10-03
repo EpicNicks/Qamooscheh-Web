@@ -13,23 +13,34 @@ import { getLanguageInfo, getSpeechLang } from "../domain/language";
 import { play } from "../domain/playback";
 import { hasVoiceFor } from "../domain/tts";
 
+const NO_TAGS: readonly string[] = [];
+
 /** How long the pointer rests on a word before it's read. */
 const DWELL_MS = 250;
 
 export interface WordSpeech {
-  /** The pointer or focus arrived on `word`: read it once it has rested there. */
-  start: (word: string) => void;
-  /** It left before then: don't. A word already being read finishes. */
-  cancel: () => void;
+  /** The pointer or focus arrived on `word` (shown by `owner`, any object that stands for that one rendering of it): read it once it has rested there. Leaving is cancelHoverSpeech. */
+  start: (word: string, owner: object) => void;
 }
 
 // One pending word app-wide: arriving on a word replaces whichever was
 // waiting, wherever on the page it was. (One playing word app-wide is
-// domain/playback.ts's own rule.)
-let pending: ReturnType<typeof setTimeout> | undefined;
+// domain/playback.ts's own rule.) Its owner says whose it is, so a word
+// unmounting doesn't cancel another word's wait.
+let pending: { timer: ReturnType<typeof setTimeout>; owner: object } | null = null;
+
+function clearPending() {
+  if (pending) clearTimeout(pending.timer);
+  pending = null;
+}
+
+/** `owner`'s word was left, or went away, before it was read: don't read it — if it's the one waiting. A word already being read finishes. */
+export function cancelHoverSpeech(owner: object): void {
+  if (pending?.owner === owner) clearPending();
+}
 
 /** The read-on-hover control for a sentence tagged with `tags` (how a word finds its recording), or null when neither kind of word is to be read. */
-export function useHoverSpeech(tags: readonly string[] = []): WordSpeech | null {
+export function useHoverSpeech(tags: readonly string[] = NO_TAGS): WordSpeech | null {
   const courseCode = useBootstrap().data?.course?.code ?? null;
   const [speakNative] = useLocalAppPref("speakHoveredWords", true);
   const [speakEnglish] = useLocalAppPref("speakHoveredEnglish", false);
@@ -38,12 +49,11 @@ export function useHoverSpeech(tags: readonly string[] = []): WordSpeech | null 
   return useMemo(() => {
     const courseLang = getLanguageInfo(courseCode)?.speechLang ?? null;
     if (!courseLang || (!speakNative && !speakEnglish)) return null;
-    const cancel = () => clearTimeout(pending);
     return {
-      cancel,
-      start(word) {
-        cancel();
-        pending = setTimeout(() => {
+      start(word, owner) {
+        clearPending();
+        const timer = setTimeout(() => {
+          pending = null;
           const speechLang = getSpeechLang(courseCode, word);
           if (!speechLang) return;
           const native = speechLang === courseLang;
@@ -52,6 +62,7 @@ export function useHoverSpeech(tags: readonly string[] = []): WordSpeech | null 
           if (!url && !hasVoiceFor(speechLang)) return;
           play({ url, text: word, speechLang });
         }, DWELL_MS);
+        pending = { timer, owner };
       },
     };
   }, [courseCode, speakNative, speakEnglish, recordings, tags]);

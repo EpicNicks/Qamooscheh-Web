@@ -3,7 +3,7 @@ import { segmentAnnotatedText } from "../../domain/annotation";
 import { registerLabel, type TextDisplaySettings, type WordHint } from "../../domain/romanization";
 import { stripReadingAids } from "../../domain/persian/normalize";
 import { englishCandidates, segmentEnglish } from "../../domain/englishHints";
-import { useHoverSpeech, type WordSpeech } from "../../hooks/useHoverSpeech";
+import { cancelHoverSpeech, useHoverSpeech, type WordSpeech } from "../../hooks/useHoverSpeech";
 import styles from "./AnnotatedText.module.css";
 
 interface TooltipPart {
@@ -120,8 +120,12 @@ export function AnnotatedWord({ word, hint, settings, focusable = true, onReveal
     onReveal?.();
   }, [place, onReveal]);
   const hide = useCallback(() => setShown(false), []);
-  const speak = () => speech?.start(word);
-  const unspeak = () => speech?.cancel();
+  // This rendering of the word, as far as hover speech is concerned. A word
+  // that goes away while it waits (the learner moved on) is never read.
+  const [speechOwner] = useState(() => ({}));
+  const speak = () => speech?.start(word, speechOwner);
+  const unspeak = () => cancelHoverSpeech(speechOwner);
+  useEffect(() => () => cancelHoverSpeech(speechOwner), [speechOwner]);
 
   // A non-focusable word sits inside a focusable control (a word-bank tile),
   // and its tooltip reveals on that control's focus. See the
