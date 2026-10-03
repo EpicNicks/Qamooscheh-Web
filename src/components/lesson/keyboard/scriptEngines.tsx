@@ -114,7 +114,8 @@ function usePersianLayoutEngine(params: {
     finalize() {},
     isExtraPhysicalKey: (key) => ISIRI_PUNCTUATION_KEY.test(key),
     supportsZwnj: true,
-    isolatesLetters: keyboardMode === "isolated",
+    // The device keyboard types its own letters, with no isolating ZWNJ after them.
+    isolatesLetters: keyboardMode === "isolated" && !deviceInput.enabled,
     keyboardNode: (
       <>
         <div className={keyboardStyles.controlsRow}>

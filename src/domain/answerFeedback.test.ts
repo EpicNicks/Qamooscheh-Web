@@ -24,8 +24,11 @@ describe("checkAnswer's spacing note (issue #39)", () => {
     expect(plain(checkAnswer("fa", typeIn, "منمیخرم").note)).toBe("Needs a space after من; a half-space after می.");
   });
 
-  it("gives no spacing note when a letter is wrong too, or for a spoken answer", () => {
+  it("gives no spacing note when a letter is wrong too", () => {
     expect(checkAnswer("fa", typeIn, "تو میخرم").note).toBeNull();
-    expect(checkAnswer("fa", exercise("speak", typeIn.answer), "من میخرم").note).toBeNull();
+  });
+
+  it("notes a speak exercise's spacing too, while its answer is typed", () => {
+    expect(plain(checkAnswer("fa", exercise("speak", typeIn.answer), "من میخرم").note)).toBe("Needs a half-space after می.");
   });
 });

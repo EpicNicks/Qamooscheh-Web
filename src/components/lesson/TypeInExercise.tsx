@@ -155,10 +155,15 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
     // reconsidering right after Shift+Space) — a second one back-to-back has
     // no other reasonable reading, so treat it as "take it back" rather than
     // stacking an invisible second half-space.
-    // In isolated mode every letter already has a ZWNJ of its own, so the one
-    // to take back is a second one (domain/persian/typedAnswer.ts).
-    const added = engine.isolatesLetters ? ZWNJ + ZWNJ : ZWNJ;
-    updateText((prev) => (prev.endsWith(added) ? prev.slice(0, -1) : prev + ZWNJ));
+    // In isolated mode a letter's own ZWNJ comes off on submit
+    // (domain/persian/typedAnswer.ts), so a half-space is a second one: added
+    // beside the letter's own, or as a pair after a letter without one (a
+    // backspaced one). The one to take back is that second one.
+    if (engine.isolatesLetters) {
+      updateText((prev) => (prev.endsWith(ZWNJ + ZWNJ) ? prev.slice(0, -1) : prev + (prev.endsWith(ZWNJ) ? ZWNJ : ZWNJ + ZWNJ)));
+    } else {
+      updateText((prev) => (prev.endsWith(ZWNJ) ? prev.slice(0, -1) : prev + ZWNJ));
+    }
     inputRef.current?.focus();
   }
 

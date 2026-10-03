@@ -96,9 +96,10 @@ export function checkAnswer(
         ? compareRomanized(submittedText, exercise.answer)
         : compareNative(submittedText, exercise.answer);
 
-  // Speech recognition, not the learner, decides a spoken answer's spacing,
-  // so only a typed one hears about it.
-  if (result.verdict === "incorrect" && exercise.type !== "speak" && exercise.scriptMode !== "romanized") {
+  // A speak exercise's answer is typed too until speech capture is wired up
+  // (SpeakExercise.tsx); once speech recognition decides its spacing, the
+  // learner shouldn't hear about it.
+  if (result.verdict === "incorrect" && exercise.scriptMode !== "romanized") {
     return { verdict: "incorrect", note: describeSeparatorMistakes(submittedText, exercise.answer) };
   }
   return { verdict: result.verdict, note: describeReasons(result.reasons) };
