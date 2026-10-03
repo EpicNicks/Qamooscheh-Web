@@ -34,14 +34,31 @@
   gap: var(--space-1);
 }
 
-/* One accepted answer, with its romanization above it when that's on. */
-.revealedLine {
+/* The accepted answers: bulleted when there are several, so none reads as "the" answer. */
+.answerList,
+.singleAnswer {
+  margin: 0;
+  padding: 0;
+  list-style: none;
   display: flex;
   flex-direction: column;
+  gap: var(--space-1);
 }
 
+/* Drawn on the answer text itself rather than as a list marker, so it sits on
+   the reading side of each line — right for Persian, left for romanized. */
+.answerList .verdict::before {
+  content: "•";
+  margin-inline-end: 0.5em;
+}
+
+/* One accepted answer, with its romanization above it when that's on. */
 .revealedLine > p {
   margin: 0;
+}
+
+.revealedLine > .verdict {
+  display: block;
 }
 
 .yourAnswer {
