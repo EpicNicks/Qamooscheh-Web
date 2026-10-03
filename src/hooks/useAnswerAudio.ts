@@ -80,5 +80,9 @@ export function useAnswerAudio(
       clearTimeout(readBack.current);
       audio.play();
     },
+    playSlow: () => {
+      clearTimeout(readBack.current);
+      audio.playSlow();
+    },
   };
 }
