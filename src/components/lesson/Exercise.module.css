@@ -205,6 +205,33 @@
   pointer-events: none;
 }
 
+/* Where the answer input's caret would be, drawn while the input is unfocused
+   (VirtualCaret.tsx). Blinks like a native caret; holds still for anyone who
+   has asked for reduced motion. Never takes a tap — that goes to the input. */
+.virtualCaret {
+  position: absolute;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--color-text);
+  pointer-events: none;
+  animation: virtual-caret-blink 1.06s steps(2, jump-none) infinite;
+}
+
+@keyframes virtual-caret-blink {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .virtualCaret {
+    animation: none;
+  }
+}
+
 .actions {
   display: flex;
   justify-content: space-between;

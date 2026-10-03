@@ -17,7 +17,7 @@
 // substitutable for the other.
 import { useMemo } from "react";
 import { usePrefs } from "./usePrefs";
-import { useLexemeIndex } from "./useCourseContent";
+import { useAudioIndex, useLexemeIndex } from "./useCourseContent";
 import { useShowRomanizationHints } from "./useShowRomanizationHints";
 import { useShowVowelMarks } from "./useShowVowelMarks";
 import { useShowNativeHints } from "./useShowNativeHints";
@@ -56,6 +56,10 @@ export function useExerciseSession<TItem, TFeedback>(
 ): ExerciseSession<TItem, TFeedback> {
   const prefs = usePrefs();
   const lexemeIndex = useLexemeIndex(course);
+  // Not read here: started now so the course's default voice is known by the
+  // first prompt, rather than its recording switching voice mid-autoplay
+  // (hooks/useRecordings.ts reads it from the cache).
+  useAudioIndex(course);
   const romanizationHints = useShowRomanizationHints();
   const translationHints = useShowTranslationHints();
   const furigana = useShowFurigana();

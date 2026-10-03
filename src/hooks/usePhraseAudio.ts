@@ -1,11 +1,10 @@
 // Drives one "read this phrase aloud" control — the play/replay button plus
 // the autoplay-on-load behavior, shared by every exercise-type component via
-// components/lesson/ExercisePrompt.tsx. Prefers a real recorded file when the
-// caller has one; falls back to domain/tts.ts's Web Speech API wrapper
-// otherwise, which today is unconditional — nothing in the content schema
-// authors a real audio file yet.
+// components/lesson/ExercisePrompt.tsx. Plays the recording when the caller
+// has one (hooks/useRecordings.ts) and text-to-speech otherwise — see
+// domain/playback.ts.
 import { useEffect, useRef, useState } from "react";
-import { speak } from "../domain/tts";
+import { play as startPlayback } from "../domain/playback";
 
 export type PhraseAudioStatus = "idle" | "playing";
 
@@ -19,7 +18,7 @@ export function usePhraseAudio(params: {
   text: string;
   /** BCP-47 tag (domain/language.ts's speechLang) — null when the course's language isn't known, in which case play() is a no-op. */
   speechLang: string | null;
-  /** A real recorded file, if content ever ships one. Undefined/null (the case today, always) falls back to TTS. */
+  /** The recording's URL, when there is one. Undefined/null, or a file that fails to load, falls back to TTS. */
   audioUrl?: string | null;
   /** Fires play() once, the first time text/audioUrl/speechLang are all available — mirrors user_prefs.autoplay_audio. */
   autoplay?: boolean;
@@ -34,7 +33,7 @@ export function usePhraseAudio(params: {
   const generationRef = useRef(0);
 
   function play() {
-    if (!speechLang) return;
+    if (!speechLang && !audioUrl) return;
     stopRef.current();
     const generation = ++generationRef.current;
     setStatus("playing");
@@ -43,15 +42,7 @@ export function usePhraseAudio(params: {
       if (generation === generationRef.current) setStatus("idle");
     }
 
-    if (audioUrl) {
-      const audio = new Audio(audioUrl);
-      audio.onended = finish;
-      audio.onerror = finish;
-      stopRef.current = () => audio.pause();
-      void audio.play();
-    } else {
-      stopRef.current = speak(text, speechLang, finish).stop;
-    }
+    stopRef.current = startPlayback({ url: audioUrl ?? null, text, speechLang }, finish).stop;
   }
 
   // Stop on unmount — a phrase shouldn't keep talking after its exercise has
@@ -59,7 +50,7 @@ export function usePhraseAudio(params: {
   useEffect(() => () => stopRef.current(), []);
 
   useEffect(() => {
-    if (autoplay && speechLang && text) play();
+    if (autoplay && (speechLang || audioUrl) && text) play();
     // Deliberately keyed on the phrase itself, not on `play` (a new function
     // identity every render) or `autoplay` (a static per-page preference,
     // not something that should replay a phrase already in progress if it

@@ -7,25 +7,33 @@
 // truth — see PUT /v1/vocab/starred/batch's doc for why a diff-based
 // reconcile, not a replay of individual toggles, is the right shape for a
 // migration (or any future offline-buffered catch-up write).
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { batchSetStarred, getStarredVocab, setStarred } from "../api/vocab";
 import { clearStarredLexemes, loadStarredLexemes } from "../lib/starredLexemeStore";
 import { useAuth } from "../auth/useAuth";
+import { ApiError } from "../api/httpClient";
 import type { StarredVocabResponse } from "../types/api";
 
 const QUERY_KEY = ["vocab", "starred"];
 
 export interface StarredLexemes {
+  /** Every saved tag, in any course, most recently saved first. */
+  tags: readonly string[];
+  /** How many the learner's plan can save, across every course (null until loaded). */
+  limit: number | null;
   isStarred: (tag: string) => boolean;
   /** Fires a direct, optimistic mutation — the star fills immediately, before the round trip, and rolls back on failure. Not routed through the offline queue: unlike a graded session, a star is trivially recoverable by tapping it again. */
   toggle: (tag: string) => void;
+  /** Set when the last save was refused because the list is full — the server's own wording. Cleared by the next successful change. */
+  limitMessage: string | null;
 }
 
 export function useStarredLexemes(courseCode: string | null | undefined): StarredLexemes {
   const { userId } = useAuth();
   const queryClient = useQueryClient();
   const migrated = useRef(false);
+  const [limitMessage, setLimitMessage] = useState<string | null>(null);
 
   const query = useQuery({
     queryKey: QUERY_KEY,
@@ -38,17 +46,23 @@ export function useStarredLexemes(courseCode: string | null | undefined): Starre
       await queryClient.cancelQueries({ queryKey: QUERY_KEY });
       const previous = queryClient.getQueryData<StarredVocabResponse>(QUERY_KEY);
       queryClient.setQueryData<StarredVocabResponse>(QUERY_KEY, (current) => {
-        const tags = new Set(current?.tags ?? []);
-        if (request.starred) tags.add(request.tag);
-        else tags.delete(request.tag);
-        return { tags: [...tags] };
+        const rest = (current?.tags ?? []).filter((tag) => tag !== request.tag);
+        return {
+          tags: request.starred ? [request.tag, ...rest] : rest,
+          limit: current?.limit ?? 0,
+          refused: [],
+        };
       });
       return { previous };
     },
-    onError: (_error, _request, context) => {
+    onError: (error, _request, context) => {
       if (context?.previous) queryClient.setQueryData(QUERY_KEY, context.previous);
+      if (error instanceof ApiError && error.status === 409) setLimitMessage(error.message);
     },
-    onSuccess: (response) => queryClient.setQueryData(QUERY_KEY, response),
+    onSuccess: (response) => {
+      queryClient.setQueryData(QUERY_KEY, response);
+      setLimitMessage(null);
+    },
   });
 
   const migrationMutation = useMutation({ mutationFn: batchSetStarred });
@@ -87,10 +101,14 @@ export function useStarredLexemes(courseCode: string | null | undefined): Starre
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, courseCode, query.data]);
 
-  const tags = new Set(query.data?.tags ?? []);
+  const tagList = query.data?.tags ?? [];
+  const tags = new Set(tagList);
 
   return {
+    tags: tagList,
+    limit: query.data?.limit ?? null,
     isStarred: (tag) => tags.has(tag),
     toggle: (tag) => setMutation.mutate({ tag, starred: !tags.has(tag) }),
+    limitMessage,
   };
 }

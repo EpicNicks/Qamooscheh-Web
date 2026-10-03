@@ -32,3 +32,10 @@
   font-size: 0.85rem;
   color: var(--color-text-muted);
 }
+
+/* A flashcard inside the saved-words remix (SavedPracticePage), in place of the exercise screen. */
+.remixCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}

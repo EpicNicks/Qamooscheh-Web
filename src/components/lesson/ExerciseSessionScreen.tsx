@@ -16,10 +16,12 @@ import { useState, type ReactNode } from "react";
 import { ExerciseRenderer } from "./ExerciseRenderer";
 import { SessionProgressBar } from "./SessionProgressBar";
 import { AnswerFeedback } from "./AnswerFeedback";
+import { SaveWordsRow } from "../vocabulary/SaveWordsRow";
 import { SkipLessonModal } from "./SkipLessonModal";
 import { CloseLessonButton } from "./CloseLessonButton";
 import { LanguageSettingsButton } from "./languageSettings/LanguageSettingsButton";
 import { gateLexemeHintMap } from "../../domain/romanization";
+import { useAnswerAudio } from "../../hooks/useAnswerAudio";
 import type { ExerciseSession } from "../../hooks/useExerciseSession";
 import type { ExerciseType } from "../../domain/enums";
 import { revealedTileOrder } from "../../domain/wordBankOrders";
@@ -84,6 +86,8 @@ export function ExerciseSessionScreen<TItem extends ExerciseSessionItem, TFeedba
   const { skip, confirmation, textSettings, courseHintMap, keyboardMode, autoplayAudio } = session;
   const [topRowEl, setTopRowEl] = useState<HTMLDivElement | null>(null);
   const [exerciseEl, setExerciseEl] = useState<HTMLDivElement | null>(null);
+  // Says the correct answer when its review comes up (localAppPrefs.speakAnswers).
+  const answerAudio = useAnswerAudio(confirmation.answeredItem?.exercise ?? null, courseCode, confirmation.submissionCount);
 
   /** Whether this exercise has any native-script text worth hovering — see gateLexemeHintMap's own conditions. */
   const hintMapFor = (exercise: ExerciseArtifact) =>
@@ -113,6 +117,7 @@ export function ExerciseSessionScreen<TItem extends ExerciseSessionItem, TFeedba
         <AnswerFeedback
           key={confirmation.submissionCount}
           correct={feedback.correct}
+          answerAudio={answerAudio}
           note={feedback.note}
           xp={feedbackXp?.(feedback)}
           answer={
@@ -133,6 +138,7 @@ export function ExerciseSessionScreen<TItem extends ExerciseSessionItem, TFeedba
           tags={answeredItem.exercise.tags}
           reportContext={{ exerciseTags: answeredItem.exercise.tags, prompt: answeredItem.exercise.prompt }}
         />
+        <SaveWordsRow tags={answeredItem.exercise.tags} />
         <ExerciseRenderer
           key={answeredItem.key}
           exercise={answeredItem.exercise}

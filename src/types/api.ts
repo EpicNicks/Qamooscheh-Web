@@ -367,6 +367,8 @@ export interface UpdatePrefsRequest {
   desiredRetention: number;
   /** Duolingo-style: a daily XP target, not a time measurement — see GET /v1/activity's own `xp`, which is what this is actually compared against on the client (domain/proficiency.ts). */
   dailyGoalXp: number;
+  /** Which of the course's voices (audio.json) to play recordings in; null or missing means the course's default (its first). Carried through a PUT so saving other settings doesn't reset it. */
+  preferredVoice?: string | null;
 }
 
 export type PrefsResponse = UpdatePrefsRequest;
@@ -459,7 +461,23 @@ export interface StreakResponse {
 // ---------------------------------------------------------------------------
 
 export interface StarredVocabResponse {
+  /** Every saved tag, in any course, most recently saved first. */
   tags: string[];
+  /** How many the caller's plan can save (100 free) — across every course, not per course. */
+  limit: number;
+  /** Batch only: the tags it was asked to save that didn't fit under `limit`. Empty otherwise. */
+  refused: string[];
+}
+
+/** GET /v1/vocab/starred/practice — a saved-words remix for the active course: the most-due saved words, each with exercises (by key and ordinal, at `courseVersion`) that use only words the learner has met. A word with no exercises is still a flashcard. */
+export interface StarredPracticeResponse {
+  courseVersion: number;
+  words: StarredPracticeWord[];
+}
+
+export interface StarredPracticeWord {
+  tag: string;
+  exercises: { unitKey: string; skillKey: string; ordinal: number }[];
 }
 
 /** PUT /v1/vocab/starred's body — absolute state, not a toggle (a retried toggle over a flaky connection would silently flip the wrong way). */
@@ -472,6 +490,30 @@ export interface SetStarredRequest {
 export interface BatchSetStarredRequest {
   star: string[];
   unstar: string[];
+}
+
+// ---------------------------------------------------------------------------
+// v1/flashcards (Flashcards/FlashcardContracts.cs). Flashcards never touch
+// review scheduling; they only earn XP — 5 a card for a correct translation
+// card, and for a known self-rated card only inside a saved-words remix —
+// counted only for saved tags, once each per round, up to a daily cap.
+// ---------------------------------------------------------------------------
+
+export type FlashcardKind = "self_rated" | "translation";
+
+export interface SubmitFlashcardsRequest {
+  /** Client-generated; a retry with the same id answers with the first award. */
+  submissionId: string;
+  courseCode: string;
+  occurredAt: string;
+  inRemix: boolean;
+  cards: { tag: string; kind: FlashcardKind; correct: boolean }[];
+}
+
+export interface SubmitFlashcardsResponse {
+  alreadyProcessed: boolean;
+  /** What the round earned, after the daily cap. */
+  xp: number;
 }
 
 // ---------------------------------------------------------------------------

@@ -20,6 +20,8 @@ export interface CourseManifest {
   units: ManifestRef[];
   lexemeIndexPath: string;
   themeIndexPath: string;
+  /** audio.json — the course's voices and recordings (AudioIndexArtifact). Missing on a manifest published before recordings were. */
+  audioIndexPath?: string;
 }
 
 /**
@@ -82,6 +84,44 @@ export interface ExerciseArtifact {
   answerRomanization?: string | null;
   /** Authored hint text, or null when this exercise doesn't have one — not every artifact on the CDN carries this field yet, so callers should treat a missing property the same as null. */
   hint?: string | null;
+  /** Recordings of the native-script prompt, by voice id (domain/recordings.ts). Missing or null when nothing is recorded. */
+  promptAudio?: AudioMap | null;
+  /** Recordings of the first accepted answer, the same shape. */
+  answerAudio?: AudioMap | null;
+  /** Who says this line, an id from audio.json's `speakers` — whose voices to prefer. Missing or null for a line nobody in particular says. */
+  speaker?: string | null;
+}
+
+/**
+ * Voice id -> that voice's takes of one phrase or word, first take first. Each
+ * path is relative to the course version root (it points up out of it, at the
+ * shared content-addressed /audio/ directory). A voice missing from the map has
+ * no take of this.
+ */
+export type AudioMap = Record<string, string[]>;
+
+/** audio.json: the course's voices (first is the default) and its cast. Phrases are listed there too, but every exercise and lexeme already carries its own. */
+export interface AudioIndexArtifact {
+  voices: AudioVoiceEntry[];
+  speakers: AudioSpeakerEntry[];
+}
+
+export interface AudioVoiceEntry {
+  id: string;
+  name: string;
+  /** How many phrases this voice has at least one take of. */
+  recordings: number;
+  /** "human" or "ai". */
+  kind: string;
+  /** How many lexemes this voice has a word-only take of. */
+  words?: number;
+}
+
+export interface AudioSpeakerEntry {
+  id: string;
+  name: string;
+  /** Voice ids that may play this character. Empty means any voice. */
+  voices: string[];
 }
 
 /** One entry in lexemes.json, keyed by lexeme tag. */
@@ -94,6 +134,8 @@ export interface LexemeIndexEntry {
   reading?: string | null;
   /** Other written forms of this lexeme — an attached ending's spelling after a vowel (ـم is written ‌ام after one). Missing or null when there are none. */
   forms?: string[] | null;
+  /** The word said on its own, by voice id (domain/recordings.ts). Missing or null when it hasn't been recorded. */
+  audio?: AudioMap | null;
 }
 
 /** lexemes.json itself: a flat tag -> entry map. */

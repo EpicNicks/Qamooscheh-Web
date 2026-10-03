@@ -3,7 +3,7 @@
 // essentially forever within a session.
 import { useMemo } from "react";
 import { useQueries, useQuery } from "@tanstack/react-query";
-import { getCourseManifest, getLexemeIndex, getSkillArtifact, getThemeIndex, getUnitArtifact } from "../api/content";
+import { getAudioIndex, getCourseManifest, getLexemeIndex, getSkillArtifact, getThemeIndex, getUnitArtifact } from "../api/content";
 import { computePathProgress, type PathSkillInput, type PathUnit, type PositionKey } from "../domain/pathProgress";
 import type { UnitVocab } from "../domain/courseVocabulary";
 import { refKey } from "../domain/skillRefKey";
@@ -58,6 +58,23 @@ export function useThemeIndex(course: CourseRef | null | undefined) {
     queryKey: ["content", "themes", course?.code, course?.version],
     queryFn: () => getThemeIndex(course!.code, course!.version, themeIndexPath!),
     enabled: course != null && themeIndexPath != null,
+    staleTime: Infinity,
+  });
+}
+
+/**
+ * audio.json — the course's voices (the first is the default) and its cast of
+ * story speakers. Unset (`data: undefined`, not an error) on a manifest
+ * published before recordings were, the same way useThemeIndex treats a
+ * missing themeIndexPath; domain/recordings.ts then just has no default voice.
+ */
+export function useAudioIndex(course: CourseRef | null | undefined) {
+  const manifestQuery = useCourseManifest(course);
+  const audioIndexPath = manifestQuery.data?.audioIndexPath;
+  return useQuery({
+    queryKey: ["content", "audio", course?.code, course?.version],
+    queryFn: () => getAudioIndex(course!.code, course!.version, audioIndexPath!),
+    enabled: course != null && audioIndexPath != null,
     staleTime: Infinity,
   });
 }
