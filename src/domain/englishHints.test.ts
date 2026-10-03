@@ -19,6 +19,11 @@ const lexemes: LexemeIndex = {
   "یک<num>": { gloss: "one", register: null, romanization: "yek", romanizationIsAuthored: true },
   "من<pron>": { gloss: "I", register: null, romanization: "man", romanizationIsAuthored: true },
   "ـتر<comp>": { gloss: "-er / more (comparative)", register: null, romanization: "-tar", romanizationIsAuthored: true },
+  "می‌خرم<v><spoken>": { gloss: "I buy", register: "spoken", romanization: "mīkharam", romanizationIsAuthored: true },
+  "می‌خره<v><spoken>": { gloss: "he / she buys", register: "spoken", romanization: "mīkhare", romanizationIsAuthored: true },
+  "خریدن<v><spoken>": { gloss: "to buy", register: "spoken", romanization: "kharīdan", romanizationIsAuthored: true },
+  "کیف<n>": { gloss: "bag", register: null, romanization: "kīf", romanizationIsAuthored: true },
+  "برای<prep>": { gloss: "for", register: null, romanization: "barāye", romanizationIsAuthored: true },
 };
 const hintMap = buildLexemeHintMap(lexemes);
 
@@ -52,6 +57,26 @@ describe("English prompt hints", () => {
     expect(hinted("Books", ["کتاب<n>"])).toEqual(["Books=کتاب"]);
     expect(hinted("We have tea", ["داشتن<v>"])).toEqual(["have=داشتن"]);
     expect(hinted("Where is mom?", ["مامان<n>"])).toEqual(["mom=مامان"]);
+  });
+
+  it("reads a present-tense verb gloss as the progressive too (issue #34)", () => {
+    const tags = ["من<pron>", "برای<prep>", "مادر<n>", "ـم<poss>", "یک<num>", "کیف<n>", "می‌خرم<v><spoken>"];
+    expect(hinted("I am buying a bag for my mother", tags)).toEqual([
+      "I am buying=می‌خرم",
+      "a=یک",
+      "bag=کیف",
+      "for=برای",
+      "my=ـم",
+      "mother=مادر",
+    ]);
+    expect(hinted("I'm buying a bag", ["می‌خرم<v><spoken>", "کیف<n>"])).toEqual(["I'm buying=می‌خرم", "bag=کیف"]);
+    expect(hinted("She is buying a bag", ["می‌خره<v><spoken>", "کیف<n>"])).toEqual(["She is buying=می‌خره", "bag=کیف"]);
+    expect(hinted("I buy a bag", ["می‌خرم<v><spoken>", "کیف<n>"])).toEqual(["I buy=می‌خرم", "bag=کیف"]);
+  });
+
+  it("takes an -ing word back to its verb", () => {
+    expect(hinted("Buying books", ["خریدن<v><spoken>", "کتاب<n>"])).toEqual(["Buying=خریدن", "books=کتاب"]);
+    expect(hinted("We are having tea", ["داشتن<v>"])).toEqual(["having=داشتن"]);
   });
 
   it("skips suffix-only alternatives but keeps the rest", () => {
