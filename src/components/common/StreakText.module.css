@@ -1,0 +1,31 @@
+/* Solid warm orange first, so a browser without background-clip: text still
+   shows a fiery (and readable) number rather than an invisible one. */
+.fire {
+  font-weight: 800;
+  color: var(--color-streak);
+}
+
+@supports (background-clip: text) or (-webkit-background-clip: text) {
+  .fire {
+    background-image: linear-gradient(90deg, var(--color-streak-from), var(--color-streak-to));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+}
+
+/* Windows High Contrast / forced colors drops background images, which would
+   leave transparent text behind — hand it back a real system text color. */
+@media (forced-colors: active) {
+  .fire {
+    background-image: none;
+    color: CanvasText;
+  }
+}
+
+/* A zero streak is a fact, not an alarm — muted grey, same weight so the
+   layout doesn't shift when the first lesson of a run lands. */
+.cold {
+  font-weight: 800;
+  color: var(--color-text-muted);
+}

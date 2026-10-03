@@ -1,0 +1,35 @@
+.counter {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  text-decoration: none;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+}
+
+.counter:hover,
+.counter:focus-visible {
+  background: var(--color-surface);
+}
+
+.short {
+  display: none;
+}
+
+/* keep in sync with src/theme/breakpoints.ts */
+@media (max-width: 768px) {
+  .counter {
+    /* A 44px touch target, like the header's nav links. */
+    min-height: 44px;
+    padding: 0 var(--space-1);
+  }
+
+  .long {
+    display: none;
+  }
+
+  .short {
+    display: inline;
+  }
+}

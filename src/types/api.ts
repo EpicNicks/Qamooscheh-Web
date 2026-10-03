@@ -429,8 +429,28 @@ export interface ActivityDay {
 
 export interface ActivityResponse {
   courseCode: string;
-  /** Newest day first. Deliberately not the streak — that stays one shared number across every enrolled language. */
+  /** Newest day first. Deliberately not the streak — that stays one shared number across every enrolled language (GET /v1/streak). */
   days: ActivityDay[];
+}
+
+// ---------------------------------------------------------------------------
+// v1/streak (Streak/StreakContracts.cs). ONE streak across every enrolled
+// course — no course code anywhere — counted in the learner's own time zone
+// and day_start_hour server-side. Moves on every submit, which is why it's
+// its own endpoint rather than a bootstrap field.
+// ---------------------------------------------------------------------------
+
+export interface StreakResponse {
+  /**
+   * Derived on every read, never stored. Includes the grace day: practised
+   * yesterday but not yet today still counts yesterday's run, since today
+   * isn't over.
+   */
+  currentStreakDays: number;
+  /** app_user.longest_streak_days, floored server-side at `currentStreakDays` — never less than it. */
+  longestStreakDays: number;
+  /** Whether today's streak-day already has activity — false while the streak is alive on the grace day only. */
+  practicedToday: boolean;
 }
 
 // ---------------------------------------------------------------------------

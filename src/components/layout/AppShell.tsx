@@ -5,6 +5,7 @@ import { useOfflineQueueFlush } from "../../hooks/useOfflineQueueFlush";
 import { useIsMobile } from "../../hooks/useMediaQuery";
 import { useMobileDrawer } from "../../hooks/useMobileDrawer";
 import { CourseSwitcher } from "./CourseSwitcher";
+import { StreakCounter } from "./StreakCounter";
 import { Sidebar } from "./Sidebar";
 import { NavDrawer } from "./NavDrawer";
 import { MenuIcon, TrophyIcon, PeopleIcon, AccountCircleIcon, SettingsIcon, HelpIcon, type IconProps } from "../common/icons";
@@ -105,6 +106,7 @@ export function AppShell() {
               <span className={styles.syncText}>{isFlushing ? "Syncing…" : `${pendingCount} pending sync`}</span>
             </span>
           )}
+          <StreakCounter />
           <CourseSwitcher />
           <button type="button" className={styles.signOut} onClick={() => void logout()}>
             Sign out

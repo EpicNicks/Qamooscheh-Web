@@ -145,6 +145,8 @@ export function useCheckpoint(targetUnitKey: string, targetSkillKey: string) {
       if (userId) mergeCardStates(userId, response.cards);
       queryClient.invalidateQueries({ queryKey: ["bootstrap"] });
       queryClient.invalidateQueries({ queryKey: ["lessonsCompleted"] });
+      // A checkpoint's reviews count toward today's daily_activity like a lesson's.
+      queryClient.invalidateQueries({ queryKey: ["streak"] });
     } catch {
       setSubmitError("Couldn't submit your checkpoint. Check your connection and try again.");
     } finally {
