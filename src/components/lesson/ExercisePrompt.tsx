@@ -1,6 +1,7 @@
 import { getLanguageInfo, getSpeechLang } from "../../domain/language";
 import { displayDirection } from "../../domain/annotation";
 import { usePhraseAudio } from "../../hooks/usePhraseAudio";
+import { useRecordings } from "../../hooks/useRecordings";
 import { useVoiceAvailability } from "../../hooks/useVoiceAvailability";
 import { useNativeTextAlign } from "../../hooks/useNativeTextAlign";
 import { PlayAudioButton } from "./PlayAudioButton";
@@ -9,6 +10,7 @@ import { AnnotatedText, EnglishAnnotatedText } from "./AnnotatedText";
 import { isLatinText } from "../../domain/englishHints";
 import { SentenceRomanization } from "./SentenceRomanization";
 import { EMPTY_HINT_MAP, PLAIN_TEXT, type TextDisplaySettings, type WordHint } from "../../domain/romanization";
+import type { AudioMap } from "../../types/content";
 import styles from "./Exercise.module.css";
 
 interface ExercisePromptProps {
@@ -26,18 +28,22 @@ interface ExercisePromptProps {
   hintMap?: ReadonlyMap<string, WordHint>;
   /** How the base text renders, and which of a word's hints are enabled — see domain/romanization.ts's TextDisplaySettings. */
   textSettings?: TextDisplaySettings;
+  /** The prompt's recordings (ExerciseArtifact.promptAudio). Played instead of text-to-speech when there's one in a usable voice. */
+  audio?: AudioMap | null;
+  /** ExerciseArtifact.speaker — keeps a story line to its character's voices. */
+  speaker?: string | null;
 }
 
 /**
  * An exercise's prompt text plus its read-aloud control — shared by every
  * exercise-type component (WordBank/TypeIn/Speak) so autoplay-on-load and
  * the replay button behave identically no matter which one is rendering.
- * See hooks/usePhraseAudio.ts for the play/cancel/replay logic and
- * domain/tts.ts for the Web Speech API fallback every course currently uses
- * (no exercise ships a recorded audio file yet). When there's neither a real
- * file nor a matching system voice, the button renders disabled with an
- * explanatory tooltip (NoVoiceButton) instead of silently doing nothing or
- * reading the phrase in the wrong voice/language.
+ * See hooks/usePhraseAudio.ts for the play/cancel/replay logic: the prompt's
+ * recording when it has one (hooks/useRecordings.ts), the Web Speech API
+ * otherwise. When there's neither a recording nor a matching system voice,
+ * the button renders disabled with an explanatory tooltip (NoVoiceButton)
+ * instead of silently doing nothing or reading the phrase in the wrong
+ * voice/language.
  */
 export function ExercisePrompt({
   text,
@@ -48,6 +54,8 @@ export function ExercisePrompt({
   autoplayAudio,
   hintMap = EMPTY_HINT_MAP,
   textSettings = PLAIN_TEXT,
+  audio: recordings,
+  speaker,
 }: ExercisePromptProps) {
   const languageInfo = getLanguageInfo(courseCode);
   // Picked from the actual text, not just the course — a translation
@@ -55,7 +63,9 @@ export function ExercisePrompt({
   // "Translate to Japanese: dog" prompts in English), so this can resolve to
   // "en-US" even under a Japanese/Persian course.
   const speechLang = getSpeechLang(courseCode, text);
-  const voiceAvailable = useVoiceAvailability(speechLang);
+  const audioUrl = useRecordings().phraseUrl(recordings, speaker);
+  // A recording plays whatever the device's system voices are.
+  const voiceAvailable = useVoiceAvailability(speechLang) || audioUrl != null;
   // isForeignLanguageText is what autoplay gates on beyond just "there's a
   // voice for it" — this prompt might resolve to "en-US" (see getSpeechLang
   // above) when it's actually an English-side prompt/answer under a foreign
@@ -67,7 +77,7 @@ export function ExercisePrompt({
   // usePhraseAudio keeps the original native `text` regardless of display —
   // TTS reads the actual language, not whatever "romanized" substitutes on
   // screen.
-  const audio = usePhraseAudio({ text, speechLang, autoplay: autoplayAudio && voiceAvailable && isForeignLanguageText });
+  const audio = usePhraseAudio({ text, speechLang, audioUrl, autoplay: autoplayAudio && voiceAvailable && isForeignLanguageText });
   const { align } = useNativeTextAlign();
   const direction = displayDirection(text, textSettings.display);
 

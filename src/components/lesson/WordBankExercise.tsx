@@ -24,7 +24,9 @@ import { ExercisePrompt } from "./ExercisePrompt";
 import { AnnotatedText } from "./AnnotatedText";
 import { EMPTY_HINT_MAP, PLAIN_TEXT, type TextDisplaySettings, type WordHint } from "../../domain/romanization";
 import { detectScriptDirection, getLanguageInfo, getSpeechLang } from "../../domain/language";
-import { hasVoiceFor, speak } from "../../domain/tts";
+import { hasVoiceFor } from "../../domain/tts";
+import { play } from "../../domain/playback";
+import { useRecordings } from "../../hooks/useRecordings";
 import { useLocalAppPref } from "../../hooks/useLocalAppPref";
 import { acceptedTileOrders, closestTileOrder, missingBankTiles, tilesForSubmission, type TileMark } from "../../domain/wordBankOrders";
 import type { ExerciseProps } from "./ExerciseRenderer";
@@ -244,18 +246,23 @@ export function WordBankExercise({
   const [usedHint, setUsedHint] = useState(false);
 
   // Picking a tile reads that word aloud (localAppPrefs.ts's
-  // speakWordBankTiles). Only course-language tiles: an English tile is a
-  // word the learner already knows how to say. speak() cancels whatever is
-  // already talking, so tapping quickly through tiles (or picking one while
-  // the prompt is still playing) only ever voices the newest word.
+  // speakWordBankTiles): the word's own recording when the course has one
+  // (hooks/useRecordings.ts), text-to-speech otherwise. Only course-language
+  // tiles: an English tile is a word the learner already knows how to say.
+  // play() stops whatever is already playing, so tapping quickly through
+  // tiles (or picking one while the prompt is still playing) only ever voices
+  // the newest word.
   const [speakTiles] = useLocalAppPref("speakWordBankTiles", true);
+  const recordings = useRecordings();
   const stopTileAudio = useRef<() => void>(() => {});
   useEffect(() => () => stopTileAudio.current(), []);
   function speakTile(tileIndex: number) {
     const speechLang = getLanguageInfo(courseCode)?.speechLang;
     const text = tiles[tileIndex];
-    if (!speakTiles || !speechLang || getSpeechLang(courseCode, text) !== speechLang || !hasVoiceFor(speechLang)) return;
-    stopTileAudio.current = speak(text, speechLang, () => {}).stop;
+    if (!speakTiles || !speechLang || getSpeechLang(courseCode, text) !== speechLang) return;
+    const url = recordings.wordUrl(text, exercise.tags);
+    if (!url && !hasVoiceFor(speechLang)) return;
+    stopTileAudio.current = play({ url, text, speechLang }).stop;
   }
   // Which row the tile being dragged started in: a drag only counts as
   // picking a tile (and speaks it) when it carries a bank tile into the
@@ -447,6 +454,8 @@ export function WordBankExercise({
       <div className={styles.wrap}>
         <ExercisePrompt
           text={exercise.prompt}
+          audio={exercise.promptAudio}
+          speaker={exercise.speaker}
           tags={exercise.tags}
           onHintReveal={() => setUsedHint(true)}
           romanization={exercise.promptRomanization}

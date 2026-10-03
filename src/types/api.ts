@@ -367,6 +367,8 @@ export interface UpdatePrefsRequest {
   desiredRetention: number;
   /** Duolingo-style: a daily XP target, not a time measurement — see GET /v1/activity's own `xp`, which is what this is actually compared against on the client (domain/proficiency.ts). */
   dailyGoalXp: number;
+  /** Which of the course's voices (audio.json) to play recordings in; null or missing means the course's default (its first). Carried through a PUT so saving other settings doesn't reset it. */
+  preferredVoice?: string | null;
 }
 
 export type PrefsResponse = UpdatePrefsRequest;

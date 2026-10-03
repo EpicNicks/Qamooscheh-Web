@@ -266,6 +266,8 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
     <div className={styles.wrap}>
       <ExercisePrompt
         text={exercise.prompt}
+        audio={exercise.promptAudio}
+        speaker={exercise.speaker}
         tags={exercise.tags}
         onHintReveal={() => setUsedHint(true)}
         romanization={exercise.promptRomanization}
