@@ -3,6 +3,7 @@ import { usePrefs } from "../../hooks/usePrefs";
 import { useActivity } from "../../hooks/useCourseCatalog";
 import { useLocalAppPref } from "../../hooks/useLocalAppPref";
 import { matchDailyGoalPreset, todayLocalDay, xpToday } from "../../domain/dailyGoal";
+import { playSound } from "../../domain/sfx";
 import styles from "./DailyGoalRing.module.css";
 
 const RADIUS = 20;
@@ -26,6 +27,7 @@ export function DailyGoalRing({ courseCode }: { courseCode: string | null | unde
   const activity = useActivity(courseCode);
   const [lastCelebrated, setLastCelebrated] = useLocalAppPref("lastGoalCelebrationDay", null);
   const [celebrationEnabled] = useLocalAppPref("goalCelebrationEnabled", true);
+  const [soundEffects] = useLocalAppPref("soundEffects", true);
   const wrapRef = useRef<HTMLDivElement>(null);
 
   const goal = prefs.data?.dailyGoalXp ?? null;
@@ -42,6 +44,7 @@ export function DailyGoalRing({ courseCode }: { courseCode: string | null | unde
   useEffect(() => {
     if (!reached || !celebrationEnabled || lastCelebrated === today) return;
     setLastCelebrated(today);
+    if (soundEffects) playSound("goalReached");
     const el = wrapRef.current;
     if (!el) return;
     el.classList.remove(styles.celebrating);
@@ -49,7 +52,7 @@ export function DailyGoalRing({ courseCode }: { courseCode: string | null | unde
     // it's already present from a previous mount in the same session.
     void el.offsetWidth;
     el.classList.add(styles.celebrating);
-  }, [reached, celebrationEnabled, lastCelebrated, today, setLastCelebrated]);
+  }, [reached, celebrationEnabled, lastCelebrated, today, setLastCelebrated, soundEffects]);
 
   if (goal === null) return null;
 

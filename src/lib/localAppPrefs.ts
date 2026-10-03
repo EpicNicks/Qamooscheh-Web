@@ -178,6 +178,12 @@ export interface LocalAppPrefs {
   speakHoveredWords: boolean;
   /** The same for an English word (an English prompt) — off by default, since it's a word the learner already knows how to say. */
   speakHoveredEnglish: boolean;
+  /**
+   * Short feedback sounds (domain/sfx.ts, issue #32): a right or wrong
+   * answer, a lesson passed or not, the day's goal reached. A per-device
+   * sound choice like speakWordBankTiles. Defaults on.
+   */
+  soundEffects: boolean;
 }
 
 const DEFAULTS: LocalAppPrefs = {
@@ -205,6 +211,7 @@ const DEFAULTS: LocalAppPrefs = {
   speakAnswers: true,
   speakHoveredWords: true,
   speakHoveredEnglish: false,
+  soundEffects: true,
 };
 
 function storageKey(userId: string): string {

@@ -11,6 +11,7 @@ import { useLocalAppPref } from "./useLocalAppPref";
 import { getLanguageInfo, getSpeechLang } from "../domain/language";
 import type { ExerciseArtifact } from "../types/content";
 import type { ExerciseType } from "../domain/enums";
+import { playSound, soundLength } from "../domain/sfx";
 
 /**
  * The answer's playback control, or null when there's nothing to play: no
@@ -22,6 +23,10 @@ import type { ExerciseType } from "../domain/enums";
  * one-word answer, or a wrong tile, still gets the answer read out. Goes by
  * how the exercise was shown (`renderType`), since a new word's type-in is
  * shown as tiles too (domain/exerciseResolution.ts).
+ *
+ * Each review also gets its right/wrong sound first (domain/sfx.ts, issue
+ * #32) when localAppPrefs.soundEffects is on, and the answer is read once
+ * that sound is over rather than on top of it.
  */
 export function useAnswerAudio(
   exercise: ExerciseArtifact | null,
@@ -32,6 +37,7 @@ export function useAnswerAudio(
 ): PhraseAudio | null {
   const [speakAnswers] = useLocalAppPref("speakAnswers", true);
   const [speakTiles] = useLocalAppPref("speakWordBankTiles", true);
+  const [soundEffects] = useLocalAppPref("soundEffects", true);
   const tokenized = exercise?.type === "word_bank" || exercise?.type === "match";
   const text = exercise ? (tokenized ? exercise.answer.join(" ") : (exercise.answer[0] ?? "")) : "";
   const courseLang = getLanguageInfo(courseCode)?.speechLang ?? null;
@@ -46,7 +52,13 @@ export function useAnswerAudio(
   const justHeardTile = shownAsTiles && correct && speakTiles && !!exercise?.tiles?.includes(text);
 
   useEffect(() => {
-    if (speakAnswers && playable && !justHeardTile) audio.play();
+    if (!exercise) return;
+    const sound = correct ? "correct" : "wrong";
+    if (soundEffects) playSound(sound);
+    if (!speakAnswers || !playable || justHeardTile) return;
+    if (!soundEffects) return audio.play();
+    const timer = setTimeout(audio.play, soundLength(sound) * 1000);
+    return () => clearTimeout(timer);
     // Once per review, keyed on the counter: the same exercise answered twice
     // in a row (a requeued retry) has the same text but is a new review.
     // eslint-disable-next-line react-hooks/exhaustive-deps

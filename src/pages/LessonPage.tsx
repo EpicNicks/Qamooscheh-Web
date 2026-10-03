@@ -276,6 +276,7 @@ export function LessonPage() {
             total={engine.score.total}
             score={engine.score.score}
             passMark={LESSON_PASS_THRESHOLD}
+            sound="lessonFailed"
           />
           <div className={styles.doneActions}>
             <Button variant="secondary" onClick={() => navigate(isDeepDive ? "/themes" : "/path")}>
@@ -300,6 +301,7 @@ export function LessonPage() {
             total={engine.score.total}
             score={engine.score.score}
             passMark={engine.lessonCompleted != null ? LESSON_PASS_THRESHOLD : undefined}
+            sound="lessonPassed"
           />
           <div className={styles.doneActions}>
             <Button onClick={() => navigate("/path")}>Back to path</Button>
