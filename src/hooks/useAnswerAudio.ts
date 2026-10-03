@@ -15,7 +15,9 @@ import type { ExerciseArtifact } from "../types/content";
  * The answer's playback control, or null when there's nothing to play: no
  * answer under review, an answer not in the course's language, or neither a
  * recording nor a voice for it. Plays once on its own each time a new review
- * comes up (`submissionCount`), when localAppPrefs.speakAnswers is on.
+ * comes up (`submissionCount`), when localAppPrefs.speakAnswers is on — except
+ * for a single-word answer, which the learner has just heard tapping its tile
+ * (issue #31); its play button still replays it.
  */
 export function useAnswerAudio(
   exercise: ExerciseArtifact | null,
@@ -31,9 +33,10 @@ export function useAnswerAudio(
   const voiceAvailable = useVoiceAvailability(inCourseLanguage ? courseLang : null);
   const playable = inCourseLanguage && (audioUrl != null || voiceAvailable);
   const audio = usePhraseAudio({ text, speechLang: inCourseLanguage ? courseLang : null, audioUrl });
+  const singleWord = !/\s/.test(text.trim());
 
   useEffect(() => {
-    if (speakAnswers && playable) audio.play();
+    if (speakAnswers && playable && !singleWord) audio.play();
     // Once per review, keyed on the counter: the same exercise answered twice
     // in a row (a requeued retry) has the same text but is a new review.
     // eslint-disable-next-line react-hooks/exhaustive-deps
