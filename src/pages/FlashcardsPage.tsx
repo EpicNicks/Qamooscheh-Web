@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { useBootstrap } from "../hooks/useBootstrap";
 import { useLexemeIndex } from "../hooks/useCourseContent";
 import { useStarredLexemes } from "../hooks/useStarredLexemes";
@@ -29,6 +30,7 @@ type XpState = { status: "idle" } | { status: "saving" } | { status: "saved"; xp
  */
 export function FlashcardsPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const bootstrap = useBootstrap();
   const course = bootstrap.data?.course ?? null;
   const lexemeIndex = useLexemeIndex(course);
@@ -73,6 +75,10 @@ export function FlashcardsPage() {
         cards: next.map((r) => ({ ...r, kind })),
       });
       setXp({ status: "saved", xp: response.xp });
+      // XP lands in the day's activity, which is what the streak, goal and league read.
+      queryClient.invalidateQueries({ queryKey: ["activity"] });
+      queryClient.invalidateQueries({ queryKey: ["league", "current"] });
+      queryClient.invalidateQueries({ queryKey: ["streak"] });
     } catch {
       setXp({ status: "failed" });
     }

@@ -169,6 +169,7 @@ export function SavedPracticePage() {
     queryClient.invalidateQueries({ queryKey: ["sessionPlan"] });
     queryClient.invalidateQueries({ queryKey: ["activity"] });
     queryClient.invalidateQueries({ queryKey: ["league", "current"] });
+    queryClient.invalidateQueries({ queryKey: ["streak"] });
     setOutcome({ lessons, flashcardXp });
     setStatus("done");
   }
