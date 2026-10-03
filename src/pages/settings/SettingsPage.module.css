@@ -1,5 +1,8 @@
 .page {
   max-width: 640px;
+  /* Narrower than the shell's content column (AppShell .mainInner), so it
+     centres itself in it rather than sitting against its left edge. */
+  margin-inline: auto;
 }
 
 .hint {

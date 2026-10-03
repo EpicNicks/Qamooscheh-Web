@@ -11,16 +11,15 @@ interface FaqEntry {
 const FAQ: FaqEntry[] = [
   {
     id: "tts-voice",
-    question: "Why isn't there any audio for some lessons?",
+    question: "Why does some audio sound different, or not play at all?",
     answer: (
       <>
         <p>
-          ParsLing doesn't ship recorded audio for every phrase yet — where there's no recording, the app asks
-          your device to read the phrase aloud instead, using its own built-in text-to-speech voices.
+          The Persian course is recorded: words, prompts and answers play real recordings. Anything that hasn't been
+          recorded yet is read aloud by your device's own text-to-speech voice instead, so that audio sounds different
+          and depends on your device.
         </p>
-        <p>
-          That means the voice (and whether there's a voice at all) depends on your device, not on ParsLing:
-        </p>
+        <p>If you hear nothing, or the play button is greyed out, your device has no voice for that language:</p>
         <ul>
           <li>
             <strong>Windows</strong> — a language needs its <em>Speech</em> feature installed, not just its keyboard
@@ -39,14 +38,91 @@ const FAQ: FaqEntry[] = [
             <strong>iOS</strong> — Settings → Accessibility → Spoken Content → Voices.
           </li>
         </ul>
-        <p>If your device has no matching voice installed, the play button for that phrase is disabled.</p>
+        <p>
+          You can choose what plays on its own in Settings → Input: <em>Autoplay audio</em> (each prompt),{" "}
+          <em>Read words aloud when I pick them from the word bank</em>, and <em>Read the answer aloud after I
+          answer</em>. Every play button still works with these off.
+        </p>
       </>
     ),
   },
   {
-    id: "why-vocabulary-hidden",
-    question: "Why don't exercises show a word's meaning while I'm answering?",
-    answer: <p>Showing a translation on screen while you're being asked for it would give the answer away. Use the vocabulary review screen (from any lesson's Start popover) to look words up ahead of time instead.</p>,
+    id: "word-hints",
+    question: "Can I see what a word means while I'm answering?",
+    answer: (
+      <>
+        <p>
+          Yes. Hover over a word, or tap it, to see its translation or romanization. The ⚙ in a lesson's top bar
+          picks which hints show, and can also show vowel marks and a romanized line above each sentence.
+        </p>
+        <p>
+          Revealing the Persian for an English word marks that exercise as hinted. A hinted answer doesn't count as
+          remembering the word: it earns no XP, and the word comes back for review sooner.
+        </p>
+        <p>
+          To look words up before a lesson, open its Start popover on the path and choose <em>Review vocabulary</em>.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "passing-a-lesson",
+    question: "Why didn't I pass a lesson?",
+    answer: (
+      <>
+        <p>
+          A lesson needs 75% on your first tries to pass and unlock the next one. A wrong answer comes back later in
+          the lesson, but getting it right the second time doesn't add to the score. An answer accepted with a
+          small typo counts as half.
+        </p>
+        <p>Your answers still count toward your reviews either way, so take it again to pass.</p>
+      </>
+    ),
+  },
+  {
+    id: "saved-words",
+    question: "How do saved words and flashcards work?",
+    answer: (
+      <>
+        <p>
+          Save a word or expression with its ★: on the vocabulary list, or in the <em>Save words</em> row that comes
+          up after you answer an exercise. Saved words are listed under the vocabulary page's <em>Saved</em> tab. The
+          free plan saves up to 100, counted across all your courses.
+        </p>
+        <ul>
+          <li>
+            <strong>Flashcards</strong> — <em>Type the meaning</em> earns 5 XP for each meaning you get right.{" "}
+            <em>Flip cards</em> is practice only and earns nothing on its own.
+          </li>
+          <li>
+            <strong>Practise saved words</strong> — your most-due saved words, each as a flip card followed by
+            exercises from lessons that use it. The exercises count just like a lesson's, and each flip card you knew
+            earns 5 XP.
+          </li>
+        </ul>
+        <p>
+          Flashcards never change your review schedule, and they earn at most 200 XP a day per course.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "xp",
+    question: "Where does XP come from?",
+    answer: (
+      <>
+        <p>
+          Mostly from lessons: every word an exercise tests earns XP when you get it right on the first try — more
+          for a quick answer, less for a slow one or one with a typo, and none for a wrong or hinted answer. Each
+          word counts once per lesson. Flashcards add more (see above).
+        </p>
+        <p>
+          The XP that pops up after each answer is only an estimate; what you earn is worked out when the lesson is
+          saved. Practice rounds (<em>Practice anyway</em>) earn none, since they don't count toward your reviews.
+          Your daily goal is in Settings → Goals, and leagues rank you by the XP you earn.
+        </p>
+      </>
+    ),
   },
   {
     id: "review-intensity",
@@ -74,12 +150,29 @@ const FAQ: FaqEntry[] = [
   },
   {
     id: "skip-vs-test-out",
-    question: "What's the difference between the red × and \"Skip\" on a lesson?",
+    question: "What's the difference between the red ×, \"Test out\" and \"Skip ahead\"?",
+    answer: (
+      <>
+        <p>
+          The red × leaves the lesson. Nothing you've answered so far is saved, and none of it counts toward your
+          progress.
+        </p>
+        <p>
+          <em>Test out</em>, in a lesson's Start popover, is a short quiz instead of the full lesson: pass it and you
+          move past that lesson. <em>Skip ahead</em> on the path does the same for a bigger jump, if you already know
+          the material up to that point.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "fonts",
+    question: "Persian text is hard to read. Can I change the font?",
     answer: (
       <p>
-        The red × closes the lesson entirely without saving anything you've answered so far. "Skip"/"Test out" is a
-        different thing — it lets you attempt a short check to prove you already know the material coming up,
-        instead of doing the full lesson for it.
+        Yes: Settings → Appearance lets you pick a font for each script, from the fonts on your device, and set its
+        size. You can also type in the name of any other font you have installed. These choices are saved on this
+        device only, since which fonts look right depends on the device.
       </p>
     ),
   },
