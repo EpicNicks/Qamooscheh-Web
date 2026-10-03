@@ -26,10 +26,10 @@ describe("markTypedAnswer", () => {
     expect(marked.map((w) => w.mark)).toEqual(["right", "right", "wrong", "right"]);
   });
 
-  it("forgives Arabic codepoints and half-spaces in Persian words", () => {
-    // Arabic yeh (ي) for Persian yeh (ی), and می‌روم typed without its ZWNJ.
-    const marked = markTypedAnswer("fa", ["من می‌روم"], "مني میروم", false);
-    expect(marked.map((w) => w.mark)).toEqual(["wrong", "right"]);
+  it("forgives Arabic codepoints but not a missing half-space in Persian words", () => {
+    // Arabic yeh (ي) for Persian yeh (ی) is forgiven; می‌روم typed without its ZWNJ is a misspelling.
+    expect(markTypedAnswer("fa", ["من می‌روم"], "مني میروم", false).map((w) => w.mark)).toEqual(["wrong", "wrong"]);
+    expect(markTypedAnswer("fa", ["من می\u200cروم"], "من مي\u200cروم", false).map((w) => w.mark)).toEqual(["right", "right"]);
     expect(markTypedAnswer("fa", ["علي"], "علی", false)[0].mark).toBe("right");
   });
 

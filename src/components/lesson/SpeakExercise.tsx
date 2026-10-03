@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Button } from "../common/Button";
 import { ExercisePrompt } from "./ExercisePrompt";
-import { getLanguageInfo } from "../../domain/language";
+import { getLanguageInfo, isPersian } from "../../domain/language";
+import { submittedSpelling } from "../../domain/persian/typedAnswer";
 import type { ExerciseProps } from "./ExerciseRenderer";
 import styles from "./Exercise.module.css";
 
@@ -20,7 +21,8 @@ export function SpeakExercise({ exercise, onSubmit, disabled, courseCode, autopl
   const isNativeScript = exercise.scriptMode === "native";
 
   function submit() {
-    onSubmit(text, { usedHint });
+    // Typed for now, so tidied like any typed answer (TypeInExercise's submit).
+    onSubmit(isPersian(courseCode) ? submittedSpelling(text, false) : text, { usedHint });
     setText("");
   }
 
