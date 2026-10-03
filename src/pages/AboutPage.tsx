@@ -36,9 +36,10 @@ export function AboutPage() {
               (romanized-typing) option for either, so you're never blocked on a layout you don't have installed.
             </li>
             <li>
-              <strong>Instant, honest feedback.</strong> Typos and near-misses (a missing ZWNJ, an Arabic-vs-Persian
-              character, a spacing variant) are recognized and corrected in place, rather than just marked wrong,
-              though the server always re-grades every answer, so what you see in the moment is never the final word.
+              <strong>Instant, honest feedback.</strong> Near-misses (a one-letter typo, an Arabic-vs-Persian
+              character) are recognized and corrected in place, rather than just marked wrong, and a missing or
+              misplaced half-space (ZWNJ) is pointed out exactly where it goes. The server always re-grades every
+              answer, so what you see in the moment is never the final word.
             </li>
             <li>
               <strong>Checkpoints.</strong> Already know a unit's material? Test out of it instead of taking every
