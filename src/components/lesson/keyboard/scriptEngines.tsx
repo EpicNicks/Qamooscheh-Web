@@ -102,11 +102,14 @@ function usePersianLayoutEngine(params: {
   deviceInput: DeviceInputMethod;
 }): ScriptEngine {
   const { updateText, keyboardMode, disabled, handlers, fa, deviceInput } = params;
+  // The device keyboard types its own letters, with no isolating ZWNJ after
+  // them — so physical keys don't add one then either, and submit has none to strip.
+  const isolates = keyboardMode === "isolated" && !deviceInput.enabled;
 
   return {
     pressLetter(letter) {
       const mapped = PHYSICAL_KEY_TO_ISIRI[letter.toLowerCase()];
-      updateText((prev) => prev + (mapped ?? letter) + (mapped && keyboardMode === "isolated" ? ZWNJ : ""));
+      updateText((prev) => prev + (mapped ?? letter) + (mapped && isolates ? ZWNJ : ""));
     },
     backspace() {
       updateText((prev) => prev.slice(0, -1));
@@ -114,8 +117,7 @@ function usePersianLayoutEngine(params: {
     finalize() {},
     isExtraPhysicalKey: (key) => ISIRI_PUNCTUATION_KEY.test(key),
     supportsZwnj: true,
-    // The device keyboard types its own letters, with no isolating ZWNJ after them.
-    isolatesLetters: keyboardMode === "isolated" && !deviceInput.enabled,
+    isolatesLetters: isolates,
     keyboardNode: (
       <>
         <div className={keyboardStyles.controlsRow}>
