@@ -68,10 +68,10 @@ export function PracticePage() {
     }
   }
 
-  async function handleSubmit(text: string, opts?: { usedHint?: boolean }) {
+  function handleSubmit(text: string, opts?: { usedHint?: boolean }) {
     const answered = walkthrough.current; // snapshot before submitAnswer advances the queue
     if (!answered) return;
-    const result = await walkthrough.submitAnswer(text, opts);
+    const result = walkthrough.submitAnswer(text, opts);
     confirmation.record(answered, result);
   }
 

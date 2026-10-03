@@ -98,7 +98,8 @@ export function useSkillWalkthrough(unitKey: string, skillKey: string, options: 
 
   const current = queue && queue.length > 0 ? queue[0] : null;
 
-  async function submitAnswer(submittedText: string, opts?: { usedHint?: boolean }): Promise<WalkthroughAnswerResult> {
+  /** Synchronous for the same reason as useLessonEngine's submitAnswer: the review has to appear in the same render the queue advances in. */
+  function submitAnswer(submittedText: string, opts?: { usedHint?: boolean }): WalkthroughAnswerResult {
     if (!current || !queue) return { correct: false, note: null, submittedText };
 
     const feedback = checkAnswer(course?.code, current.exercise, submittedText);
@@ -122,7 +123,7 @@ export function useSkillWalkthrough(unitKey: string, skillKey: string, options: 
     const rest = queue.slice(1);
     setQueue(rest);
 
-    if (rest.length === 0) await finish([...items, ...newItems]);
+    if (rest.length === 0) void finish([...items, ...newItems]);
 
     return { correct: feedback.verdict !== "incorrect", note: feedback.note, submittedText };
   }

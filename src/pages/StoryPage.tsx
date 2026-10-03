@@ -67,10 +67,10 @@ export function StoryPage() {
     }
   }
 
-  async function handleSubmit(text: string, opts?: { usedHint?: boolean }) {
+  function handleSubmit(text: string, opts?: { usedHint?: boolean }) {
     const answered = walkthrough.current; // snapshot before submitAnswer advances the queue
     if (!answered) return;
-    const result = await walkthrough.submitAnswer(text, opts);
+    const result = walkthrough.submitAnswer(text, opts);
     setResultsByOrdinal((prev) => new Map(prev).set(answered.ordinal, result));
     confirmation.record(answered, result);
   }
