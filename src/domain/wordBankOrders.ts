@@ -63,27 +63,48 @@ export function gradeTiles(submitted: string[], answer: string[]): TileMark[] {
     }
   }
 
+  const marks = new Array<TileMark>(n).fill("wrong");
+  for (const step of alignTiles(submitted, answer)) {
+    if (step.kind === "match") marks[step.submitted] = "right";
+  }
+  return marks;
+}
+
+/** One step through a submission measured against an answer: a submitted token in its right place, one that isn't, or an answer token left out. */
+export type AlignmentStep =
+  | { kind: "match"; submitted: number; answer: number }
+  | { kind: "extra"; submitted: number }
+  | { kind: "missing"; answer: number };
+
+/**
+ * gradeTiles's longest-common-subsequence alignment, step by step in reading
+ * order — so a caller can also say where each left-out answer token belonged
+ * (typedAnswerMarks.ts's missing words).
+ */
+export function alignTiles(submitted: string[], answer: string[]): AlignmentStep[] {
+  const n = submitted.length;
+  const m = answer.length;
   const lcs = Array.from({ length: n + 1 }, () => new Array<number>(m + 1).fill(0));
   for (let i = n - 1; i >= 0; i--) {
     for (let j = m - 1; j >= 0; j--) {
       lcs[i][j] = submitted[i] === answer[j] ? lcs[i + 1][j + 1] + 1 : Math.max(lcs[i + 1][j], lcs[i][j + 1]);
     }
   }
-  const marks = new Array<TileMark>(n).fill("wrong");
+  const steps: AlignmentStep[] = [];
   let i = 0;
   let j = 0;
   while (i < n && j < m) {
     if (submitted[i] === answer[j]) {
-      marks[i] = "right";
-      i++;
-      j++;
+      steps.push({ kind: "match", submitted: i++, answer: j++ });
     } else if (lcs[i + 1][j] >= lcs[i][j + 1]) {
-      i++;
+      steps.push({ kind: "extra", submitted: i++ });
     } else {
-      j++;
+      steps.push({ kind: "missing", answer: j++ });
     }
   }
-  return marks;
+  while (i < n) steps.push({ kind: "extra", submitted: i++ });
+  while (j < m) steps.push({ kind: "missing", answer: j++ });
+  return steps;
 }
 
 export interface ClosestTileOrder {
