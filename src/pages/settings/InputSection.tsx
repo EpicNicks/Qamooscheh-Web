@@ -1,6 +1,7 @@
 import { getLanguageInfo } from "../../domain/language";
 import { useLocalAppPref } from "../../hooks/useLocalAppPref";
 import { KeyboardModeToggle } from "../../components/lesson/languageSettings/KeyboardModeToggle";
+import { VoicePicker } from "./VoicePicker";
 import type { SettingsSectionProps } from "./SettingsSectionProps";
 import styles from "./SettingsPage.module.css";
 
@@ -41,6 +42,8 @@ export function InputSection({ form, editForm, courseCode }: SettingsSectionProp
         <input type="checkbox" checked={speakAnswers} onChange={(e) => setSpeakAnswers(e.target.checked)} />
         Read the answer aloud after I answer
       </label>
+
+      <VoicePicker form={form} editForm={editForm} />
     </div>
   );
 }
