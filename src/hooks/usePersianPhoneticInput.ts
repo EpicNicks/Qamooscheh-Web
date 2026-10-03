@@ -18,10 +18,11 @@ export interface PersianPhoneticInput {
   candidates: readonly string[] | null;
   activeIndex: number;
   setActiveIndex: (index: number) => void;
+  /** Feeds one Latin letter — first committing a candidate the learner arrowed to, if the picker is open on one. */
   feedChar: (char: string) => void;
   /** Replace the already-inserted default candidate with a different one (or re-confirm index 0). */
   selectCandidate: (index?: number) => void;
-  /** Call on space/blur/submit — resolves a still-pending word-final e to ه. */
+  /** Call on space/blur/submit — commits an arrowed-to candidate, and resolves a still-pending word-final e to ه. */
   finalize: () => void;
   /** Call on backspace — drops any buffered state without an edit of its own (the caller's own backspace already removed the visible character, if there was one — see `hasPending`). */
   reset: () => void;
@@ -45,7 +46,15 @@ export function usePersianPhoneticInput(onEdit: (deleteCount: number, insertText
     }
   }
 
+  // A candidate the learner arrowed to is committed by simply typing on
+  // (issue #33), the same as Enter would have. The default (index 0) is left
+  // open instead, so it can still combine with the next letter (s + h -> ش).
+  function commitHighlighted() {
+    if (candidates && activeIndex !== 0) selectCandidate();
+  }
+
   function feedChar(char: string) {
+    commitHighlighted();
     apply(feedLatinChar(stateRef.current, char));
   }
 
@@ -60,6 +69,7 @@ export function usePersianPhoneticInput(onEdit: (deleteCount: number, insertText
   }
 
   function finalize() {
+    commitHighlighted();
     apply(finalizeWord());
   }
 
