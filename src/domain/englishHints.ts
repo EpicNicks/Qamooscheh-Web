@@ -17,6 +17,8 @@ export interface NativeHint {
 interface Candidate {
   /** The gloss alternative, lowercased, as words ("thank you" -> ["thank", "you"]). */
   words: string[];
+  /** For a progressive reading (progressiveForms), its last word must be written with -ing: "is open" is a state, not "is opening". */
+  progressive?: boolean;
   hint: NativeHint;
 }
 
@@ -76,42 +78,84 @@ const PROMPT_EQUIVALENTS: Record<string, string[]> = {
   home: ["house"],
 };
 
+/** The "be" a subject pronoun takes, for a verb gloss's progressive reading. */
+const BE: Record<string, string> = { i: "am", you: "are", we: "are", they: "are", he: "is", she: "is", it: "is" };
+
+/** A third-person verb back to its base form ("buys" -> buy, "watches" -> watch, "carries" -> carry, "has" -> have). */
+function baseVerb(verb: string): string {
+  if (verb === "has") return "have";
+  if (verb.endsWith("ies")) return verb.slice(0, -3) + "y";
+  if (/(s|x|z|ch|sh|o)es$/.test(verb)) return verb.slice(0, -2);
+  if (verb.endsWith("s") && !verb.endsWith("ss")) return verb.slice(0, -1);
+  return verb;
+}
+
+/**
+ * Persian's present tense is English's simple and progressive present both:
+ * می‌خرم, glossed "I buy", is just as much "I am buying" (issue #34). So a
+ * subject-and-verb gloss also reads as subject + be + verb, and as be + verb
+ * alone for "I'm buying" (whose "I'm" stands for "am" — see wordForms), and
+ * an infinitive gloss ("to build") reads as any be + verb ("are building"). The
+ * verb is left in its base form; wordForms takes a prompt's "buying" back to it.
+ */
+function progressiveForms(phrase: string[], pos: string): string[][] {
+  if (!pos.startsWith("<v>") || phrase.length !== 2) return [];
+  // An infinitive gloss ("to build") has no subject to agree with: any "be" will do.
+  if (phrase[0] === "to") return ["am", "is", "are"].map((be) => [be, phrase[1]]);
+  if (!(phrase[0] in BE)) return [];
+  const [subject, verb] = phrase;
+  const be = BE[subject];
+  const base = be === "is" ? baseVerb(verb) : verb;
+  return [
+    [subject, be, base],
+    [be, base],
+  ];
+}
+
 /**
  * Every English phrasing of this exercise's lexemes. A gloss is trimmed of
  * its authoring notes (attachedEndings.ts's tidyGloss) and split into its
- * alternatives (glossPhrases), and a verb's "to" is optional ("to have" also
- * matches "have"). A tag's own sense is used when its surface has several
+ * alternatives (glossPhrases), a verb's "to" is optional ("to have" also
+ * matches "have"), and "I buy" also matches "I am buying" (progressiveForms). A tag's own sense is used when its surface has several
  * (ـم is both "my" and "am"). Suffix-only alternatives ("-er") are skipped —
  * no English word is spelled that way.
  */
 export function englishCandidates(tags: readonly string[], hintMap: ReadonlyMap<string, WordHint>): Candidate[] {
-  const candidates: Candidate[] = [];
-  const seen = new Set<string>();
+  const own: Candidate[] = [];
+  const borrowed: Candidate[] = [];
   for (const tag of tags) {
     const surface = tag.split("<", 1)[0];
     const hint = hintMap.get(surface);
     if (!surface || !hint) continue;
     const pos = tag.slice(surface.length);
     const sense = hint.senses?.find((s) => s.pos === pos) ?? { translation: hint.translation, romanization: hint.romanization };
+    const native = { native: surface, romanization: sense.romanization };
     for (const phrase of glossPhrases(tidyGloss(sense.translation))) {
       if (phrase.length === 0 || phrase[0].startsWith("-")) continue;
       const forms = phrase[0] === "to" && phrase.length > 1 ? [phrase, phrase.slice(1)] : [phrase];
-      if (phrase.length === 1) forms.push(...(PROMPT_EQUIVALENTS[phrase[0]] ?? []).map((w) => [w]));
-      for (const form of forms) {
-        const key = form.join(" ");
-        if (seen.has(key)) continue;
-        seen.add(key);
-        candidates.push({ words: form, hint: { native: surface, romanization: sense.romanization } });
-      }
+      own.push(...forms.map((words) => ({ words, hint: native })));
+      own.push(...progressiveForms(phrase, pos).map((words) => ({ words, hint: native, progressive: true })));
+      if (phrase.length === 1) borrowed.push(...(PROMPT_EQUIVALENTS[phrase[0]] ?? []).map((w) => ({ words: [w], hint: native })));
     }
+  }
+  // A lexeme whose own gloss says the word beats one that only borrows it:
+  // in "for my mother", "my" is ـم ("my"), not من ("I", which also reads "my").
+  const candidates: Candidate[] = [];
+  const seen = new Set<string>();
+  for (const candidate of [...own, ...borrowed]) {
+    const key = candidate.words.join(" ");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    candidates.push(candidate);
   }
   return candidates;
 }
 
 /**
  * A prompt word and the base forms it could be ("books" -> book, "watches" ->
- * watch, "cities" -> city), and either half of a contraction ("I'm" -> I or
- * am, "it's" -> it or is, "we're" -> we or are).
+ * watch, "cities" -> city, "buying" -> buy, "making" -> make, "running" ->
+ * run, "lying" -> lie), and either half of a contraction ("I'm" -> I or am,
+ * "it's" -> it or is, "we're" -> we or are).
  */
 const CONTRACTIONS: Record<string, string> = { m: "am", s: "is", re: "are", ve: "have", ll: "will", d: "would" };
 
@@ -122,6 +166,12 @@ function wordForms(word: string): string[] {
   if (word.endsWith("ies")) forms.push(word.slice(0, -3) + "y");
   if (word.endsWith("es")) forms.push(word.slice(0, -2));
   if (word.endsWith("s") && !word.endsWith("ss")) forms.push(word.slice(0, -1));
+  if (word.endsWith("ing") && word.length > 4) {
+    const stem = word.slice(0, -3);
+    forms.push(stem, stem + "e");
+    if (/([^aeiouy])\1$/.test(stem)) forms.push(stem.slice(0, -1));
+    if (word.endsWith("ying")) forms.push(word.slice(0, -4) + "ie");
+  }
   return forms;
 }
 
@@ -159,9 +209,15 @@ export function segmentEnglish(text: string, candidates: readonly Candidate[]): 
     }
     let match: { end: number; hint: NativeHint } | null = null;
     for (let length = run.length; length > 0 && !match; length--) {
-      const hit = candidates.find(
-        (c) => c.words.length === length && c.words.every((word, k) => run[k].forms.includes(word)),
+      const fits = candidates.filter(
+        (c) =>
+          c.words.length === length &&
+          c.words.every((word, k) => run[k].forms.includes(word)) &&
+          (!c.progressive || run[length - 1].forms[0].endsWith("ing")),
       );
+      // A word as written beats a form derived from it: "evening" is the
+      // evening's lexeme before it's "even" + -ing.
+      const hit = fits.find((c) => c.words.every((word, k) => run[k].forms[0] === word)) ?? fits[0];
       if (hit) match = { end: run[length - 1].end, hint: hit.hint };
     }
     const end = match?.end ?? i + 1;

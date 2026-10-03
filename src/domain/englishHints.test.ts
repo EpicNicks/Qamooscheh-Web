@@ -19,6 +19,11 @@ const lexemes: LexemeIndex = {
   "یک<num>": { gloss: "one", register: null, romanization: "yek", romanizationIsAuthored: true },
   "من<pron>": { gloss: "I", register: null, romanization: "man", romanizationIsAuthored: true },
   "ـتر<comp>": { gloss: "-er / more (comparative)", register: null, romanization: "-tar", romanizationIsAuthored: true },
+  "می‌خرم<v><spoken>": { gloss: "I buy", register: "spoken", romanization: "mīkharam", romanizationIsAuthored: true },
+  "می‌خره<v><spoken>": { gloss: "he / she buys", register: "spoken", romanization: "mīkhare", romanizationIsAuthored: true },
+  "خریدن<v><spoken>": { gloss: "to buy", register: "spoken", romanization: "kharīdan", romanizationIsAuthored: true },
+  "کیف<n>": { gloss: "bag", register: null, romanization: "kīf", romanizationIsAuthored: true },
+  "برای<prep>": { gloss: "for", register: null, romanization: "barāye", romanizationIsAuthored: true },
 };
 const hintMap = buildLexemeHintMap(lexemes);
 
@@ -52,6 +57,60 @@ describe("English prompt hints", () => {
     expect(hinted("Books", ["کتاب<n>"])).toEqual(["Books=کتاب"]);
     expect(hinted("We have tea", ["داشتن<v>"])).toEqual(["have=داشتن"]);
     expect(hinted("Where is mom?", ["مامان<n>"])).toEqual(["mom=مامان"]);
+  });
+
+  it("reads a present-tense verb gloss as the progressive too (issue #34)", () => {
+    const tags = ["من<pron>", "برای<prep>", "مادر<n>", "ـم<poss>", "یک<num>", "کیف<n>", "می‌خرم<v><spoken>"];
+    expect(hinted("I am buying a bag for my mother", tags)).toEqual([
+      "I am buying=می‌خرم",
+      "a=یک",
+      "bag=کیف",
+      "for=برای",
+      "my=ـم",
+      "mother=مادر",
+    ]);
+    expect(hinted("I'm buying a bag", ["می‌خرم<v><spoken>", "کیف<n>"])).toEqual(["I'm buying=می‌خرم", "bag=کیف"]);
+    expect(hinted("She is buying a bag", ["می‌خره<v><spoken>", "کیف<n>"])).toEqual(["She is buying=می‌خره", "bag=کیف"]);
+    expect(hinted("I buy a bag", ["می‌خرم<v><spoken>", "کیف<n>"])).toEqual(["I buy=می‌خرم", "bag=کیف"]);
+  });
+
+  it("prefers a word as written over one derived from it", () => {
+    const lexemes: LexemeIndex = {
+      "حتی<adv>": { gloss: "even", register: null, romanization: "hattā", romanizationIsAuthored: true },
+      "عصر<n>": { gloss: "evening", register: null, romanization: "asr", romanizationIsAuthored: true },
+      "ساختن<v>": { gloss: "to build", register: null, romanization: "sākhtan", romanizationIsAuthored: true },
+      "ساختمان<n>": { gloss: "building", register: null, romanization: "sākhtemān", romanizationIsAuthored: true },
+    };
+    const map = buildLexemeHintMap(lexemes);
+    const hintedIn = (text: string, tags: string[]) =>
+      segmentEnglish(text, englishCandidates(tags, map))
+        .filter((s) => s.hint)
+        .map((s) => `${s.text}=${s.hint!.native}`);
+    expect(hintedIn("Even in the evening", ["حتی<adv>", "عصر<n>"])).toEqual(["Even=حتی", "evening=عصر"]);
+    expect(hintedIn("They are building a building", ["ساختن<v>", "ساختمان<n>"])).toEqual(["are building=ساختن", "building=ساختمان"]);
+  });
+
+  it("reads be + verb as the progressive only when the verb says -ing", () => {
+    const lexemes: LexemeIndex = {
+      "در<n>": { gloss: "door", register: null, romanization: "dar", romanizationIsAuthored: true },
+      "باز کردن<v>": { gloss: "to open", register: null, romanization: "bāz kardan", romanizationIsAuthored: true },
+      "است<v>": { gloss: "is", register: null, romanization: "ast", romanizationIsAuthored: true },
+      "باز<adj>": { gloss: "open", register: null, romanization: "bāz", romanizationIsAuthored: true },
+    };
+    const map = buildLexemeHintMap(lexemes);
+    const tags = ["در<n>", "باز کردن<v>", "است<v>", "باز<adj>"];
+    const hintedIn = (text: string) =>
+      segmentEnglish(text, englishCandidates(tags, map))
+        .filter((s) => s.hint)
+        .map((s) => `${s.text}=${s.hint!.native}`);
+    // "is" stays the copula; which "open" the word itself gets is the tags' order, not this rule's.
+    expect(hintedIn("The door is open").slice(0, 2)).toEqual(["door=در", "is=است"]);
+    expect(hintedIn("He is opening the door")).toEqual(["is opening=باز کردن", "door=در"]);
+  });
+
+  it("takes an -ing word back to its verb", () => {
+    expect(hinted("Buying books", ["خریدن<v><spoken>", "کتاب<n>"])).toEqual(["Buying=خریدن", "books=کتاب"]);
+    expect(hinted("We are having tea", ["داشتن<v>"])).toEqual(["are having=داشتن"]);
   });
 
   it("skips suffix-only alternatives but keeps the rest", () => {
