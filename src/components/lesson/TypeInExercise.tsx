@@ -4,21 +4,21 @@ import { useScriptEngine, type ScriptEngine, type ScriptKeyboardHandlers } from 
 import { ExercisePrompt } from "./ExercisePrompt";
 import { VirtualCaret } from "./VirtualCaret";
 import { getLanguageInfo, getKeyboardKind, isPersian } from "../../domain/language";
-import { detectArabicVariants, ZWNJ } from "../../domain/persian/normalize";
+import { detectArabicVariants, stripReadingAids, ZWNJ } from "../../domain/persian/normalize";
 import { useKeyboardInputMethod } from "../../hooks/useKeyboardInputMethod";
 import { useDeviceInputEnabled } from "../../hooks/useDeviceInputEnabled";
-import { markTypedAnswer } from "../../domain/typedAnswerMarks";
+import { markTypedAnswer, type MarkedWord } from "../../domain/typedAnswerMarks";
 import { submittedSpelling } from "../../domain/persian/typedAnswer";
-import type { TileMark } from "../../domain/wordBankOrders";
 import type { ExerciseProps } from "./ExerciseRenderer";
 import styles from "./Exercise.module.css";
 
 const LETTER_KEY = /^[a-zA-Z']$/;
 
-const WORD_MARK_CLASS: Record<TileMark, string> = {
+const WORD_MARK_CLASS: Record<MarkedWord["mark"], string> = {
   right: styles.wordRight,
   swapped: styles.wordSwapped,
   wrong: styles.wordWrong,
+  missing: styles.wordMissing,
 };
 /** Keys whose default action moves the caret or edits past it. Buffered engine state is resolved before they act (see handleKeyDown). */
 const CARET_KEY = /^(Arrow(Left|Right|Up|Down)|Home|End|PageUp|PageDown|Delete)$/;
@@ -276,6 +276,15 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
     return () => window.removeEventListener("keydown", handleKeyDown);
   });
 
+  // A missing word is the accepted answer's own spelling, so it carries the
+  // vowel marks content writes — shown only when the learner has those on.
+  const reviewedWords = reviewedAnswer
+    ? markTypedAnswer(courseCode, exercise.answer, reviewedAnswer.text, reviewedAnswer.correct).map((word) =>
+        word.mark === "missing" && !textSettings?.vowelMarks ? { ...word, text: stripReadingAids(word.text) } : word,
+      )
+    : [];
+  const missingWords = reviewedWords.filter((word) => word.mark === "missing").map((word) => word.text);
+
   return (
     <div className={styles.wrap}>
       <ExercisePrompt
@@ -290,16 +299,22 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
         hintMap={hintMap}
         textSettings={textSettings}
       />
+      {reviewedAnswer && missingWords.length > 0 && (
+        <p className={styles.missingNote}>
+          Close. Missing words: <bdi>{missingWords.join(" ")}</bdi>
+        </p>
+      )}
       {reviewedAnswer ? (
         // The checked answer, word by word: green where it matches the
-        // closest accepted answer, yellow for a swapped pair, red otherwise.
+        // closest accepted answer, yellow for a swapped pair, red otherwise,
+        // and blue for a word it left out (issue #38).
         <div
           className={`${styles.input} ${styles.reviewedInput} ${reviewedAnswer.correct ? styles.reviewedRight : styles.reviewedWrong}`}
           dir={isNativeScript ? languageInfo?.direction : "ltr"}
           style={isNativeScript && languageInfo ? { fontFamily: `var(--font-script-${languageInfo.language})` } : undefined}
           aria-label={`Your answer: ${reviewedAnswer.text || "nothing"}`}
         >
-          {markTypedAnswer(courseCode, exercise.answer, reviewedAnswer.text, reviewedAnswer.correct).map((word, i) => (
+          {reviewedWords.map((word, i) => (
             <span key={i} className={WORD_MARK_CLASS[word.mark]}>
               {word.text}
             </span>

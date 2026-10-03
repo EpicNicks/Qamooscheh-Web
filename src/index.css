@@ -13,6 +13,9 @@
   --color-success-bg: #eaffdf;
   --color-warning: #d9a100;
   --color-warning-bg: #fff6d6;
+  /** Feedback that fills in rather than judges — the missing words in a close typed answer (issue #38). With danger/success/warning, one of the four review colors a colorblind mode would retune together. */
+  --color-info: #1680c4;
+  --color-info-bg: #e2f2fc;
   --color-locked: #cfcfd6;
   --color-current: #1cb0f6;
   /** The "skip ahead" placement-test node (PlacementTestNode, GitHub #4) — deliberately its own hue, shared with neither .locked's grey nor .current's blue, so the one node that behaves unlike every other locked node also reads as visually distinct rather than a locked node with a dashed border. */
@@ -65,6 +68,8 @@
     --color-danger-bg: #3a1414;
     --color-success-bg: #123018;
     --color-warning-bg: #3a2f08;
+    --color-info: #4db8f5;
+    --color-info-bg: #0e2a3d;
     --color-locked: #3a3a4a;
     /* Lighter, brighter flame on the dark background — the light theme's
        deep orange/red would sink into #131320. */

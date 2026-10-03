@@ -175,6 +175,21 @@
   border-radius: 4px;
 }
 
+/* A word the learner left out, shown where it belongs (issue #38) — blue,
+   like the "Close. Missing words" note above the box, so it reads as the
+   answer filling in rather than something they typed. */
+.wordMissing {
+  color: var(--color-info);
+  background: var(--color-info-bg);
+  border-radius: 4px;
+}
+
+.missingNote {
+  margin: 0 0 var(--space-1);
+  color: var(--color-info);
+  font-weight: 700;
+}
+
 .wordWrong {
   color: var(--color-danger);
   background: var(--color-danger-bg);
