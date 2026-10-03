@@ -1,0 +1,76 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-5, 1.5rem) var(--space-4);
+  border-radius: var(--radius-lg);
+  border: 2px solid var(--color-border);
+  background: var(--color-surface);
+  text-align: center;
+}
+
+.front {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.word {
+  font-size: 2rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.back {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.gloss {
+  font-size: 1.1rem;
+}
+
+.romanization {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-3);
+  width: 100%;
+}
+
+.input {
+  font-size: 1.1rem;
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text);
+  width: 100%;
+}
+
+.right,
+.wrong {
+  font-weight: 700;
+}
+
+.right {
+  color: var(--color-success);
+}
+
+.wrong {
+  color: var(--color-danger);
+}
