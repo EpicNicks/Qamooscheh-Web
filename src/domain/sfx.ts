@@ -36,31 +36,52 @@ export function soundLength(effect: SoundEffect): number {
 
 let context: AudioContext | null = null;
 
-/** Plays `effect` once. Silently does nothing where Web Audio isn't available. */
+/** How long a sound may wait for audio to be allowed before it's dropped — any later and it would play out of context. */
+const MAX_START_DELAY_MS = 300;
+
+/**
+ * Plays `effect` once — now, or not at all. Silently does nothing where Web
+ * Audio isn't available, or where the browser won't play sound yet (nothing
+ * has been tapped or typed on the page since it loaded).
+ */
 export function playSound(effect: SoundEffect): void {
   const AudioContextClass = typeof window === "undefined" ? undefined : window.AudioContext;
   if (!AudioContextClass) return;
+  if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return;
   try {
     context ??= new AudioContextClass();
-    // A context made before any user gesture starts suspended; every sound
-    // here follows one (an answer, a finished lesson), which lets it resume.
-    if (context.state === "suspended") void context.resume();
-    const { wave, volume, notes } = SOUNDS[effect];
-    const start = context.currentTime + 0.01;
-    for (const note of notes) {
-      const oscillator = context.createOscillator();
-      const gain = context.createGain();
-      oscillator.type = wave;
-      oscillator.frequency.value = note.freq;
-      // A quick attack and an exponential fade: no click at either end.
-      gain.gain.setValueAtTime(0.0001, start + note.at);
-      gain.gain.exponentialRampToValueAtTime(volume, start + note.at + 0.015);
-      gain.gain.exponentialRampToValueAtTime(0.0001, start + note.at + note.length);
-      oscillator.connect(gain).connect(context.destination);
-      oscillator.start(start + note.at);
-      oscillator.stop(start + note.at + note.length + 0.02);
-    }
+    const ctx = context;
+    if (ctx.state === "running") return schedule(ctx, effect);
+    // Suspended (made before a gesture) or interrupted (Safari): resuming is
+    // allowed after one, and every sound here follows one. A resume that
+    // takes too long means it wasn't, and the sound would come out of
+    // nowhere later — drop it.
+    const asked = performance.now();
+    ctx
+      .resume()
+      .then(() => {
+        if (ctx.state === "running" && performance.now() - asked < MAX_START_DELAY_MS) schedule(ctx, effect);
+      })
+      .catch(() => {});
   } catch {
     // Feedback sounds are a nicety: never let one break the lesson.
+  }
+}
+
+function schedule(ctx: AudioContext, effect: SoundEffect): void {
+  const { wave, volume, notes } = SOUNDS[effect];
+  const start = ctx.currentTime + 0.01;
+  for (const note of notes) {
+    const oscillator = ctx.createOscillator();
+    const gain = ctx.createGain();
+    oscillator.type = wave;
+    oscillator.frequency.value = note.freq;
+    // A quick attack and an exponential fade: no click at either end.
+    gain.gain.setValueAtTime(0.0001, start + note.at);
+    gain.gain.exponentialRampToValueAtTime(volume, start + note.at + 0.015);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + note.at + note.length);
+    oscillator.connect(gain).connect(ctx.destination);
+    oscillator.start(start + note.at);
+    oscillator.stop(start + note.at + note.length + 0.02);
   }
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useLocalAppPref } from "../../hooks/useLocalAppPref";
 import { playSound } from "../../domain/sfx";
 import styles from "./LessonResults.module.css";
@@ -31,9 +31,13 @@ export function LessonResults({
   sound?: "lessonPassed" | "lessonFailed";
 }) {
   const [soundEffects] = useLocalAppPref("soundEffects", true);
+  // Once, as the results come up — not again if the setting changes after,
+  // nor on development StrictMode's second run of this effect.
+  const played = useRef(false);
   useEffect(() => {
+    if (played.current) return;
+    played.current = true;
     if (sound && soundEffects) playSound(sound);
-    // Once, as the results come up — not again if the setting changes after.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

@@ -28,6 +28,7 @@ export function DailyGoalRing({ courseCode }: { courseCode: string | null | unde
   const [lastCelebrated, setLastCelebrated] = useLocalAppPref("lastGoalCelebrationDay", null);
   const [celebrationEnabled] = useLocalAppPref("goalCelebrationEnabled", true);
   const [soundEffects] = useLocalAppPref("soundEffects", true);
+  const chimedOn = useRef<string | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
 
   const goal = prefs.data?.dailyGoalXp ?? null;
@@ -44,7 +45,10 @@ export function DailyGoalRing({ courseCode }: { courseCode: string | null | unde
   useEffect(() => {
     if (!reached || !celebrationEnabled || lastCelebrated === today) return;
     setLastCelebrated(today);
-    if (soundEffects) playSound("goalReached");
+    // lastCelebrated is only saved once this effect is done, so a second run
+    // straight after (development StrictMode) would otherwise chime again.
+    if (soundEffects && chimedOn.current !== today) playSound("goalReached");
+    chimedOn.current = today;
     const el = wrapRef.current;
     if (!el) return;
     el.classList.remove(styles.celebrating);
