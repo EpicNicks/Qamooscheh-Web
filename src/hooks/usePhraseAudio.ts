@@ -4,7 +4,7 @@
 // has one (hooks/useRecordings.ts) and text-to-speech otherwise — see
 // domain/playback.ts.
 import { useEffect, useRef, useState } from "react";
-import { play as startPlayback } from "../domain/playback";
+import { play as startPlayback, SLOW_RATE } from "../domain/playback";
 
 export type PhraseAudioStatus = "idle" | "playing";
 
@@ -12,6 +12,8 @@ export interface PhraseAudio {
   status: PhraseAudioStatus;
   /** Cancels whatever's still playing (if anything) and starts this phrase again from the beginning. */
   play: () => void;
+  /** The same, slowed down (issue #36). */
+  playSlow: () => void;
 }
 
 export function usePhraseAudio(params: {
@@ -32,7 +34,7 @@ export function usePhraseAudio(params: {
   // otherwise mark this render's playback idle out from under it.
   const generationRef = useRef(0);
 
-  function play() {
+  function play(rate = 1) {
     if (!speechLang && !audioUrl) return;
     stopRef.current();
     const generation = ++generationRef.current;
@@ -42,7 +44,7 @@ export function usePhraseAudio(params: {
       if (generation === generationRef.current) setStatus("idle");
     }
 
-    stopRef.current = startPlayback({ url: audioUrl ?? null, text, speechLang }, finish).stop;
+    stopRef.current = startPlayback({ url: audioUrl ?? null, text, speechLang, rate }, finish).stop;
   }
 
   // Stop on unmount — a phrase shouldn't keep talking after its exercise has
@@ -58,5 +60,5 @@ export function usePhraseAudio(params: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [text, audioUrl, speechLang]);
 
-  return { status, play };
+  return { status, play: () => play(), playSlow: () => play(SLOW_RATE) };
 }

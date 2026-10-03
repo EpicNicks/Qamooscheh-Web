@@ -97,7 +97,7 @@ export function ExercisePrompt({
         </p>
         {speechLang &&
           (voiceAvailable ? (
-            <PlayAudioButton status={audio.status} onClick={audio.play} />
+            <PlayAudioButton status={audio.status} onClick={audio.play} onSlowClick={audio.playSlow} />
           ) : (
             <NoVoiceButton languageName={speechLang === languageInfo!.speechLang ? languageInfo!.displayName : "English"} />
           ))}

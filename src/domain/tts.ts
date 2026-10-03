@@ -52,7 +52,7 @@ export function onVoicesChanged(callback: () => void): () => void {
  * exactly once, whether the utterance finished naturally, was stopped, or
  * failed, so a caller never has to distinguish those to know playback is over.
  */
-export function speak(text: string, speechLang: string, onEnd: () => void): { stop: () => void } {
+export function speak(text: string, speechLang: string, onEnd: () => void, rate = 1): { stop: () => void } {
   if (!isSpeechSynthesisSupported()) {
     onEnd();
     return { stop: () => {} };
@@ -63,6 +63,7 @@ export function speak(text: string, speechLang: string, onEnd: () => void): { st
 
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = speechLang;
+  utterance.rate = rate;
   const voice = pickVoice(speechLang);
   if (voice) utterance.voice = voice;
 

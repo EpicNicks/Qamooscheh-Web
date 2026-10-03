@@ -15,6 +15,18 @@
   flex-shrink: 0;
 }
 
+/* The play button and its slowed twin, side by side. */
+.pair {
+  display: inline-flex;
+  gap: var(--space-1);
+  flex-shrink: 0;
+}
+
+/* Secondary to the main play button: same shape, lighter border. */
+.slow {
+  border-color: var(--color-border);
+}
+
 .button:hover:not(:disabled) {
   background: var(--color-border);
 }
