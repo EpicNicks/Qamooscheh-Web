@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Button } from "../common/Button";
 import { useScriptEngine, type ScriptEngine, type ScriptKeyboardHandlers } from "./keyboard/scriptEngines";
 import { ExercisePrompt } from "./ExercisePrompt";
+import { VirtualCaret } from "./VirtualCaret";
 import { getLanguageInfo, getKeyboardKind, isPersian } from "../../domain/language";
 import { detectArabicVariants, ZWNJ } from "../../domain/persian/normalize";
 import { useKeyboardInputMethod } from "../../hooks/useKeyboardInputMethod";
@@ -64,6 +65,9 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
   const restoreSelectionRef = useRef(false);
 
   const inputWrapRef = useRef<HTMLDivElement>(null);
+  // Whether the answer input has focus — when it doesn't, VirtualCaret draws
+  // the caret the browser stops drawing (issue #24).
+  const [inputFocused, setInputFocused] = useState(false);
 
   const languageInfo = getLanguageInfo(courseCode);
   // A "romanized" exercise is answered in Latin script regardless of the
@@ -297,6 +301,8 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
             value={text}
             onChange={(e) => replaceText(e.target.value, e.target.selectionStart ?? e.target.value.length, e.target.selectionEnd ?? undefined)}
             onSelect={syncSelection}
+            onFocus={() => setInputFocused(true)}
+            onBlur={() => setInputFocused(false)}
             // A click or tap is about to move the caret: same as CARET_KEY above.
             onPointerDown={() => engine.finalize()}
             disabled={disabled}
@@ -322,6 +328,18 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
             // base, discarding it rather than adjusting it.
             style={isNativeScript && languageInfo ? { fontFamily: `var(--font-script-${languageInfo.language})` } : undefined}
           />
+          {/* Only with an on-screen keyboard: without one, letters only reach a
+              focused input (see handleKeyDown), so a caret drawn on an unfocused
+              one would promise typing that doesn't happen. */}
+          {keyboardKind && !inputFocused && !disabled && (
+            <VirtualCaret
+              inputRef={inputRef}
+              wrapRef={inputWrapRef}
+              textBeforeCaret={text.slice(0, caret)}
+              dir={isNativeScript ? languageInfo?.direction : "ltr"}
+              fontFamily={isNativeScript && languageInfo ? `var(--font-script-${languageInfo.language})` : undefined}
+            />
+          )}
           {engine.overlayNode}
         </div>
       )}
