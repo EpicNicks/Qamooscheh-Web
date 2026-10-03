@@ -16,7 +16,6 @@ describe("markTypedAnswer", () => {
     expect(marked).toEqual([
       { text: "I", mark: "right" },
       { text: "went", mark: "wrong" },
-      { text: "go", mark: "missing" },
       { text: "to", mark: "right" },
       { text: "school", mark: "right" },
     ]);
@@ -24,7 +23,7 @@ describe("markTypedAnswer", () => {
 
   it("ignores case and punctuation, and measures against the closest accepted answer", () => {
     const marked = markTypedAnswer("en", ["Hello, how are you?", "Hi, how are you?"], "hi how is you", false);
-    expect(marked.map((w) => w.mark)).toEqual(["right", "right", "wrong", "missing", "right"]);
+    expect(marked.map((w) => w.mark)).toEqual(["right", "right", "wrong", "right"]);
   });
 
   it("forgives Arabic codepoints but not a missing half-space in Persian words", () => {
@@ -57,8 +56,11 @@ describe("markTypedAnswer", () => {
       expect(show(["Hello, how are you?", "Hi, how are you?"], "hi are you")).toEqual(["hi", "+how", "are", "you"]);
     });
 
-    it("keeps a wrong word next to the right one it stood in for", () => {
-      expect(show(["I am buying a bag"], "I am buying a cat")).toEqual(["I", "am", "buying", "a", "cat", "+bag"]);
+    it("adds nothing for a misspelled word: it stood in for the right one", () => {
+      expect(show(["I am buying a bag"], "I am buying a cat")).toEqual(["I", "am", "buying", "a", "cat"]);
+      expect(show(["I am buying a bag"], "I buying a cat")).toEqual(["I", "+am", "buying", "a", "cat"]);
+      // A missing half-space is a misspelling too — the spacing note covers it.
+      expect(markTypedAnswer("fa", ["من می\u200cخرم"], "من میخرم", false).some((w) => w.mark === "missing")).toBe(false);
     });
 
     it("adds nothing for a swapped pair, a correct answer, or one too far off", () => {

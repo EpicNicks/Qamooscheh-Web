@@ -14,7 +14,7 @@
   --color-warning: #d9a100;
   --color-warning-bg: #fff6d6;
   /** Feedback that fills in rather than judges — the missing words in a close typed answer (issue #38). With danger/success/warning, one of the four review colors a colorblind mode would retune together. */
-  --color-info: #1680c4;
+  --color-info: #0f6aa5;
   --color-info-bg: #e2f2fc;
   --color-locked: #cfcfd6;
   --color-current: #1cb0f6;

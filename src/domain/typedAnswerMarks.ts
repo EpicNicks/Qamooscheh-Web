@@ -5,7 +5,7 @@
 // to free text by measuring its words against the closest accepted answer.
 import { isPersian } from "./language";
 import { foldCodepoints, normalizeStrict } from "./persian/normalize";
-import { alignTiles, closestTileOrder, type TileMark } from "./wordBankOrders";
+import { alignTiles, closestTileOrder, type AlignmentStep, type TileMark } from "./wordBankOrders";
 
 export interface MarkedWord {
   /** The word exactly as the learner typed it — or, for a missing word, as the accepted answer writes it. */
@@ -38,7 +38,7 @@ const MIN_PLACED_FOR_MISSING = 0.5;
  * it comes closest to. A correct answer is all green: it was accepted, so any
  * word that differs was a forgiven typo, which the feedback note already
  * names. A wrong one that's close also gets the words it left out, in
- * place, marked "missing".
+ * place, marked "missing" — only words left out, not ones it misspelled.
  */
 export function markTypedAnswer(
   courseCode: string | null | undefined,
@@ -60,7 +60,27 @@ export function markTypedAnswer(
   if (marks.includes("swapped") || placed === order.length || placed < order.length * MIN_PLACED_FOR_MISSING) return marked;
 
   const answerWords = acceptedWords[orders.indexOf(order)];
-  return alignTiles(typedKeys, order).map((step) =>
-    step.kind === "missing" ? { text: answerWords[step.answer], mark: "missing" } : marked[step.submitted],
-  );
+  const result: MarkedWord[] = [];
+  for (const run of unmatchedRuns(alignTiles(typedKeys, order))) {
+    // A run with a typed word in it is that word standing in for the missing
+    // one — a misspelling, already red, not something left out. Only a run
+    // of nothing but missing words is a gap.
+    const substitution = run.some((step) => step.kind === "extra");
+    for (const step of run) {
+      if (step.kind !== "missing") result.push(marked[step.submitted]);
+      else if (!substitution) result.push({ text: answerWords[step.answer], mark: "missing" });
+    }
+  }
+  return result;
+}
+
+/** The alignment cut into its matches, each on its own, and the unmatched stretches between them. */
+function unmatchedRuns(steps: AlignmentStep[]): AlignmentStep[][] {
+  const runs: AlignmentStep[][] = [];
+  for (const step of steps) {
+    const last = runs[runs.length - 1];
+    if (step.kind !== "match" && last && last[0].kind !== "match") last.push(step);
+    else runs.push([step]);
+  }
+  return runs;
 }
