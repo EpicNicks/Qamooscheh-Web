@@ -88,7 +88,7 @@ export function AnswerFeedback({
           <div className={styles.revealed}>
             {revealedLines.length > 0 && (
               // Bulleted when there are several: any one of them is right, in no particular order (issue #37).
-              <ul className={revealedLines.length > 1 ? styles.answerList : styles.singleAnswer}>
+              <ul role="list" className={revealedLines.length > 1 ? styles.answerList : styles.singleAnswer}>
                 {revealedLines.map((line, i) => (
                   <li key={i} className={styles.revealedLine} dir={displayDirection(line, textSettings.display)}>
                     <SentenceRomanization

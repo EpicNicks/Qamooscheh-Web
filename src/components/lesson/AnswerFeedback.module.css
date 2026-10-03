@@ -46,9 +46,11 @@
 }
 
 /* Drawn on the answer text itself rather than as a list marker, so it sits on
-   the reading side of each line — right for Persian, left for romanized. */
+   the reading side of each line — right for Persian, left for romanized. The
+   empty alt text keeps screen readers from announcing it; role="list" on the
+   <ul> keeps Safari from dropping its list semantics under list-style: none. */
 .answerList .verdict::before {
-  content: "•";
+  content: "•" / "";
   margin-inline-end: 0.5em;
 }
 
