@@ -16,15 +16,18 @@ import type { ExerciseArtifact } from "../types/content";
  * answer under review, an answer not in the course's language, or neither a
  * recording nor a voice for it. Plays once on its own each time a new review
  * comes up (`submissionCount`), when localAppPrefs.speakAnswers is on — except
- * for a single-word answer, which the learner has just heard tapping its tile
- * (issue #31); its play button still replays it.
+ * after a correct one-tile answer, whose tile the learner just heard read out
+ * when they tapped it (issue #31); its play button still replays it. A typed
+ * one-word answer, or a wrong tile, still gets the answer read out.
  */
 export function useAnswerAudio(
   exercise: ExerciseArtifact | null,
   courseCode: string | null,
   submissionCount: number,
+  correct: boolean,
 ): PhraseAudio | null {
   const [speakAnswers] = useLocalAppPref("speakAnswers", true);
+  const [speakTiles] = useLocalAppPref("speakWordBankTiles", true);
   const tokenized = exercise?.type === "word_bank" || exercise?.type === "match";
   const text = exercise ? (tokenized ? exercise.answer.join(" ") : (exercise.answer[0] ?? "")) : "";
   const courseLang = getLanguageInfo(courseCode)?.speechLang ?? null;
@@ -33,10 +36,10 @@ export function useAnswerAudio(
   const voiceAvailable = useVoiceAvailability(inCourseLanguage ? courseLang : null);
   const playable = inCourseLanguage && (audioUrl != null || voiceAvailable);
   const audio = usePhraseAudio({ text, speechLang: inCourseLanguage ? courseLang : null, audioUrl });
-  const singleWord = !/\s/.test(text.trim());
+  const justHeardTile = tokenized && exercise.answer.length === 1 && correct && speakTiles;
 
   useEffect(() => {
-    if (speakAnswers && playable && !singleWord) audio.play();
+    if (speakAnswers && playable && !justHeardTile) audio.play();
     // Once per review, keyed on the counter: the same exercise answered twice
     // in a row (a requeued retry) has the same text but is a new review.
     // eslint-disable-next-line react-hooks/exhaustive-deps
