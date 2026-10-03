@@ -10,6 +10,8 @@ export function InputSection({ form, editForm, courseCode }: SettingsSectionProp
   const language = getLanguageInfo(courseCode)?.language;
   const [speakTiles, setSpeakTiles] = useLocalAppPref("speakWordBankTiles", true);
   const [speakAnswers, setSpeakAnswers] = useLocalAppPref("speakAnswers", true);
+  const [speakHovered, setSpeakHovered] = useLocalAppPref("speakHoveredWords", true);
+  const [speakHoveredEnglish, setSpeakHoveredEnglish] = useLocalAppPref("speakHoveredEnglish", false);
 
   return (
     <div className={styles.section}>
@@ -41,6 +43,16 @@ export function InputSection({ form, editForm, courseCode }: SettingsSectionProp
       <label className={`${styles.field} ${styles.checkboxRow}`}>
         <input type="checkbox" checked={speakAnswers} onChange={(e) => setSpeakAnswers(e.target.checked)} />
         Read the answer aloud after I answer
+      </label>
+
+      <label className={`${styles.field} ${styles.checkboxRow}`}>
+        <input type="checkbox" checked={speakHovered} onChange={(e) => setSpeakHovered(e.target.checked)} />
+        Read a word aloud when I point at or tap it in a sentence
+      </label>
+
+      <label className={`${styles.field} ${styles.checkboxRow}`}>
+        <input type="checkbox" checked={speakHoveredEnglish} onChange={(e) => setSpeakHoveredEnglish(e.target.checked)} />
+        Read English words aloud that way too
       </label>
 
       <VoicePicker form={form} editForm={editForm} />

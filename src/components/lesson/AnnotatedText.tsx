@@ -3,6 +3,7 @@ import { segmentAnnotatedText } from "../../domain/annotation";
 import { registerLabel, type TextDisplaySettings, type WordHint } from "../../domain/romanization";
 import { stripReadingAids } from "../../domain/persian/normalize";
 import { englishCandidates, segmentEnglish } from "../../domain/englishHints";
+import { cancelHoverSpeech, useHoverSpeech, type WordSpeech } from "../../hooks/useHoverSpeech";
 import styles from "./AnnotatedText.module.css";
 
 interface TooltipPart {
@@ -42,6 +43,8 @@ interface AnnotatedWordProps {
    * relative to, so the tooltip's viewport coordinates land far off to the side.
    */
   tooltip?: boolean;
+  /** Reads the word aloud once hovered, focused or tapped (hooks/useHoverSpeech.ts) — null/omitted for none. */
+  speech?: WordSpeech | null;
 }
 
 /**
@@ -85,7 +88,7 @@ interface TooltipPosition {
   below: boolean;
 }
 
-export function AnnotatedWord({ word, hint, settings, focusable = true, onReveal, tooltip = true }: AnnotatedWordProps) {
+export function AnnotatedWord({ word, hint, settings, focusable = true, onReveal, tooltip = true, speech }: AnnotatedWordProps) {
   const wrapRef = useRef<HTMLSpanElement>(null);
   const tooltipRef = useRef<HTMLSpanElement>(null);
   // The tooltip is `position: fixed`, not absolute. That way no scrolling or
@@ -117,6 +120,12 @@ export function AnnotatedWord({ word, hint, settings, focusable = true, onReveal
     onReveal?.();
   }, [place, onReveal]);
   const hide = useCallback(() => setShown(false), []);
+  // This rendering of the word, as far as hover speech is concerned. A word
+  // that goes away while it waits (the learner moved on) is never read.
+  const [speechOwner] = useState(() => ({}));
+  const speak = () => speech?.start(word, speechOwner);
+  const unspeak = () => cancelHoverSpeech(speechOwner);
+  useEffect(() => () => cancelHoverSpeech(speechOwner), [speechOwner]);
 
   // A non-focusable word sits inside a focusable control (a word-bank tile),
   // and its tooltip reveals on that control's focus. See the
@@ -204,7 +213,15 @@ export function AnnotatedWord({ word, hint, settings, focusable = true, onReveal
       base
     );
 
-  if (!tooltip || tooltipLines.length === 0) return <>{content}</>;
+  if (!tooltip || tooltipLines.length === 0) {
+    return speech ? (
+      <span onMouseEnter={speak} onMouseLeave={unspeak}>
+        {content}
+      </span>
+    ) : (
+      <>{content}</>
+    );
+  }
 
   return (
     <span
@@ -212,10 +229,22 @@ export function AnnotatedWord({ word, hint, settings, focusable = true, onReveal
       className={styles.wrap}
       data-ezafe={ezafe ? "" : undefined}
       tabIndex={focusable ? 0 : undefined}
-      onMouseEnter={show}
-      onMouseLeave={hide}
-      onFocus={show}
-      onBlur={hide}
+      onMouseEnter={() => {
+        show();
+        speak();
+      }}
+      onMouseLeave={() => {
+        hide();
+        unspeak();
+      }}
+      onFocus={() => {
+        show();
+        speak();
+      }}
+      onBlur={() => {
+        hide();
+        unspeak();
+      }}
     >
       {content}
       <span
@@ -265,11 +294,22 @@ export function AnnotatedText({
   /** See AnnotatedWord's `tooltip`. */
   tooltip?: boolean;
 }) {
+  // Not inside a control (a word-bank tile): picking a tile already reads it.
+  const speech = useHoverSpeech(tags);
+  const wordSpeech = focusable === false ? null : speech;
   return (
     <>
       {segmentAnnotatedText(text, hintMap, tags).map((segment, i) =>
         segment.isWord ? (
-          <AnnotatedWord key={i} word={segment.text} hint={segment.hint} settings={settings} focusable={focusable} tooltip={tooltip} />
+          <AnnotatedWord
+            key={i}
+            word={segment.text}
+            hint={segment.hint}
+            settings={settings}
+            focusable={focusable}
+            tooltip={tooltip}
+            speech={wordSpeech}
+          />
         ) : settings.vowelMarks ? (
           segment.text
         ) : (
@@ -303,6 +343,7 @@ export function EnglishAnnotatedText({
   onReveal?: () => void;
 }) {
   const wordSettings: TextDisplaySettings = { ...settings, display: "native", translationEnabled: true };
+  const speech = useHoverSpeech(tags);
   return (
     <>
       {segmentEnglish(text, englishCandidates(tags, hintMap)).map((segment, i) =>
@@ -313,7 +354,10 @@ export function EnglishAnnotatedText({
             hint={{ translation: segment.hint.native, romanization: segment.hint.romanization, ruby: null }}
             settings={wordSettings}
             onReveal={onReveal}
+            speech={speech}
           />
+        ) : segment.isWord && speech ? (
+          <AnnotatedWord key={i} word={segment.text} hint={null} settings={wordSettings} speech={speech} />
         ) : (
           segment.text
         ),
