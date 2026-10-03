@@ -12,6 +12,7 @@ export function InputSection({ form, editForm, courseCode }: SettingsSectionProp
   const [speakAnswers, setSpeakAnswers] = useLocalAppPref("speakAnswers", true);
   const [speakHovered, setSpeakHovered] = useLocalAppPref("speakHoveredWords", true);
   const [speakHoveredEnglish, setSpeakHoveredEnglish] = useLocalAppPref("speakHoveredEnglish", false);
+  const [soundEffects, setSoundEffects] = useLocalAppPref("soundEffects", true);
 
   return (
     <div className={styles.section}>
@@ -53,6 +54,11 @@ export function InputSection({ form, editForm, courseCode }: SettingsSectionProp
       <label className={`${styles.field} ${styles.checkboxRow}`}>
         <input type="checkbox" checked={speakHoveredEnglish} onChange={(e) => setSpeakHoveredEnglish(e.target.checked)} />
         Read English words aloud that way too
+      </label>
+
+      <label className={`${styles.field} ${styles.checkboxRow}`}>
+        <input type="checkbox" checked={soundEffects} onChange={(e) => setSoundEffects(e.target.checked)} />
+        Sound effects for right and wrong answers and finished lessons
       </label>
 
       <VoicePicker form={form} editForm={editForm} />

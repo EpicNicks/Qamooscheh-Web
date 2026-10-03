@@ -1,4 +1,6 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useLocalAppPref } from "../../hooks/useLocalAppPref";
+import { playSound } from "../../domain/sfx";
 import styles from "./LessonResults.module.css";
 
 const ANIMATION_MS = 900;
@@ -19,12 +21,26 @@ export function LessonResults({
   total,
   score,
   passMark,
+  sound,
 }: {
   correct: number;
   total: number;
   score?: number;
   passMark?: number;
+  /** Played once as the results appear (domain/sfx.ts) — omit for none, e.g. a session the server didn't save. */
+  sound?: "lessonPassed" | "lessonFailed";
 }) {
+  const [soundEffects] = useLocalAppPref("soundEffects", true);
+  // Once, as the results come up — not again if the setting changes after,
+  // nor on development StrictMode's second run of this effect.
+  const played = useRef(false);
+  useEffect(() => {
+    if (played.current) return;
+    played.current = true;
+    if (sound && soundEffects) playSound(sound);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const pct = Math.round((score ?? (total === 0 ? 0 : correct / total)) * 100);
   const [displayed, setDisplayed] = useState(0);
 

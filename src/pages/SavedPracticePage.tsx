@@ -256,7 +256,7 @@ export function SavedPracticePage() {
     return (
       <div className={styles.done}>
         <h1>Saved words practised!</h1>
-        {exerciseCount > 0 && <LessonResults correct={firstTryCorrect} total={exerciseCount} />}
+        {exerciseCount > 0 && <LessonResults correct={firstTryCorrect} total={exerciseCount} sound="lessonPassed" />}
         <p className={styles.practiceNote}>
           You knew {knownCards} of {cards.length} flashcard{cards.length === 1 ? "" : "s"}
           {outcome.flashcardXp != null && outcome.flashcardXp > 0 && ` (+${outcome.flashcardXp} XP)`}.

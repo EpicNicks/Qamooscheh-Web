@@ -129,7 +129,7 @@ export function FlashcardsPage() {
     return (
       <div className={styles.done}>
         <h1>Round complete!</h1>
-        <LessonResults correct={correct} total={results.length} />
+        <LessonResults correct={correct} total={results.length} sound="lessonPassed" />
         {kind === "translation" && (
           <p className={styles.note}>
             {xp.status === "saving" && "Saving your XP…"}
