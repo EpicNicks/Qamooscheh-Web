@@ -10,6 +10,7 @@ import { useVoiceAvailability } from "./useVoiceAvailability";
 import { useLocalAppPref } from "./useLocalAppPref";
 import { getLanguageInfo, getSpeechLang } from "../domain/language";
 import type { ExerciseArtifact } from "../types/content";
+import type { ExerciseType } from "../domain/enums";
 
 /**
  * The answer's playback control, or null when there's nothing to play: no
@@ -18,12 +19,15 @@ import type { ExerciseArtifact } from "../types/content";
  * comes up (`submissionCount`), when localAppPrefs.speakAnswers is on — except
  * after a correct one-tile answer, whose tile the learner just heard read out
  * when they tapped it (issue #31); its play button still replays it. A typed
- * one-word answer, or a wrong tile, still gets the answer read out.
+ * one-word answer, or a wrong tile, still gets the answer read out. Goes by
+ * how the exercise was shown (`renderType`), since a new word's type-in is
+ * shown as tiles too (domain/exerciseResolution.ts).
  */
 export function useAnswerAudio(
   exercise: ExerciseArtifact | null,
   courseCode: string | null,
   submissionCount: number,
+  renderType: ExerciseType | null,
   correct: boolean,
 ): PhraseAudio | null {
   const [speakAnswers] = useLocalAppPref("speakAnswers", true);
@@ -36,7 +40,10 @@ export function useAnswerAudio(
   const voiceAvailable = useVoiceAvailability(inCourseLanguage ? courseLang : null);
   const playable = inCourseLanguage && (audioUrl != null || voiceAvailable);
   const audio = usePhraseAudio({ text, speechLang: inCourseLanguage ? courseLang : null, audioUrl });
-  const justHeardTile = tokenized && exercise.answer.length === 1 && correct && speakTiles;
+  const shownAsTiles = renderType === "word_bank" || renderType === "match";
+  // The text read out is one whole tile: a word bank's single token, or a
+  // composite type-in's first answer. A longer answer still plays.
+  const justHeardTile = shownAsTiles && correct && speakTiles && !!exercise?.tiles?.includes(text);
 
   useEffect(() => {
     if (speakAnswers && playable && !justHeardTile) audio.play();
