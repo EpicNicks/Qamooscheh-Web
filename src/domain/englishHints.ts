@@ -17,6 +17,8 @@ export interface NativeHint {
 interface Candidate {
   /** The gloss alternative, lowercased, as words ("thank you" -> ["thank", "you"]). */
   words: string[];
+  /** For a progressive reading (progressiveForms), its last word must be written with -ing: "is open" is a state, not "is opening". */
+  progressive?: boolean;
   hint: NativeHint;
 }
 
@@ -131,8 +133,8 @@ export function englishCandidates(tags: readonly string[], hintMap: ReadonlyMap<
     for (const phrase of glossPhrases(tidyGloss(sense.translation))) {
       if (phrase.length === 0 || phrase[0].startsWith("-")) continue;
       const forms = phrase[0] === "to" && phrase.length > 1 ? [phrase, phrase.slice(1)] : [phrase];
-      forms.push(...progressiveForms(phrase, pos));
       own.push(...forms.map((words) => ({ words, hint: native })));
+      own.push(...progressiveForms(phrase, pos).map((words) => ({ words, hint: native, progressive: true })));
       if (phrase.length === 1) borrowed.push(...(PROMPT_EQUIVALENTS[phrase[0]] ?? []).map((w) => ({ words: [w], hint: native })));
     }
   }
@@ -207,7 +209,12 @@ export function segmentEnglish(text: string, candidates: readonly Candidate[]): 
     }
     let match: { end: number; hint: NativeHint } | null = null;
     for (let length = run.length; length > 0 && !match; length--) {
-      const fits = candidates.filter((c) => c.words.length === length && c.words.every((word, k) => run[k].forms.includes(word)));
+      const fits = candidates.filter(
+        (c) =>
+          c.words.length === length &&
+          c.words.every((word, k) => run[k].forms.includes(word)) &&
+          (!c.progressive || run[length - 1].forms[0].endsWith("ing")),
+      );
       // A word as written beats a form derived from it: "evening" is the
       // evening's lexeme before it's "even" + -ing.
       const hit = fits.find((c) => c.words.every((word, k) => run[k].forms[0] === word)) ?? fits[0];

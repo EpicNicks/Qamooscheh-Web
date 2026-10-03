@@ -90,6 +90,24 @@ describe("English prompt hints", () => {
     expect(hintedIn("They are building a building", ["ساختن<v>", "ساختمان<n>"])).toEqual(["are building=ساختن", "building=ساختمان"]);
   });
 
+  it("reads be + verb as the progressive only when the verb says -ing", () => {
+    const lexemes: LexemeIndex = {
+      "در<n>": { gloss: "door", register: null, romanization: "dar", romanizationIsAuthored: true },
+      "باز کردن<v>": { gloss: "to open", register: null, romanization: "bāz kardan", romanizationIsAuthored: true },
+      "است<v>": { gloss: "is", register: null, romanization: "ast", romanizationIsAuthored: true },
+      "باز<adj>": { gloss: "open", register: null, romanization: "bāz", romanizationIsAuthored: true },
+    };
+    const map = buildLexemeHintMap(lexemes);
+    const tags = ["در<n>", "باز کردن<v>", "است<v>", "باز<adj>"];
+    const hintedIn = (text: string) =>
+      segmentEnglish(text, englishCandidates(tags, map))
+        .filter((s) => s.hint)
+        .map((s) => `${s.text}=${s.hint!.native}`);
+    // "is" stays the copula; which "open" the word itself gets is the tags' order, not this rule's.
+    expect(hintedIn("The door is open").slice(0, 2)).toEqual(["door=در", "is=است"]);
+    expect(hintedIn("He is opening the door")).toEqual(["is opening=باز کردن", "door=در"]);
+  });
+
   it("takes an -ing word back to its verb", () => {
     expect(hinted("Buying books", ["خریدن<v><spoken>", "کتاب<n>"])).toEqual(["Buying=خریدن", "books=کتاب"]);
     expect(hinted("We are having tea", ["داشتن<v>"])).toEqual(["are having=داشتن"]);
