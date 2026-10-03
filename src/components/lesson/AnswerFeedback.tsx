@@ -63,6 +63,7 @@ export function AnswerFeedback({
   answerAudio,
 }: AnswerFeedbackProps) {
   const [revealed, setRevealed] = useState(false);
+  const revealedLines = !answer ? [] : answerIsTokenized ? [answer.join(" ")] : answer;
 
   if (correct) {
     return (
@@ -85,21 +86,25 @@ export function AnswerFeedback({
       <div className={`${styles.incorrect} ${styles.shake}`} role="status">
         {revealed ? (
           <div className={styles.revealed}>
-            {answer &&
-              (answerIsTokenized ? [answer.join(" ")] : answer).map((line, i) => (
-                <span key={i} className={styles.revealedLine}>
-                  <SentenceRomanization
-                    text={line}
-                    authored={answerRomanization?.text === line ? answerRomanization.romanization : null}
-                    hintMap={hintMap}
-                    settings={textSettings}
-                    tags={tags}
-                  />
-                  <span className={styles.verdict} dir={displayDirection(line, textSettings.display)}>
-                    <AnnotatedText text={line} hintMap={hintMap} settings={textSettings} tags={tags} />
-                  </span>
-                </span>
-              ))}
+            {revealedLines.length > 0 && (
+              // Bulleted when there are several: any one of them is right, in no particular order (issue #37).
+              <ul role="list" className={revealedLines.length > 1 ? styles.answerList : styles.singleAnswer}>
+                {revealedLines.map((line, i) => (
+                  <li key={i} className={styles.revealedLine} dir={displayDirection(line, textSettings.display)}>
+                    <SentenceRomanization
+                      text={line}
+                      authored={answerRomanization?.text === line ? answerRomanization.romanization : null}
+                      hintMap={hintMap}
+                      settings={textSettings}
+                      tags={tags}
+                    />
+                    <span className={styles.verdict}>
+                      <AnnotatedText text={line} hintMap={hintMap} settings={textSettings} tags={tags} />
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
             {submittedText !== undefined && (
               <span className={styles.yourAnswer}>Your answer: {(textSettings.vowelMarks ? submittedText : submittedText && stripReadingAids(submittedText)) || "(nothing submitted)"}</span>
             )}
