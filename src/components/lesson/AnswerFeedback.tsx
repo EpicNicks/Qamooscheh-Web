@@ -3,6 +3,8 @@ import { XpBurst } from "./XpBurst";
 import { ReportIssue } from "./ReportIssue";
 import { AnnotatedText } from "./AnnotatedText";
 import { SentenceRomanization } from "./SentenceRomanization";
+import { PlayAudioButton } from "./PlayAudioButton";
+import type { PhraseAudio } from "../../hooks/usePhraseAudio";
 import { stripReadingAids } from "../../domain/persian/normalize";
 import { displayDirection } from "../../domain/annotation";
 import { EMPTY_HINT_MAP, PLAIN_TEXT, type TextDisplaySettings, type WordHint } from "../../domain/romanization";
@@ -35,6 +37,8 @@ export interface AnswerFeedbackProps {
   tags?: readonly string[];
   /** Cites which lesson part a report is about — omit to hide the Report control entirely. */
   reportContext?: { exerciseTags: string[]; prompt: string };
+  /** Plays the correct answer (hooks/useAnswerAudio.ts) — omit or null to show no play button. */
+  answerAudio?: PhraseAudio | null;
 }
 
 /**
@@ -56,6 +60,7 @@ export function AnswerFeedback({
   answerRomanization,
   tags,
   reportContext,
+  answerAudio,
 }: AnswerFeedbackProps) {
   const [revealed, setRevealed] = useState(false);
 
@@ -65,6 +70,11 @@ export function AnswerFeedback({
         <span className={styles.verdict}>Correct!</span>
         {note && <span className={styles.note}>{note}</span>}
         <XpBurst amount={xp} />
+        {answerAudio && (
+          <span className={styles.play}>
+            <PlayAudioButton status={answerAudio.status} onClick={answerAudio.play} />
+          </span>
+        )}
       </div>
     );
   }
@@ -104,6 +114,11 @@ export function AnswerFeedback({
               </button>
             )}
           </>
+        )}
+        {answerAudio && (
+          <span className={styles.play}>
+            <PlayAudioButton status={answerAudio.status} onClick={answerAudio.play} />
+          </span>
         )}
       </div>
     </div>

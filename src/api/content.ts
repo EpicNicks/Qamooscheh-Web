@@ -5,7 +5,7 @@
 // by following the trusted manifest's own relative paths.
 import { CONTENT_BASE_URL } from "../config";
 import { fetchAndVerifyJson } from "../lib/sha256";
-import type { CourseManifest, LexemeIndex, SkillArtifact, ThemeIndexArtifact, UnitArtifact } from "../types/content";
+import type { AudioIndexArtifact, CourseManifest, LexemeIndex, SkillArtifact, ThemeIndexArtifact, UnitArtifact } from "../types/content";
 
 function courseRoot(courseCode: string, version: number): string {
   return `${CONTENT_BASE_URL}/course/${courseCode}/v${version}`;
@@ -43,4 +43,18 @@ export function getThemeIndex(
   themeIndexPath: string,
 ): Promise<ThemeIndexArtifact> {
   return fetchJson<ThemeIndexArtifact>(`${courseRoot(courseCode, version)}/${themeIndexPath}`);
+}
+
+export function getAudioIndex(courseCode: string, version: number, audioIndexPath: string): Promise<AudioIndexArtifact> {
+  return fetchJson<AudioIndexArtifact>(`${courseRoot(courseCode, version)}/${audioIndexPath}`);
+}
+
+/**
+ * A recording's absolute URL. Recording paths are relative to the version
+ * root and climb out of it (../../../audio/{sha256}.mp3), so they're resolved
+ * as URLs rather than concatenated — and against the page when
+ * CONTENT_BASE_URL is itself relative.
+ */
+export function contentUrl(courseCode: string, version: number, relativePath: string): string {
+  return new URL(relativePath, new URL(`${courseRoot(courseCode, version)}/`, window.location.href)).href;
 }

@@ -1,6 +1,7 @@
 import { parseLexemeTag } from "../../domain/lexemeTag";
 import { DirectionalText } from "../common/DirectionalText";
 import { StarButton } from "./StarButton";
+import { WordAudioButton } from "./WordAudioButton";
 import type { LexemeIndexEntry } from "../../types/content";
 import styles from "./VocabTermCard.module.css";
 
@@ -12,7 +13,7 @@ interface VocabTermCardProps {
   onToggleStar: () => void;
 }
 
-/** One rounded box in the vocabulary review list: the word, its gloss/romanization, and a star toggle. */
+/** One rounded box in the vocabulary review list: the word, its gloss/romanization, a play button, and a star toggle. */
 export function VocabTermCard({ tag, entry, courseCode, starred, onToggleStar }: VocabTermCardProps) {
   const { surface } = parseLexemeTag(tag);
 
@@ -25,7 +26,10 @@ export function VocabTermCard({ tag, entry, courseCode, starred, onToggleStar }:
         <span className={styles.gloss}>{entry.gloss}</span>
         {entry.romanization && <span className={styles.romanization}>{entry.romanization}</span>}
       </div>
-      <StarButton starred={starred} onToggle={onToggleStar} />
+      <div className={styles.actions}>
+        <WordAudioButton surface={surface} audio={entry.audio} />
+        <StarButton starred={starred} onToggle={onToggleStar} />
+      </div>
     </div>
   );
 }
