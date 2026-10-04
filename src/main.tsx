@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "./auth/AuthProvider";
 import { FontProvider } from "./theme/FontProvider";
+import { ColorVisionProvider } from "./theme/ColorVisionProvider";
 import { queryClient } from "./queryClient";
 import App from "./App.tsx";
 import "./index.css";
@@ -13,9 +14,11 @@ createRoot(document.getElementById("root")!).render(
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <FontProvider>
-          <BrowserRouter>
-            <App />
-          </BrowserRouter>
+          <ColorVisionProvider>
+            <BrowserRouter>
+              <App />
+            </BrowserRouter>
+          </ColorVisionProvider>
         </FontProvider>
       </AuthProvider>
     </QueryClientProvider>

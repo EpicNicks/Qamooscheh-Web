@@ -32,6 +32,9 @@ export interface KeyboardInputMethod {
  */
 export type NativeTextAlign = "left" | "center" | "right";
 
+/** Which review palette index.css uses (issue #41): the default greens and reds, or one retuned for a kind of colorblindness. */
+export type ColorVision = "default" | "red-green" | "blue-yellow";
+
 export interface LocalAppPrefs {
   /** True once the learner has ticked "Don't ask me again" on the skip confirmation. */
   suppressSkipWarning: boolean;
@@ -184,6 +187,12 @@ export interface LocalAppPrefs {
    * sound choice like speakWordBankTiles. Defaults on.
    */
   soundEffects: boolean;
+  /**
+   * The answer-review colors (theme/ColorVisionProvider.tsx, issue #41):
+   * "red-green" for protanopia/deuteranopia, "blue-yellow" for tritanopia.
+   * Per device like the font choices. Defaults to the regular palette.
+   */
+  colorVision: ColorVision;
 }
 
 const DEFAULTS: LocalAppPrefs = {
@@ -212,6 +221,7 @@ const DEFAULTS: LocalAppPrefs = {
   speakHoveredWords: true,
   speakHoveredEnglish: false,
   soundEffects: true,
+  colorVision: "default",
 };
 
 function storageKey(userId: string): string {
