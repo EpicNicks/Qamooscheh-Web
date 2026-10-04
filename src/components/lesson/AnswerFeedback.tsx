@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { XpBurst } from "./XpBurst";
 import { ReportIssue } from "./ReportIssue";
+import type { ExerciseReportContext } from "../../domain/exerciseReport";
 import { AnnotatedText } from "./AnnotatedText";
 import { SentenceRomanization } from "./SentenceRomanization";
 import { PlayAudioButton } from "./PlayAudioButton";
@@ -36,7 +37,7 @@ export interface AnswerFeedbackProps {
   /** The exercise's lexeme tags — how a revealed answer's word with endings attached splits (domain/attachedEndings.ts). */
   tags?: readonly string[];
   /** Cites which lesson part a report is about — omit to hide the Report control entirely. */
-  reportContext?: { exerciseTags: string[]; prompt: string };
+  reportContext?: ExerciseReportContext | null;
   /** Plays the correct answer (hooks/useAnswerAudio.ts) — omit or null to show no play button. */
   answerAudio?: PhraseAudio | null;
 }
@@ -82,7 +83,7 @@ export function AnswerFeedback({
 
   return (
     <div className={styles.wrongWrap}>
-      {reportContext && <ReportIssue exerciseTags={reportContext.exerciseTags} prompt={reportContext.prompt} />}
+      {reportContext && <ReportIssue context={reportContext} />}
       <div className={`${styles.incorrect} ${styles.shake}`} role="status">
         {revealed ? (
           <div className={styles.revealed}>

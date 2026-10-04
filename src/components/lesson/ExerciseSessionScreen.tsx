@@ -22,6 +22,7 @@ import { CloseLessonButton } from "./CloseLessonButton";
 import { LanguageSettingsButton } from "./languageSettings/LanguageSettingsButton";
 import { gateLexemeHintMap } from "../../domain/romanization";
 import { useAnswerAudio } from "../../hooks/useAnswerAudio";
+import { useExerciseReportContext } from "../../hooks/useExerciseReportContext";
 import type { ExerciseSession } from "../../hooks/useExerciseSession";
 import type { ExerciseType } from "../../domain/enums";
 import { revealedTileOrder } from "../../domain/wordBankOrders";
@@ -33,6 +34,10 @@ export interface ExerciseSessionItem {
   key: string;
   exercise: ExerciseArtifact;
   renderType: ExerciseType;
+  /** Where the exercise came from, when the engine knows — cited by the Report control (domain/exerciseReport.ts). */
+  unitKey?: string | null;
+  skillKey?: string;
+  ordinal?: number;
 }
 
 /** The part of an engine's answer result this screen reads — everything else on it (verdict/attempt/requeued) is the page's business. */
@@ -94,6 +99,7 @@ export function ExerciseSessionScreen<TItem extends ExerciseSessionItem, TFeedba
     confirmation.answeredItem?.renderType ?? null,
     confirmation.feedback?.correct ?? false,
   );
+  const reportContext = useExerciseReportContext(confirmation.answeredItem, confirmation.feedback?.submittedText ?? null);
 
   /** Whether this exercise has any native-script text worth hovering — see gateLexemeHintMap's own conditions. */
   const hintMapFor = (exercise: ExerciseArtifact) =>
@@ -142,7 +148,7 @@ export function ExerciseSessionScreen<TItem extends ExerciseSessionItem, TFeedba
             romanization: answeredItem.exercise.answerRomanization,
           }}
           tags={answeredItem.exercise.tags}
-          reportContext={{ exerciseTags: answeredItem.exercise.tags, prompt: answeredItem.exercise.prompt }}
+          reportContext={reportContext}
         />
         <SaveWordsRow tags={answeredItem.exercise.tags} />
         <ExerciseRenderer
