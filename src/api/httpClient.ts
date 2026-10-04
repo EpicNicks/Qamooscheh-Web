@@ -13,7 +13,7 @@
 // Deliberately does NOT import api/auth.ts, to avoid a refresh call routing
 // back through this same 401-handling path. It talks to POST /v1/auth/refresh
 // directly with a plain fetch instead.
-import { API_BASE_URL } from "../config";
+import { API_BASE_URL, CLIENT_HEADER } from "../config";
 import { clearSession, loadSession, saveSession, type StoredSession } from "../lib/storage";
 import type { ApiErrorBody, AuthResponse } from "../types/api";
 
@@ -87,7 +87,7 @@ async function refreshAccessToken(): Promise<string> {
 
     const response = await fetch(`${API_BASE_URL}/v1/auth/refresh`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "X-Client": CLIENT_HEADER },
       body: JSON.stringify({ refreshToken: session.refreshToken }),
     });
 
@@ -147,7 +147,14 @@ async function doFetch(path: string, options: ApiFetchOptions, accessToken: stri
   // preflight OPTIONS round trip before every single read.
   const headers: Record<string, string> = {};
   if (options.body !== undefined) headers["Content-Type"] = "application/json";
-  if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+  // X-Client (which app and build — the API groups exercise reports by it)
+  // rides only with Authorization: neither header is CORS-safelisted, so an
+  // authenticated request is preflighted already and this adds nothing, while
+  // an anonymous GET stays preflight-free.
+  if (accessToken) {
+    headers.Authorization = `Bearer ${accessToken}`;
+    headers["X-Client"] = CLIENT_HEADER;
+  }
 
   return fetch(`${API_BASE_URL}${path}`, {
     method: options.method ?? "GET",

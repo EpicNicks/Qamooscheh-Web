@@ -16,3 +16,13 @@ export const CONTENT_BASE_URL: string =
 
 /** Google Identity Services client id — must match Auth:GoogleClientId server-side. */
 export const GOOGLE_CLIENT_ID: string = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? "";
+
+/**
+ * This build's version: the commit it was built from, passed in as
+ * VITE_APP_VERSION by the deploy workflow (Dockerfile build arg). "dev" for
+ * a local build. Sent to the API as X-Client (api/httpClient.ts).
+ */
+export const APP_VERSION: string = import.meta.env.VITE_APP_VERSION || "dev";
+
+/** X-Client's value: which app this is and which build, so the API can group exercise reports by build. */
+export const CLIENT_HEADER = `web/${APP_VERSION}`;

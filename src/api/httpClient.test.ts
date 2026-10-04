@@ -139,4 +139,22 @@ describe("httpClient refresh", () => {
     expect(loadSession()).toEqual(session("a", 2, FUTURE));
     expect(requests.at(-1)).toBe("Bearer a-access-2");
   });
+
+  it("names the client and build on authenticated requests, and leaves anonymous ones preflight-free", async () => {
+    saveSession(session("a", 1, FUTURE));
+    const sent: Record<string, string>[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+        sent.push({ ...(init?.headers as Record<string, string>) });
+        return json(200, {});
+      }),
+    );
+
+    await apiFetch("/v1/me");
+    await apiFetch("/v1/public", { anonymous: true });
+
+    expect(sent[0]["X-Client"]).toMatch(/^web\/[A-Za-z0-9][A-Za-z0-9._+-]*$/);
+    expect(sent[1]["X-Client"]).toBeUndefined();
+  });
 });
