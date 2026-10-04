@@ -1,0 +1,16 @@
+.xp {
+  display: inline-flex;
+  align-items: baseline;
+  font-size: 0.95rem;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--color-text);
+}
+
+/* A margin rather than a space in the text: inline-flex drops whitespace
+   at the edge of a flex item. */
+.unit {
+  margin-inline-start: 0.2em;
+  font-size: 0.8em;
+  color: var(--color-text-muted);
+}

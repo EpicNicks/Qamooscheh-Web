@@ -147,6 +147,7 @@ export function useCheckpoint(targetUnitKey: string, targetSkillKey: string) {
       queryClient.invalidateQueries({ queryKey: ["lessonsCompleted"] });
       // A checkpoint's reviews count toward today's daily_activity like a lesson's.
       queryClient.invalidateQueries({ queryKey: ["streak"] });
+      queryClient.invalidateQueries({ queryKey: ["activity"] });
     } catch {
       setSubmitError("Couldn't submit your checkpoint. Check your connection and try again.");
     } finally {

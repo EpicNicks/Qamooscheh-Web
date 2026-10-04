@@ -33,6 +33,12 @@
   min-width: 0;
 }
 
+.status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
 .link {
   text-decoration: none;
   color: var(--color-text-muted);
@@ -104,25 +110,24 @@
     display: inline-flex;
   }
 
+  .status {
+    gap: var(--space-2);
+    margin-inline-start: auto;
+  }
+
+  /* A tab bar along the bottom of the screen (issue #40): every tab fits,
+     each as an icon over its label, rather than a row of bare icons that
+     squeezed in beside the streak and course switcher at the top (and
+     scrolled out of sight on a narrow phone). Fixed inside the sticky header
+     so it shares its z-index: under the nav drawer (40) and modals. */
   .nav {
-    justify-content: space-evenly;
+    position: fixed;
+    inset: auto 0 0;
+    justify-content: space-around;
     gap: 0;
-    /* The five links keep their full 44px touch targets rather than being
-       squeezed below the minimum tap size; when they genuinely don't fit
-       (the narrowest phones) they scroll WITHIN the nav instead of widening
-       the header past the viewport. `contain` keeps that scroll from
-       chaining out to the page/drawer gesture. */
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    scrollbar-width: none;
-  }
-
-  .nav::-webkit-scrollbar {
-    display: none;
-  }
-
-  .navLabel {
-    display: none;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    border-top: 1px solid var(--color-border);
+    background: var(--color-bg);
   }
 
   .navIcon {
@@ -130,12 +135,42 @@
   }
 
   .link {
-    display: inline-flex;
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-width: 44px;
-    min-height: 44px;
-    padding: 0;
+    gap: 2px;
+    min-height: var(--bottom-nav-bar-height);
+    padding: var(--space-1) 0;
+    font-size: 0.7rem;
+    border-bottom: none;
+    border-top: 3px solid transparent;
+  }
+
+  .active {
+    border-top-color: var(--color-primary);
+  }
+
+  .navLabel {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* What the tab bar covers at the bottom of the screen, safe area included —
+     the page leaves that much room, and anything else pinned to the bottom
+     (JumpToCurrentButton) sits above it. Only outside a lesson, which has no
+     tab bar. */
+  .withNav {
+    --bottom-nav-bar-height: 56px;
+    --bottom-nav-height: calc(var(--bottom-nav-bar-height) + env(safe-area-inset-bottom, 0px));
+  }
+
+  .withNav .main {
+    padding-bottom: calc(var(--space-3) + var(--bottom-nav-height));
   }
 
   .syncText {

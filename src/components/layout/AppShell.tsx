@@ -6,16 +6,18 @@ import { useIsMobile } from "../../hooks/useMediaQuery";
 import { useMobileDrawer } from "../../hooks/useMobileDrawer";
 import { CourseSwitcher } from "./CourseSwitcher";
 import { StreakCounter } from "./StreakCounter";
+import { TotalXp } from "./TotalXp";
 import { Sidebar } from "./Sidebar";
 import { NavDrawer } from "./NavDrawer";
 import { MenuIcon, TrophyIcon, PeopleIcon, AccountCircleIcon, SettingsIcon, HelpIcon, type IconProps } from "../common/icons";
 import styles from "./AppShell.module.css";
 
 // Account-level pages only — course-content browsing (the journey, each
-// category) lives in the sidebar (Sidebar.tsx), not here. `icon` is only ever
-// consulted below the mobile breakpoint (AppShell.module.css swaps
-// label<->icon visibility in CSS) — both render always, on both layouts, so
-// there is never a JS/CSS mismatch right at the breakpoint.
+// category) lives in the sidebar (Sidebar.tsx), not here. Below the mobile
+// breakpoint the same <nav> becomes a tab bar along the bottom of the screen,
+// icon over label (AppShell.module.css, issue #40); `icon` is hidden above
+// it. Both render always, on both layouts, so there is never a JS/CSS
+// mismatch right at the breakpoint.
 const NAV_ITEMS: { to: string; label: string; icon: ComponentType<IconProps> }[] = [
   { to: "/leagues", label: "Leagues", icon: TrophyIcon },
   { to: "/friends", label: "Friends", icon: PeopleIcon },
@@ -61,7 +63,7 @@ export function AppShell() {
   }, [isLessonMode]);
 
   return (
-    <div className={styles.shell} ref={shellRef}>
+    <div className={isLessonMode ? styles.shell : `${styles.shell} ${styles.withNav}`} ref={shellRef}>
       {!isLessonMode && (
         <header className={styles.header} ref={headerRef}>
           <button
@@ -76,7 +78,7 @@ export function AppShell() {
             <MenuIcon />
           </button>
           <span className={styles.brand}>ParsLing</span>
-          <nav className={styles.nav}>
+          <nav className={styles.nav} aria-label="Main">
             {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
               <NavLink
                 key={to}
@@ -95,22 +97,27 @@ export function AppShell() {
               </NavLink>
             ))}
           </nav>
-          {pendingCount > 0 && (
-            <span
-              className={styles.syncBadge}
-              role="status"
-              title="Lessons saved offline, waiting to sync"
-              aria-label={isFlushing ? "Syncing saved lessons" : `${pendingCount} lessons waiting to sync`}
-            >
-              <span className={styles.syncDot} aria-hidden="true" />
-              <span className={styles.syncText}>{isFlushing ? "Syncing…" : `${pendingCount} pending sync`}</span>
-            </span>
-          )}
-          <StreakCounter />
-          <CourseSwitcher />
-          <button type="button" className={styles.signOut} onClick={() => void logout()}>
-            Sign out
-          </button>
+          {/* The header's right-hand side, kept together so it stays pinned
+              right on mobile once the nav has moved to the bottom. */}
+          <div className={styles.status}>
+            {pendingCount > 0 && (
+              <span
+                className={styles.syncBadge}
+                role="status"
+                title="Lessons saved offline, waiting to sync"
+                aria-label={isFlushing ? "Syncing saved lessons" : `${pendingCount} lessons waiting to sync`}
+              >
+                <span className={styles.syncDot} aria-hidden="true" />
+                <span className={styles.syncText}>{isFlushing ? "Syncing…" : `${pendingCount} pending sync`}</span>
+              </span>
+            )}
+            <TotalXp />
+            <StreakCounter />
+            <CourseSwitcher />
+            <button type="button" className={styles.signOut} onClick={() => void logout()}>
+              Sign out
+            </button>
+          </div>
         </header>
       )}
       <div className={styles.body}>

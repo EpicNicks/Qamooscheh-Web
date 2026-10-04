@@ -46,3 +46,8 @@ export function todayLocalDay(): string {
 export function xpToday(days: readonly ActivityDay[]): number {
   return days.find((day) => day.localDay === todayLocalDay())?.xp ?? 0;
 }
+
+/** Every XP the learner has earned in a course: the sum of its whole activity history (GET /v1/activity returns every day, not a window). */
+export function totalXp(days: readonly ActivityDay[]): number {
+  return days.reduce((sum, day) => sum + day.xp, 0);
+}
