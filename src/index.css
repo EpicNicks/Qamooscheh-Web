@@ -27,6 +27,8 @@
   --color-streak: #d9480f;
   --color-streak-from: #e06800;
   --color-streak-to: #c62a12;
+  /** A streak still alive but not yet extended today (the grace day) — ashy grey text inside a --color-streak outline, so it reads as embers waiting for today's lesson rather than a lit flame. */
+  --color-streak-ash: #a39e99;
 
   --radius-sm: 8px;
   --radius-md: 14px;
@@ -76,6 +78,7 @@
     --color-streak: #ff7a3d;
     --color-streak-from: #ffa033;
     --color-streak-to: #ff5a3c;
+    --color-streak-ash: #6f6a66;
     color-scheme: dark;
   }
 }

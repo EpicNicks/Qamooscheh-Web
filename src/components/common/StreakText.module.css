@@ -29,3 +29,21 @@
   font-weight: 800;
   color: var(--color-text-muted);
 }
+
+/* A streak still alive but not yet extended today (the grace day): ashy text
+   inside the flame color's outline — embers, not fire — so the number says
+   "today isn't counted yet" before anyone reads the tooltip. paint-order puts
+   the stroke behind the fill so it outlines the glyph instead of thinning it. */
+.pending {
+  font-weight: 800;
+  color: var(--color-streak-ash);
+  -webkit-text-stroke: 1px var(--color-streak);
+  paint-order: stroke fill;
+}
+
+@media (forced-colors: active) {
+  .pending {
+    -webkit-text-stroke: 0;
+    color: GrayText;
+  }
+}

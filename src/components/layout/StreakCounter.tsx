@@ -23,7 +23,7 @@ export function StreakCounter() {
 
   return (
     <Link to="/profile" className={styles.counter} aria-label={description} title={description}>
-      <StreakText days={days}>
+      <StreakText days={days} practicedToday={streak.data.practicedToday}>
         {days}
         {/* Below the mobile breakpoint the header has no room for the words,
             so the long form swaps for a one-letter unit, the same CSS-only

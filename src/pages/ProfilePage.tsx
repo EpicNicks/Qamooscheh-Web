@@ -118,7 +118,7 @@ function StreakSummary() {
   return (
     <section className={styles.streak} aria-label="Streak">
       <div className={styles.stat}>
-        <StreakText days={currentStreakDays} className={styles.statValue}>
+        <StreakText days={currentStreakDays} practicedToday={practicedToday} className={styles.statValue}>
           {formatStreakDays(currentStreakDays)}
         </StreakText>
         <span className={styles.statLabel}>Current streak</span>
