@@ -28,8 +28,8 @@
   --color-streak-from: #e06800;
   --color-streak-to: #c62a12;
   /** A streak still alive but not yet extended today (the grace day) — a radial gradient from --color-streak-ember at the center out to --color-streak-ash, clipped to the text inside a --color-streak outline, so it reads as embers waiting for today's lesson rather than a lit flame. The ember end is the legible one (and the solid fallback); the ash end carries the "not lit yet" look. */
-  --color-streak-ember: #57514c;
-  --color-streak-ash: #a39e99;
+  --color-streak-ember: #8c857f;
+  --color-streak-ash: #d3cfcb;
 
   --radius-sm: 8px;
   --radius-md: 14px;
@@ -79,8 +79,8 @@
     --color-streak: #ff7a3d;
     --color-streak-from: #ffa033;
     --color-streak-to: #ff5a3c;
-    --color-streak-ember: #d8d2cc;
-    --color-streak-ash: #7d7873;
+    --color-streak-ember: #eee9e4;
+    --color-streak-ash: #8f8b88;
     color-scheme: dark;
   }
 }

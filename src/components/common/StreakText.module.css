@@ -47,8 +47,9 @@
   .pending {
     background-image: radial-gradient(
       ellipse at center,
-      var(--color-streak-ember) 35%,
-      var(--color-streak-ash) 100%
+      var(--color-streak-ember) 0%,
+      var(--color-streak-ember) 15%,
+      var(--color-streak-ash) 70%
     );
     -webkit-background-clip: text;
     background-clip: text;
@@ -64,7 +65,7 @@
    size lives inside the same @supports. */
 @supports (background-clip: text) or (-webkit-background-clip: text) {
   .smoulder {
-    background-size: 220% 220%;
+    background-size: 160% 160%;
     background-position: 50% 50%;
     animation:
       streak-drift 9s ease-in-out infinite alternate,
