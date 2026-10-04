@@ -176,6 +176,18 @@ const FAQ: FaqEntry[] = [
       </p>
     ),
   },
+  {
+    id: "color-vision",
+    question: "I'm colorblind. Can I tell right and wrong answers apart?",
+    answer: (
+      <p>
+        Yes: Settings → Appearance → Color vision has palettes for red-green and blue-yellow colorblindness. They
+        change the colors that mark words right, wrong, swapped or missing so each one stays distinct, and add ✓, ⇄
+        and ✗ to the tiles of a reviewed answer, so color isn't the only clue. Like fonts, this is saved on this
+        device only.
+      </p>
+    ),
+  },
 ];
 
 /** A plain FAQ, each entry a native `<details>` disclosure — no accordion library, and it works with the browser's own find-in-page. Supports deep-linking to one entry via `#id` (used by the "no voice installed" toast). */

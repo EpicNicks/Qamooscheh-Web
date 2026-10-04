@@ -13,7 +13,7 @@
   --color-success-bg: #eaffdf;
   --color-warning: #d9a100;
   --color-warning-bg: #fff6d6;
-  /** Feedback that fills in rather than judges — the missing words in a close typed answer (issue #38). With danger/success/warning, one of the four review colors a colorblind mode would retune together. */
+  /** Feedback that fills in rather than judges — the missing words in a close typed answer (issue #38). With danger/success/warning, one of the four review colors a colorblind mode retunes together (below). */
   --color-info: #0f6aa5;
   --color-info-bg: #e2f2fc;
   --color-locked: #cfcfd6;
@@ -77,6 +77,62 @@
     --color-streak-from: #ffa033;
     --color-streak-to: #ff5a3c;
     color-scheme: dark;
+  }
+}
+
+/*
+ * Colorblind review palettes (issue #41), set from Settings -> Appearance by
+ * theme/ColorVisionProvider.tsx. Each retunes the four review colors so every
+ * pair stays apart for that kind of colorblindness (simulated with Machado et
+ * al.'s matrices, CIEDE2000 of 14+ between any two text colors, where the
+ * default green and red are under 8 for deuteranopia), and keeps text AA on
+ * both the page and its own -bg fill. Red-green: blue right, orange wrong,
+ * maroon swapped, teal missing. Blue-yellow: teal right, red wrong, olive
+ * swapped, purple missing.
+ */
+:root[data-color-vision="red-green"] {
+  --color-success: #0b5cad;
+  --color-success-bg: #dde8f4;
+  --color-danger: #a83c08;
+  --color-danger-bg: #f3e4dc;
+  --color-warning: #862d39;
+  --color-warning-bg: #eee2e3;
+  --color-info: #226e69;
+  --color-info-bg: #e0ebea;
+}
+
+:root[data-color-vision="blue-yellow"] {
+  --color-success: #006d67;
+  --color-success-bg: #dbebea;
+  --color-danger: #c8102e;
+  --color-danger-bg: #f7dee2;
+  --color-warning: #494e09;
+  --color-warning-bg: #e6e6dd;
+  --color-info: #7a1fc2;
+  --color-info-bg: #ece0f6;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-color-vision="red-green"] {
+    --color-success: #5aa9f0;
+    --color-success-bg: #23344e;
+    --color-danger: #ff8a4c;
+    --color-danger-bg: #472d2a;
+    --color-warning: #dc87a1;
+    --color-warning-bg: #3f2d3c;
+    --color-info: #98ddd8;
+    --color-info-bg: #303f48;
+  }
+
+  :root[data-color-vision="blue-yellow"] {
+    --color-success: #3cc7b8;
+    --color-success-bg: #1c3b41;
+    --color-danger: #ff6b7d;
+    --color-danger-bg: #472634;
+    --color-warning: #d5cf81;
+    --color-warning-bg: #3e3c35;
+    --color-info: #aa8bff;
+    --color-info-bg: #342d51;
   }
 }
 

@@ -1,6 +1,8 @@
 import { getLanguageInfo } from "../../domain/language";
 import { FontPicker } from "../../components/settings/FontPicker";
 import { PersianFlagPicker } from "../../components/settings/PersianFlagPicker";
+import { useLocalAppPref } from "../../hooks/useLocalAppPref";
+import type { ColorVision } from "../../lib/localAppPrefs";
 import type { SettingsSectionProps } from "./SettingsSectionProps";
 import styles from "./SettingsPage.module.css";
 
@@ -17,6 +19,7 @@ import styles from "./SettingsPage.module.css";
  */
 export function AppearanceSection({ courseCode }: SettingsSectionProps) {
   const info = getLanguageInfo(courseCode);
+  const [colorVision, setColorVision] = useLocalAppPref("colorVision", "default");
 
   return (
     <div className={styles.section}>
@@ -26,6 +29,16 @@ export function AppearanceSection({ courseCode }: SettingsSectionProps) {
       <FontPicker script="latin" label="English / Latin font" dir="ltr" />
 
       {info?.language === "fa" && <PersianFlagPicker />}
+
+      <label className={styles.field}>
+        Color vision
+        <select value={colorVision} onChange={(e) => setColorVision(e.target.value as ColorVision)}>
+          <option value="default">Default colors</option>
+          <option value="red-green">Red-green colorblind (protanopia, deuteranopia)</option>
+          <option value="blue-yellow">Blue-yellow colorblind (tritanopia)</option>
+        </select>
+        <span className={styles.fieldNote}>Changes the colors that mark answers right, wrong, swapped or missing, and adds ✓ ⇄ ✗ to reviewed tiles.</span>
+      </label>
     </div>
   );
 }

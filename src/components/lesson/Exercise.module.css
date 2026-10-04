@@ -97,6 +97,33 @@
   opacity: 1;
 }
 
+/* In a colorblind mode (issue #41) the reviewed tiles carry a mark too, so
+   color is never the only thing telling right, swapped and wrong apart. A
+   missing tile is already dashed. Empty alt text keeps screen readers from
+   reading the mark as part of the word; the plain line first is for browsers
+   without alt text, as in AnswerFeedback.module.css. */
+:global([data-color-vision]) .tileRight::after,
+:global([data-color-vision]) .tileSwapped::after,
+:global([data-color-vision]) .tileWrong::after {
+  margin-inline-start: 0.35em;
+  font-weight: 700;
+}
+
+:global([data-color-vision]) .tileRight::after {
+  content: "✓";
+  content: "✓" / "";
+}
+
+:global([data-color-vision]) .tileSwapped::after {
+  content: "⇄";
+  content: "⇄" / "";
+}
+
+:global([data-color-vision]) .tileWrong::after {
+  content: "✗";
+  content: "✗" / "";
+}
+
 /* A bank tile the correct answer needed but the learner left out —
    outlined where it sits, so it's easy to see which tiles were missing. */
 .tileMissing,
