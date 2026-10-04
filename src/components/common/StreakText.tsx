@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useLocalAppPref } from "../../hooks/useLocalAppPref";
 import styles from "./StreakText.module.css";
 
 interface StreakTextProps {
@@ -21,6 +22,8 @@ interface StreakTextProps {
  * --color-streak-* tokens in index.css.
  */
 export function StreakText({ days, practicedToday = true, children, className }: StreakTextProps) {
-  const tone = days === 0 ? styles.cold : practicedToday ? styles.fire : styles.pending;
+  const [smoulder] = useLocalAppPref("smoulderingStreak", true);
+  const tone =
+    days === 0 ? styles.cold : practicedToday ? styles.fire : smoulder ? `${styles.pending} ${styles.smoulder}` : styles.pending;
   return <span className={className ? `${tone} ${className}` : tone}>{children}</span>;
 }

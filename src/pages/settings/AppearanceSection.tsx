@@ -20,6 +20,7 @@ import styles from "./SettingsPage.module.css";
 export function AppearanceSection({ courseCode }: SettingsSectionProps) {
   const info = getLanguageInfo(courseCode);
   const [colorVision, setColorVision] = useLocalAppPref("colorVision", "default");
+  const [smoulderingStreak, setSmoulderingStreak] = useLocalAppPref("smoulderingStreak", true);
 
   return (
     <div className={styles.section}>
@@ -38,6 +39,11 @@ export function AppearanceSection({ courseCode }: SettingsSectionProps) {
           <option value="blue-yellow">Blue-yellow colorblind (tritanopia)</option>
         </select>
         <span className={styles.fieldNote}>Changes the colors that mark answers right, wrong, swapped or missing, and adds ✓ ⇄ ✗ to reviewed tiles.</span>
+      </label>
+
+      <label className={`${styles.field} ${styles.checkboxRow}`}>
+        <input type="checkbox" checked={smoulderingStreak} onChange={(e) => setSmoulderingStreak(e.target.checked)} />
+        Animate my streak while it's waiting on today's lesson
       </label>
     </div>
   );

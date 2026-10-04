@@ -30,19 +30,92 @@
   color: var(--color-text-muted);
 }
 
-/* A streak still alive but not yet extended today (the grace day): ashy text
-   inside the flame color's outline — embers, not fire — so the number says
-   "today isn't counted yet" before anyone reads the tooltip. paint-order puts
-   the stroke behind the fill so it outlines the glyph instead of thinning it. */
+/* A streak still alive but not yet extended today (the grace day): ash in the
+   flame color's outline — embers, not fire — so the number says "today isn't
+   counted yet" before anyone reads the tooltip. Solid ember first, the legible
+   end of the gradient, for browsers without background-clip: text. */
 .pending {
   font-weight: 800;
-  color: var(--color-streak-ash);
+  color: var(--color-streak-ember);
   -webkit-text-stroke: 1px var(--color-streak);
-  paint-order: stroke fill;
+}
+
+/* A radial glow from the readable ember color at the center out to ash at the
+   edges, under the outline. The fill is transparent here, so the stroke can't
+   tuck behind it — kept at 1px so it doesn't eat into the gradient. */
+@supports (background-clip: text) or (-webkit-background-clip: text) {
+  .pending {
+    background-image: radial-gradient(
+      ellipse at center,
+      var(--color-streak-ember) 35%,
+      var(--color-streak-ash) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+}
+
+/* Smouldering (local pref smoulderingStreak): the gradient is drawn oversized
+   and its bright center drifts around inside the glyphs, while the outline
+   and a faint glow flicker on their own, uneven beat — two cycles of
+   different lengths so the pattern never visibly repeats. Background-position
+   only moves anything where the gradient is clipped to the text, hence the
+   size lives inside the same @supports. */
+@supports (background-clip: text) or (-webkit-background-clip: text) {
+  .smoulder {
+    background-size: 220% 220%;
+    background-position: 50% 50%;
+    animation:
+      streak-drift 9s ease-in-out infinite alternate,
+      streak-flicker 3.7s ease-in-out infinite;
+  }
+}
+
+@keyframes streak-drift {
+  0% { background-position: 30% 40%; }
+  35% { background-position: 65% 55%; }
+  70% { background-position: 45% 70%; }
+  100% { background-position: 60% 35%; }
+}
+
+@keyframes streak-flicker {
+  0%, 100% {
+    -webkit-text-stroke-color: var(--color-streak);
+    filter: drop-shadow(0 0 1px color-mix(in srgb, var(--color-streak) 35%, transparent));
+  }
+  18% {
+    -webkit-text-stroke-color: var(--color-streak-from);
+    filter: drop-shadow(0 0 3px color-mix(in srgb, var(--color-streak-from) 60%, transparent));
+  }
+  27% {
+    -webkit-text-stroke-color: var(--color-streak);
+    filter: drop-shadow(0 0 1.5px color-mix(in srgb, var(--color-streak) 40%, transparent));
+  }
+  55% {
+    -webkit-text-stroke-color: var(--color-streak-to);
+    filter: drop-shadow(0 0 2.5px color-mix(in srgb, var(--color-streak-to) 50%, transparent));
+  }
+  80% {
+    -webkit-text-stroke-color: var(--color-streak);
+    filter: drop-shadow(0 0 1px color-mix(in srgb, var(--color-streak) 30%, transparent));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .smoulder {
+    animation: none;
+  }
 }
 
 @media (forced-colors: active) {
+  .smoulder {
+    animation: none;
+    filter: none;
+  }
+
   .pending {
+    background-image: none;
     -webkit-text-stroke: 0;
     color: GrayText;
   }

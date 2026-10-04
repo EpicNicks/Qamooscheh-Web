@@ -193,6 +193,13 @@ export interface LocalAppPrefs {
    * Per device like the font choices. Defaults to the regular palette.
    */
   colorVision: ColorVision;
+  /**
+   * Whether a streak waiting on today's lesson (StreakText's grace-day ash)
+   * slowly smoulders — a drifting glow and a flickering outline — or sits
+   * still. A per-device motion choice like goalCelebrationEnabled; the OS
+   * reduced-motion setting stills it regardless. Defaults on.
+   */
+  smoulderingStreak: boolean;
 }
 
 const DEFAULTS: LocalAppPrefs = {
@@ -222,6 +229,7 @@ const DEFAULTS: LocalAppPrefs = {
   speakHoveredEnglish: false,
   soundEffects: true,
   colorVision: "default",
+  smoulderingStreak: true,
 };
 
 function storageKey(userId: string): string {
