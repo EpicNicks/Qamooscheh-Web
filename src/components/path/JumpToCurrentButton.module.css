@@ -5,7 +5,9 @@
 .button {
   position: fixed;
   right: max(var(--jump-right, 0px), env(safe-area-inset-right, 0px));
-  bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
+  /* Above the mobile tab bar when there is one (AppShell.module.css's
+     --bottom-nav-height, safe area included), otherwise above the safe area. */
+  bottom: calc(var(--space-4) + var(--bottom-nav-height, env(safe-area-inset-bottom, 0px)));
   z-index: 50;
   width: 56px;
   height: 56px;

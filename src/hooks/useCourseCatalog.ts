@@ -16,9 +16,9 @@ export function useCourseCatalog() {
 }
 
 /**
- * GET /v1/activity/{courseCode}. Nothing renders this yet — the plan's
- * per-language dashboard is a later pass; this exists so the data is
- * *fetchable*, which is what the endpoint was built for.
+ * GET /v1/activity/{courseCode}: every day the learner was active in a
+ * course. DailyGoalRing reads today's XP from it, the header's TotalXp the
+ * whole history's.
  */
 export function useActivity(courseCode: string | null | undefined) {
   return useQuery({

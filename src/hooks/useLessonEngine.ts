@@ -558,8 +558,9 @@ export function useLessonEngine(deepDiveLessonKeys?: string[], selectedSkillKey?
       // being fresh.
       queryClient.invalidateQueries({ queryKey: ["lessonsCompleted"] });
       // A processed session lands today in daily_activity, which is what the
-      // header streak is folded from.
+      // header streak is folded from, and the header XP summed from.
       queryClient.invalidateQueries({ queryKey: ["streak"] });
+      queryClient.invalidateQueries({ queryKey: ["activity"] });
 
       // 200 does NOT mean "every session landed": §2.3 answers per session,
       // and one can come back Rejected (stale course version, not
