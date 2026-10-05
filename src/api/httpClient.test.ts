@@ -139,4 +139,38 @@ describe("httpClient refresh", () => {
     expect(loadSession()).toEqual(session("a", 2, FUTURE));
     expect(requests.at(-1)).toBe("Bearer a-access-2");
   });
+
+  it("reports the device time zone alongside the access token", async () => {
+    saveSession(session("a", 1, FUTURE));
+    vi.spyOn(Intl.DateTimeFormat.prototype, "resolvedOptions").mockReturnValue({
+      timeZone: "Asia/Tehran",
+    } as Intl.ResolvedDateTimeFormatOptions);
+    const headers: Record<string, string>[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+        headers.push((init?.headers as Record<string, string> | undefined) ?? {});
+        return json(200, {});
+      }),
+    );
+
+    await apiFetch("/v1/streak");
+
+    expect(headers[0]["X-Time-Zone"]).toBe("Asia/Tehran");
+  });
+
+  it("sends no time zone on an anonymous request", async () => {
+    const headers: Record<string, string>[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+        headers.push((init?.headers as Record<string, string> | undefined) ?? {});
+        return json(200, {});
+      }),
+    );
+
+    await apiFetch("/v1/auth/login", { method: "POST", body: {}, anonymous: true });
+
+    expect(headers[0]).not.toHaveProperty("X-Time-Zone");
+  });
 });

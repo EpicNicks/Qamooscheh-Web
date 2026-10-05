@@ -451,6 +451,31 @@ export interface StreakResponse {
   longestStreakDays: number;
   /** Whether today's streak-day already has activity — false while the streak is alive on the grace day only. */
   practicedToday: boolean;
+  /** Whether a pause (learner-booked, or a travel day) covers today — the streak is safe without practice. */
+  pausedToday: boolean;
+  /** The learner's current or upcoming pause, or null. Travel days never appear here. */
+  pause: StreakPauseResponse | null;
+  /** Pause days still bookable under the server's per-year allowance (StreakPolicy.PauseDaysPerYear). */
+  pauseDaysAvailable: number;
+  /** The IANA zone the streak is counted in — the X-Time-Zone this client last reported. */
+  timeZone: string;
+  /** Local hour (0-23) a new streak-day starts at. */
+  dayStartHour: number;
+  /** The server's current streak-day ("YYYY-MM-DD") — use this, never a client-side re-derivation (DST makes them disagree). */
+  today: string;
+  /** ISO instant today's streak-day ends — the deadline for a learner who hasn't practiced yet. */
+  nextDayStartsAt: string;
+}
+
+/** POST /v1/streak/pause — streak-days ("YYYY-MM-DD"), both inclusive. Start no earlier than `today`; the server enforces length (14) and lead-time (30 days) limits. */
+export interface StreakPauseRequest {
+  startDay: string;
+  endDay: string;
+}
+
+/** A booked pause. `started`: it began before today, so DELETE ends it today rather than removing it. */
+export interface StreakPauseResponse extends StreakPauseRequest {
+  started: boolean;
 }
 
 // ---------------------------------------------------------------------------
