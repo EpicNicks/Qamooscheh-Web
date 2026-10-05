@@ -5,6 +5,7 @@ import { WordBankExercise } from "./WordBankExercise";
 import { TypeInExercise } from "./TypeInExercise";
 import { MatchExercise } from "./MatchExercise";
 import { SpeakExercise } from "./SpeakExercise";
+import { ExerciseVoiceScope } from "../../hooks/exerciseVoiceScope";
 
 export interface ReviewedAnswer {
   /** Exactly what was handed to the grader. */
@@ -54,13 +55,22 @@ export interface ExerciseProps {
   reviewedAnswer?: ReviewedAnswer;
 }
 
+/** Renders the exercise inside its ExerciseVoiceScope, so a shuffled voice holds for everything heard in it (hooks/exerciseVoiceScope.ts). */
+export function ExerciseRenderer(props: ExerciseProps & { renderType: ExerciseType }) {
+  return (
+    <ExerciseVoiceScope.Provider value={props.exercise}>
+      <ExerciseByType {...props} />
+    </ExerciseVoiceScope.Provider>
+  );
+}
+
 /**
  * Dispatches on the RESOLVED render type (hooks/useLessonEngine.ts's
  * `current.renderType`), not `exercise.type` — a composite exercise's
  * authored type is `type_in`, but it may be resolved to render as
  * `word_bank` (API_SPEC.md §2.5). See domain/exerciseResolution.ts.
  */
-export function ExerciseRenderer({
+function ExerciseByType({
   exercise,
   renderType,
   onSubmit,

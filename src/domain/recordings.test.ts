@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pickRecording, wordRecording } from "./recordings";
+import { exerciseVoice, lineVoice, pickRecording, wordRecording } from "./recordings";
 import type { LexemeIndex, LexemeIndexEntry } from "../types/content";
 
 const NO_PREFERENCE = { preferredVoice: null, defaultVoice: "setareh" };
@@ -32,33 +32,54 @@ describe("pickRecording", () => {
     expect(pickRecording(null, NO_PREFERENCE)).toBeNull();
     expect(pickRecording({ setareh: [] }, NO_PREFERENCE)).toBeNull();
   });
+});
 
-  describe("shuffled", () => {
-    const lines = Array.from({ length: 40 }, (_, i) => ({ setareh: [`s${i}.mp3`], hooman: [`h${i}.mp3`] }));
+describe("exerciseVoice", () => {
+  const cast = ["ali", "hooman", "setareh"];
+  const question = (i: number, audio: Record<string, string[]> = { setareh: [`s${i}.mp3`], hooman: [`h${i}.mp3`] }) => ({
+    prompt: `prompt ${i}`,
+    answer: [`answer ${i}`],
+    promptAudio: audio,
+    answerAudio: audio,
+  });
 
-    it("keeps a line's voice for the same seed", () => {
-      const choice = { preferredVoice: "setareh", defaultVoice: "setareh", shuffleSeed: 7 };
-      for (const line of lines) expect(pickRecording(line, choice)).toBe(pickRecording(line, choice));
-    });
+  it("keeps a question's voice for the same seed", () => {
+    for (let i = 0; i < 20; i++) expect(exerciseVoice(question(i), cast, null, 7)).toBe(exerciseVoice(question(i), cast, null, 7));
+  });
 
-    it("spreads lines across the voices that recorded them, ignoring the preferred one", () => {
-      const picked = lines.map((line) => pickRecording(line, { preferredVoice: "setareh", defaultVoice: "setareh", shuffleSeed: 7 }));
-      expect(picked.some((path) => path?.startsWith("h"))).toBe(true);
-      expect(picked.some((path) => path?.startsWith("s"))).toBe(true);
-    });
+  it("varies the voice from question to question", () => {
+    const voices = new Set(Array.from({ length: 40 }, (_, i) => exerciseVoice(question(i), cast, null, 7)));
+    expect(voices).toEqual(new Set(["hooman", "setareh"]));
+  });
 
-    it("only draws voices with a take", () => {
-      for (let seed = 0; seed < 20; seed++) {
-        expect(pickRecording({ setareh: [], hooman: ["h0.mp3"] }, { ...NO_PREFERENCE, shuffleSeed: seed })).toBe("h0.mp3");
-      }
-    });
+  it("prefers a voice that recorded both the prompt and the answer, then either", () => {
+    const split = { prompt: "p", answer: ["a"], promptAudio: { setareh: ["s.mp3"], hooman: ["h.mp3"] }, answerAudio: { hooman: ["h2.mp3"] } };
+    const promptOnly = { prompt: "p", answer: ["a"], promptAudio: { setareh: ["s.mp3"], hooman: [] }, answerAudio: null };
+    for (let seed = 0; seed < 20; seed++) {
+      expect(exerciseVoice(split, cast, null, seed)).toBe("hooman");
+      expect(exerciseVoice(promptOnly, cast, null, seed)).toBe("setareh");
+    }
+  });
 
-    it("keeps a speaker's line to that speaker's voices", () => {
-      const cast = { setareh: ["s0.mp3"], hooman: ["h0.mp3"], ali: ["a0.mp3"] };
-      for (let seed = 0; seed < 20; seed++) {
-        expect(pickRecording(cast, { ...NO_PREFERENCE, speakerVoices: ["hooman"], shuffleSeed: seed })).toBe("h0.mp3");
-      }
-    });
+  it("draws from the whole cast when nothing in the question is recorded", () => {
+    const unrecorded = Array.from({ length: 40 }, (_, i) => exerciseVoice({ prompt: `p${i}`, answer: ["a"] }, cast, null, 3));
+    expect(new Set(unrecorded)).toEqual(new Set(cast));
+  });
+
+  it("keeps a speaker's question to that speaker's voices", () => {
+    for (let i = 0; i < 20; i++) {
+      expect(exerciseVoice(question(i, { setareh: ["s.mp3"], hooman: ["h.mp3"], ali: ["a.mp3"] }), cast, ["ali"], i)).toBe("ali");
+    }
+  });
+});
+
+describe("lineVoice", () => {
+  it("draws among the voices that recorded the line, the speaker's first", () => {
+    for (let seed = 0; seed < 20; seed++) {
+      expect(lineVoice({ setareh: [], hooman: ["h0.mp3"] }, null, seed)).toBe("hooman");
+      expect(lineVoice({ setareh: ["s0.mp3"], hooman: ["h0.mp3"] }, ["setareh"], seed)).toBe("setareh");
+    }
+    expect(lineVoice(null, null, 1)).toBeNull();
   });
 });
 

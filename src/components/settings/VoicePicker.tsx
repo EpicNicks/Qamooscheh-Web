@@ -79,7 +79,7 @@ export function VoicePicker({ value, onChange, classNames }: VoicePickerProps) {
         </span>
         <span className={classNames?.note}>
           {shuffleVoices
-            ? "Each recording plays in one of the voices that recorded it."
+            ? "Each question plays in one voice, which can change from one question to the next."
             : "Recordings play in this voice."}
           {!shuffleVoices && selected.id !== defaultVoice.id && ` Anything it hasn't recorded plays in ${defaultVoice.name}'s voice instead.`}
         </span>

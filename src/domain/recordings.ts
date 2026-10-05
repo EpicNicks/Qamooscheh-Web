@@ -16,21 +16,12 @@ export interface VoiceChoice {
   defaultVoice: string | null;
   /** The line's speaker's voices (audio.json `speakers`), when it has a speaker. Empty means any voice. */
   speakerVoices?: readonly string[] | null;
-  /**
-   * Set when the learner shuffles voices (localAppPrefs' shuffleVoices): each
-   * line plays a voice drawn from those that recorded it, instead of the
-   * preferred one. The draw hashes this seed with the line's own takes, so a
-   * line keeps its voice for as long as the seed lasts (every replay, and the
-   * take an exercise report cites, agree) while different lines spread across
-   * the cast.
-   */
-  shuffleSeed?: number | null;
 }
 
 /**
  * FNV-1a, finished with murmur3's fmix32. The finisher matters: FNV-1a's low
  * bit is only the parity of the input's characters, so `% 2` over two voices
- * would give every line with the same digits the same voice.
+ * would land every similar key on the same voice.
  */
 function hash(text: string): number {
   let h = 0x811c9dc5;
@@ -46,12 +37,68 @@ function hash(text: string): number {
   return h >>> 0;
 }
 
-/** The shuffled voice's take: one of `voices` that recorded the line, picked by the seed. Null when none of them did. */
-function shuffledTake(audio: AudioMap, voices: readonly string[], seed: number): string | null {
-  const recorded = [...new Set(voices)].filter((voice) => audio[voice]?.[0]).sort();
-  if (recorded.length === 0) return null;
-  const key = recorded.map((voice) => audio[voice][0]).join("|");
-  return audio[recorded[hash(`${seed}:${key}`) % recorded.length]][0];
+/** One of `voices`, drawn by `seed` and `key` — sorted first, so the draw doesn't depend on the order they were listed in. Null when there are none. */
+export function drawVoice(voices: Iterable<string>, seed: number, key: string): string | null {
+  const pool = [...new Set(voices)].sort();
+  return pool.length > 0 ? pool[hash(`${seed}:${key}`) % pool.length] : null;
+}
+
+function recordedVoices(audio: AudioMap | null | undefined): string[] {
+  return audio ? Object.keys(audio).filter((voice) => audio[voice]?.[0]) : [];
+}
+
+/** The first non-empty tier's draw. */
+function drawFromTiers(tiers: readonly (readonly string[])[], seed: number, key: string): string | null {
+  const tier = tiers.find((voices) => voices.length > 0);
+  return tier ? drawVoice(tier, seed, key) : null;
+}
+
+/** The parts of an exercise its shuffled voice is drawn from. */
+export interface ShuffleExercise {
+  prompt: string;
+  answer: readonly string[];
+  promptAudio?: AudioMap | null;
+  answerAudio?: AudioMap | null;
+  speaker?: string | null;
+}
+
+/**
+ * With voices shuffled (localAppPrefs' shuffleVoices), the voice a whole
+ * exercise plays in — its prompt, its answer, its word-bank tiles and hovered
+ * words alike — so a question keeps one voice and the next question may get
+ * another. Drawn from the voices that recorded both its prompt and its
+ * answer, else either, else the whole `cast`; a line with a speaker draws
+ * only among that speaker's voices. The exercise has no id, so its prompt and
+ * first answer stand in for one: a requeued question keeps its voice for as
+ * long as the seed lasts. Android draws the same way (features.yaml's
+ * shuffle-voices).
+ */
+export function exerciseVoice(
+  exercise: ShuffleExercise,
+  cast: readonly string[],
+  speakerVoices: readonly string[] | null | undefined,
+  seed: number,
+): string | null {
+  const own = speakerVoices && speakerVoices.length > 0 ? speakerVoices : null;
+  const allowed = (voice: string) => !own || own.includes(voice);
+  const prompt = recordedVoices(exercise.promptAudio);
+  const answer = recordedVoices(exercise.answerAudio);
+  return drawFromTiers(
+    [
+      prompt.filter((voice) => answer.includes(voice) && allowed(voice)),
+      [...prompt, ...answer].filter(allowed),
+      own ?? cast,
+    ],
+    seed,
+    `${exercise.prompt}\n${exercise.answer[0] ?? ""}`,
+  );
+}
+
+/** The same outside any exercise (a story line, a saved word's audio button): one recording's own draw, keyed by its takes. */
+export function lineVoice(audio: AudioMap | null | undefined, speakerVoices: readonly string[] | null | undefined, seed: number): string | null {
+  const recorded = recordedVoices(audio);
+  const key = recorded.map((voice) => audio![voice][0]).sort().join("|");
+  return drawFromTiers([recorded.filter((voice) => speakerVoices?.includes(voice)), recorded], seed, key);
 }
 
 /**
@@ -64,13 +111,6 @@ export function pickRecording(audio: AudioMap | null | undefined, choice: VoiceC
   const takeOf = (voice: string | null | undefined) => (voice ? (audio[voice]?.[0] ?? null) : null);
 
   const speakerVoices = choice.speakerVoices ?? [];
-  if (choice.shuffleSeed != null) {
-    // A speaker's line still stays in that character's voices; only which of them is drawn.
-    const shuffled =
-      (speakerVoices.length > 0 ? shuffledTake(audio, speakerVoices, choice.shuffleSeed) : null) ??
-      shuffledTake(audio, Object.keys(audio), choice.shuffleSeed);
-    if (shuffled) return shuffled;
-  }
   if (speakerVoices.length > 0) {
     if (choice.preferredVoice && speakerVoices.includes(choice.preferredVoice)) {
       const preferred = takeOf(choice.preferredVoice);
