@@ -589,4 +589,6 @@ export interface ApiErrorBody {
   reason?: string;
   /** 409 from POST /v1/courses/{code}/roll-forward only: the highest version the caller can legally roll forward to right now. */
   highestEligibleVersion?: number;
+  /** 429 from POST /v1/auth/login and /v1/auth/google after failed sign-ins (API_SPEC.md §3 "Per-client limits"): how long the backoff has left. `error` already says it in words. */
+  retryAfterSeconds?: number;
 }
