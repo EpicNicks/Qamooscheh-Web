@@ -15,7 +15,7 @@ export interface AnswerFeedbackProps {
   note: string | null;
   /** Cosmetic per-answer XP (domain/xp.ts) — 0/omitted renders no burst. */
   xp?: number;
-  /** The accepted answer(s) — only ever read when `!correct`, to back "Reveal Answer?". Omit to hide that control (e.g. no exercise context available). */
+  /** The accepted answer(s) — only ever read when `!correct`, to back "Reveal Answer?". The first is shown and the rest sit behind "Also accepted", so order them closest to the submission first (domain/answerFeedback.ts's closestAnswerFirst). Omit to hide that control (e.g. no exercise context available). */
   answer?: string[];
   /**
    * word_bank/match's `answer` is the ordered TOKENS of one correct
@@ -64,6 +64,20 @@ export function AnswerFeedback({
 }: AnswerFeedbackProps) {
   const [revealed, setRevealed] = useState(false);
   const revealedLines = !answer ? [] : answerIsTokenized ? [answer.join(" ")] : answer;
+  const revealedLine = (line: string) => (
+    <li key={line} className={styles.revealedLine} dir={displayDirection(line, textSettings.display)}>
+      <SentenceRomanization
+        text={line}
+        authored={answerRomanization?.text === line ? answerRomanization.romanization : null}
+        hintMap={hintMap}
+        settings={textSettings}
+        tags={tags}
+      />
+      <span className={styles.verdict}>
+        <AnnotatedText text={line} hintMap={hintMap} settings={textSettings} tags={tags} />
+      </span>
+    </li>
+  );
 
   if (correct) {
     return (
@@ -87,23 +101,21 @@ export function AnswerFeedback({
         {revealed ? (
           <div className={styles.revealed}>
             {revealedLines.length > 0 && (
-              // Bulleted when there are several: any one of them is right, in no particular order (issue #37).
-              <ul role="list" className={revealedLines.length > 1 ? styles.answerList : styles.singleAnswer}>
-                {revealedLines.map((line, i) => (
-                  <li key={i} className={styles.revealedLine} dir={displayDirection(line, textSettings.display)}>
-                    <SentenceRomanization
-                      text={line}
-                      authored={answerRomanization?.text === line ? answerRomanization.romanization : null}
-                      hintMap={hintMap}
-                      settings={textSettings}
-                      tags={tags}
-                    />
-                    <span className={styles.verdict}>
-                      <AnnotatedText text={line} hintMap={hintMap} settings={textSettings} tags={tags} />
-                    </span>
-                  </li>
-                ))}
+              // One answer up front — the caller orders the closest to what
+              // was typed first — and any others behind a disclosure, so a
+              // long list doesn't bury the one that matters (issue #42).
+              <ul role="list" className={styles.singleAnswer}>
+                {revealedLine(revealedLines[0])}
               </ul>
+            )}
+            {revealedLines.length > 1 && (
+              <details className={styles.otherAnswers}>
+                <summary>Also accepted ({revealedLines.length - 1})</summary>
+                {/* Bulleted: any one of them is right, in no particular order (issue #37). */}
+                <ul role="list" className={styles.answerList}>
+                  {revealedLines.slice(1).map(revealedLine)}
+                </ul>
+              </details>
             )}
             {submittedText !== undefined && (
               <span className={styles.yourAnswer}>Your answer: {(textSettings.vowelMarks ? submittedText : submittedText && stripReadingAids(submittedText)) || "(nothing submitted)"}</span>

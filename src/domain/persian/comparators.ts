@@ -18,7 +18,7 @@ export interface PersianComparisonResult {
 
 const INCORRECT: PersianComparisonResult = { verdict: "incorrect", matchedAnswer: null, reasons: [] };
 
-function levenshteinDistance(a: string, b: string): number {
+export function levenshteinDistance(a: string, b: string): number {
   const rows = a.length + 1;
   const cols = b.length + 1;
   const dp: number[][] = Array.from({ length: rows }, () => new Array<number>(cols).fill(0));
@@ -146,7 +146,7 @@ export function separatorMistakes(submitted: string, acceptedAnswers: readonly s
   return best;
 }
 
-function normalizeCase(input: string): string {
+export function normalizeCase(input: string): string {
   let out = "";
   let lastWasSpace = false;
   for (const ch of input.toLowerCase()) {
@@ -163,7 +163,7 @@ function normalizeCase(input: string): string {
 
 const VOWELS = new Set(["a", "e", "i", "o", "u"]);
 
-function foldLatinVariance(normalized: string): string {
+export function foldLatinVariance(normalized: string): string {
   let out = "";
   let lastAppended = "";
   for (const ch of normalized) {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkAnswer } from "./answerFeedback";
+import { checkAnswer, closestAnswerFirst } from "./answerFeedback";
 import type { ExerciseArtifact } from "../types/content";
 
 const ZWNJ = "‌";
@@ -30,5 +30,42 @@ describe("checkAnswer's spacing note (issue #39)", () => {
 
   it("notes a speak exercise's spacing too, while its answer is typed", () => {
     expect(plain(checkAnswer("fa", exercise("speak", typeIn.answer), "من میخرم").note)).toBe("Needs a half-space after می.");
+  });
+});
+
+describe("checkAnswer's typo note (issue #42)", () => {
+  it("names the word a forgiven typo was in, with its right spelling", () => {
+    const feedback = checkAnswer("fa", exercise("type_in", ["من کتاب دارم"]), "من کتاو دارم");
+    expect(feedback.verdict).toBe("accepted_with_correction");
+    expect(plain(feedback.note)).toBe("Close — a small typo: کتاب, not کتاو.");
+  });
+
+  it("ignores reading aids on the accepted answer when naming the word", () => {
+    expect(plain(checkAnswer("fa", exercise("type_in", ["کِتابِ مَن"]), "کتاو من").note)).toBe("Close — a small typo: کتاب, not کتاو.");
+  });
+
+  it("names a romanized typo's word", () => {
+    const romanized = { ...exercise("type_in", ["man ketab daram"]), scriptMode: "romanized" as const };
+    expect(plain(checkAnswer("fa", romanized, "man ketob daram").note)).toBe("Close — romanization spelling, a small typo: ketab, not ketob.");
+  });
+
+  it("gives the whole answer when a romanized typo moved a space", () => {
+    const romanized = { ...exercise("type_in", ["man ketab daram"]), scriptMode: "romanized" as const };
+    expect(plain(checkAnswer("fa", romanized, "man ketabdaram").note)).toBe("Close — romanization spelling, a small typo: it's man ketab daram.");
+  });
+});
+
+describe("closestAnswerFirst (issue #42)", () => {
+  it("puts the answer nearest the submission first", () => {
+    expect(closestAnswerFirst("I have a book", ["I've got a book", "I have a book.", "I own a book"])).toEqual([
+      "I have a book.",
+      "I own a book",
+      "I've got a book",
+    ]);
+  });
+
+  it("keeps the authored order for ties and an empty submission", () => {
+    expect(closestAnswerFirst("", ["b", "a"])).toEqual(["b", "a"]);
+    expect(closestAnswerFirst("c", ["b", "a"])).toEqual(["b", "a"]);
   });
 });

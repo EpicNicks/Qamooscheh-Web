@@ -45,6 +45,25 @@
   gap: var(--space-1);
 }
 
+/* The rest of the accepted answers, folded away under the first. */
+.otherAnswers {
+  font-size: 0.9em;
+}
+
+.otherAnswers > summary {
+  cursor: pointer;
+  opacity: 0.85;
+  width: fit-content;
+}
+
+.otherAnswers > summary:hover {
+  opacity: 1;
+}
+
+.otherAnswers[open] > summary {
+  margin-bottom: var(--space-1);
+}
+
 /* Drawn on the answer text itself rather than as a list marker, so it sits on
    the reading side of each line — right for Persian, left for romanized. The
    empty alt text keeps screen readers from announcing it; role="list" on the
