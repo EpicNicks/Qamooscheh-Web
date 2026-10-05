@@ -18,6 +18,7 @@ import { LanguageSettingsButton } from "./languageSettings/LanguageSettingsButto
 import { displayDirection } from "../../domain/annotation";
 import { gateLexemeHintMap } from "../../domain/romanization";
 import { useNativeTextAlign } from "../../hooks/useNativeTextAlign";
+import { useExerciseReportContext } from "../../hooks/useExerciseReportContext";
 import type { ExerciseSession } from "../../hooks/useExerciseSession";
 import type { WalkthroughExerciseInstance, WalkthroughAnswerResult } from "../../hooks/useSkillWalkthrough";
 import { revealedTileOrder } from "../../domain/wordBankOrders";
@@ -65,6 +66,7 @@ export function StoryTranscript({
   const alignStyleFor = (text: string) => (displayDirection(text, textSettings.display) === "rtl" ? { textAlign: nativeTextAlign } : undefined);
 
   const { answeredItem, feedback } = confirmation;
+  const reportContext = useExerciseReportContext(answeredItem, feedback?.submittedText ?? null);
   // Everything before this ordinal has been answered AND confirmed — the
   // reviewing line (if any) hasn't been confirmed yet, so it's excluded here
   // and rendered by its own branch below instead of as a collapsed past line.
@@ -188,7 +190,7 @@ export function StoryTranscript({
                     romanization: answeredItem.exercise.answerRomanization,
                   }}
                   tags={answeredItem.exercise.tags}
-                  reportContext={{ exerciseTags: answeredItem.exercise.tags, prompt: answeredItem.exercise.prompt }}
+                  reportContext={reportContext}
                 />
                 <ExerciseRenderer
                   exercise={answeredItem.exercise}

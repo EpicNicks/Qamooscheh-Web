@@ -561,6 +561,17 @@ export interface SubmitExerciseReportRequest {
   exerciseTags: string[];
   reasons: ExerciseReportReason[];
   details: string | null;
+  /** Exactly what was graded (backend 0015 onward — every field below is optional). */
+  submittedAnswer?: string | null;
+  /** How the exercise was shown. Telemetry only, never graded. */
+  renderType?: ExerciseType | null;
+  /** courseVersion, skillKey and exerciseOrdinal go together or not at all; unitKey is null for a theme lesson. */
+  courseVersion?: number | null;
+  unitKey?: string | null;
+  skillKey?: string | null;
+  exerciseOrdinal?: number | null;
+  /** The recordings the exercise played, as version-root-relative paths — the server keeps only each file name. */
+  audioFiles?: string[];
 }
 
 export interface SubmitExerciseReportResponse {

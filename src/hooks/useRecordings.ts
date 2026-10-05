@@ -15,6 +15,8 @@ import type { AudioMap } from "../types/content";
 export interface Recordings {
   /** URL of a phrase's recording (an exercise's promptAudio/answerAudio), or null. `speaker` keeps a story line to its character's voices. */
   phraseUrl: (audio: AudioMap | null | undefined, speaker?: string | null) => string | null;
+  /** The same take as phraseUrl, as its version-root-relative path — what an exercise report cites. */
+  phrasePath: (audio: AudioMap | null | undefined, speaker?: string | null) => string | null;
   /** URL of one written word's recording (a word-bank tile), or null — see wordRecording for how the word is found. */
   wordUrl: (text: string, exerciseTags: readonly string[]) => string | null;
 }
@@ -38,6 +40,7 @@ export function useRecordings(): Recordings {
     const toUrl = (path: string | null) => (path && course ? contentUrl(course.code, course.version, path) : null);
     return {
       phraseUrl: (audio, speaker) => toUrl(pickRecording(audio, choiceFor(speaker))),
+      phrasePath: (audio, speaker) => pickRecording(audio, choiceFor(speaker)),
       wordUrl: (text, exerciseTags) => toUrl(wordRecording(text, exerciseTags, lexemeIndex, choiceFor())),
     };
   }, [course, choiceFor, lexemeIndex]);

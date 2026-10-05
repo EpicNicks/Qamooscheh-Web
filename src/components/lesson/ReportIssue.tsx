@@ -1,18 +1,17 @@
 import { useState } from "react";
 import { Button } from "../common/Button";
 import { FlagOutlinedIcon } from "../common/icons";
-import { EXERCISE_REPORT_REASONS, type ExerciseReportReason } from "../../domain/exerciseReport";
+import { EXERCISE_REPORT_REASONS, type ExerciseReportContext, type ExerciseReportReason } from "../../domain/exerciseReport";
 import { submitExerciseReport } from "../../api/exerciseReport";
 import styles from "./ReportIssue.module.css";
 
 interface ReportIssueProps {
-  /** Cites which lesson part the report is about — see domain/exerciseReport.ts. */
-  exerciseTags: string[];
-  prompt: string;
+  /** Cites which exercise the report is about — see domain/exerciseReport.ts. */
+  context: ExerciseReportContext;
 }
 
 /** Sits above the wrong-answer feedback row — POST /v1/exercise-reports. */
-export function ReportIssue({ exerciseTags, prompt }: ReportIssueProps) {
+export function ReportIssue({ context }: ReportIssueProps) {
   const [open, setOpen] = useState(false);
   const [reasons, setReasons] = useState<Set<ExerciseReportReason>>(new Set());
   const [details, setDetails] = useState("");
@@ -31,10 +30,17 @@ export function ReportIssue({ exerciseTags, prompt }: ReportIssueProps) {
     setStatus("submitting");
     try {
       await submitExerciseReport({
-        exercisePrompt: prompt,
-        exerciseTags,
+        exercisePrompt: context.prompt,
+        exerciseTags: context.exerciseTags,
         reasons: [...reasons],
         details: reasons.has("other") && details.trim() ? details.trim() : null,
+        submittedAnswer: context.submittedText ?? null,
+        renderType: context.renderType ?? null,
+        courseVersion: context.location?.courseVersion ?? null,
+        unitKey: context.location?.unitKey ?? null,
+        skillKey: context.location?.skillKey ?? null,
+        exerciseOrdinal: context.location?.exerciseOrdinal ?? null,
+        audioFiles: context.audioFiles ?? [],
       });
       setStatus("sent");
     } catch {

@@ -25,7 +25,11 @@ jobs:
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
 
+      # The commit becomes the build's version, sent to the API as X-Client.
+      # A shell variable outranks --env-file in compose's interpolation.
       - name: Build image
+        env:
+          VITE_APP_VERSION: ${{ github.event.workflow_run.head_sha }}
         run: docker compose --env-file "$ENV_FILE" build
 
       - name: Apply

@@ -35,6 +35,8 @@ import type { ExerciseType } from "../domain/enums";
 
 export interface WalkthroughExerciseInstance {
   key: string;
+  unitKey: string;
+  skillKey: string;
   ordinal: number;
   exercise: ExerciseArtifact;
   renderType: ExerciseType;
@@ -77,6 +79,8 @@ export function useSkillWalkthrough(unitKey: string, skillKey: string, options: 
   const instances: WalkthroughExerciseInstance[] = artifact
     ? artifact.exercises.map((exercise, ordinal) => ({
         key: `${unitKey}/${skillKey}/${ordinal}`,
+        unitKey,
+        skillKey,
         ordinal,
         exercise,
         renderType: resolveExerciseType(exercise, null),

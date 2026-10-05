@@ -15,7 +15,7 @@
 // Deliberately does NOT import api/auth.ts, to avoid a refresh call routing
 // back through this same 401-handling path. It talks to POST /v1/auth/refresh
 // directly with a plain fetch instead.
-import { API_BASE_URL } from "../config";
+import { API_BASE_URL, CLIENT_HEADER } from "../config";
 import { clearSession, loadSession, saveSession, type StoredSession } from "../lib/storage";
 import type { ApiErrorBody, AuthResponse } from "../types/api";
 
@@ -89,7 +89,7 @@ async function refreshAccessToken(): Promise<string> {
 
     const response = await fetch(`${API_BASE_URL}/v1/auth/refresh`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "X-Client": CLIENT_HEADER },
       body: JSON.stringify({ refreshToken: session.refreshToken }),
     });
 
@@ -158,12 +158,15 @@ async function doFetch(path: string, options: ApiFetchOptions, accessToken: stri
   // preflight OPTIONS round trip before every single read.
   const headers: Record<string, string> = {};
   if (options.body !== undefined) headers["Content-Type"] = "application/json";
+  // X-Client (which app and build — the API groups exercise reports by it)
+  // and X-Time-Zone ride only with Authorization: none of these headers is
+  // CORS-safelisted, so an authenticated request is preflighted already and
+  // they add nothing, while an anonymous GET stays preflight-free.
   if (accessToken) {
     headers.Authorization = `Bearer ${accessToken}`;
-    // Only alongside Authorization, which already isn't CORS-safelisted — so
-    // this rides the preflight that request was paying anyway rather than
-    // adding one to an anonymous call. Read per request, not once at load:
-    // a laptop left open across a flight should report where it landed.
+    headers["X-Client"] = CLIENT_HEADER;
+    // Read per request, not once at load: a laptop left open across a flight
+    // should report where it landed.
     const timeZone = deviceTimeZone();
     if (timeZone) headers["X-Time-Zone"] = timeZone;
   }
