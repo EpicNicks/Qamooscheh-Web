@@ -84,3 +84,23 @@
     transition: none;
   }
 }
+
+/* The mobile header's version (AppShell): no chip of its own, just a small
+   ring and the numbers, sized to sit in a row with the streak and total XP. */
+.compact {
+  gap: var(--space-1);
+  padding: 0 var(--space-1);
+  min-height: 44px;
+  border: none;
+  background: none;
+  white-space: nowrap;
+}
+
+.compact .ring {
+  width: 22px;
+  height: 22px;
+}
+
+.compact .xp {
+  font-size: 0.9rem;
+}

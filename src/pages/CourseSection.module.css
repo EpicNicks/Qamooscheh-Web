@@ -73,3 +73,47 @@
   border-radius: var(--radius-md);
   padding: var(--space-2) var(--space-3);
 }
+
+.titleText {
+  min-width: 0;
+}
+
+/* The unit's own vocabulary (VocabularyReviewPage at unit scope). Mobile only:
+   there the title is a full-width bar with room for it at the far end. */
+.vocabLink {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  /* A 44px touch target that doesn't make the bar any taller: the negative
+     margins hand back what it adds beyond .title's own padding. */
+  min-width: 44px;
+  min-height: 44px;
+  margin: calc(-1 * var(--space-2)) calc(-1 * var(--space-2)) calc(-1 * var(--space-2)) auto;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+}
+
+.vocabLink:hover,
+.vocabLink:focus-visible {
+  color: var(--color-primary);
+}
+
+/* keep in sync with src/theme/breakpoints.ts */
+@media (max-width: 768px) {
+  /* The daily-goal ring moved to the app header on mobile, leaving this row
+     empty — collapse it so it takes no height. */
+  .headerRow:empty {
+    display: none;
+  }
+
+  .title {
+    align-self: stretch;
+    max-width: none;
+    gap: var(--space-2);
+  }
+
+  .vocabLink {
+    display: inline-flex;
+  }
+}

@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, type ComponentType } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../../auth/useAuth";
+import { useBootstrap } from "../../hooks/useBootstrap";
 import { useOfflineQueueFlush } from "../../hooks/useOfflineQueueFlush";
 import { useIsMobile } from "../../hooks/useMediaQuery";
 import { useMobileDrawer } from "../../hooks/useMobileDrawer";
@@ -8,6 +9,7 @@ import { CourseSwitcher } from "./CourseSwitcher";
 import { StreakCounter } from "./StreakCounter";
 import { TotalXp } from "./TotalXp";
 import { Sidebar } from "./Sidebar";
+import { DailyGoalRing } from "../path/DailyGoalRing";
 import { NavDrawer } from "./NavDrawer";
 import { MenuIcon, TrophyIcon, PeopleIcon, AccountCircleIcon, SettingsIcon, HelpIcon, type IconProps } from "../common/icons";
 import styles from "./AppShell.module.css";
@@ -34,6 +36,7 @@ const LESSON_MODE_PATH = /^\/(lesson|story|practice|checkpoint)(\/|$)/;
 export function AppShell() {
   const { logout } = useAuth();
   const { pendingCount, isFlushing } = useOfflineQueueFlush();
+  const bootstrap = useBootstrap();
   const location = useLocation();
   const isLessonMode = LESSON_MODE_PATH.test(location.pathname);
   const shellRef = useRef<HTMLDivElement>(null);
@@ -113,6 +116,9 @@ export function AppShell() {
             )}
             <TotalXp />
             <StreakCounter />
+            {/* On mobile the daily goal lives up here, beside the streak, rather
+                than taking a row of its own above the path (PathPage). */}
+            {isMobile && <DailyGoalRing courseCode={bootstrap.data?.course?.code} compact />}
             <CourseSwitcher />
             <button type="button" className={styles.signOut} onClick={() => void logout()}>
               Sign out

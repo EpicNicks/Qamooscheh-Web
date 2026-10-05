@@ -7,6 +7,7 @@
 //   src/components/layout/Sidebar.module.css
 //   src/components/layout/NavDrawer.module.css
 //   src/components/layout/CourseSwitcher.module.css
+//   src/pages/CourseSection.module.css
 //   src/theme/defaultPathTheme.module.css
 //   src/components/path/SkillGroupModal.module.css
 //   src/components/lesson/keyboard/Keyboard.module.css

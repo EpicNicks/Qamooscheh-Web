@@ -1,5 +1,7 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
+import { Link } from "react-router-dom";
 import { useBootstrap } from "../hooks/useBootstrap";
+import { useIsMobile } from "../hooks/useMediaQuery";
 import { useCoursePath } from "../hooks/useCourseContent";
 import { findNextStandardTarget, findNextUnitEntryTarget } from "../domain/pathProgress";
 import { SkillRoad } from "../components/path/SkillRoad";
@@ -7,6 +9,7 @@ import { PlacementTestNode } from "../components/path/PlacementTestNode";
 import { DailyGoalRing } from "../components/path/DailyGoalRing";
 import { JumpToCurrentButton } from "../components/path/JumpToCurrentButton";
 import { CourseUpdateBanner } from "../components/course/CourseUpdateBanner";
+import { BookIcon } from "../components/common/icons";
 import { PathThemeProvider } from "../theme/PathThemeProvider";
 import { Spinner } from "../components/common/Spinner";
 import { ErrorBanner } from "../components/common/ErrorBanner";
@@ -16,6 +19,7 @@ import styles from "./CourseSection.module.css";
 /** The learning journey: standard skills only, as the straight branching road. Story/conversation/song content lives in its own per-category page (CategoryPage), reached via the sidebar. */
 export function PathPage() {
   const bootstrap = useBootstrap();
+  const isMobile = useIsMobile();
   const { path, isLoading, isError } = useCoursePath(bootstrap.data?.course ?? null, bootstrap.data?.position ?? null);
   // At most one position across the whole journey is ever "current" — computed
   // once here and handed to every unit's road, rather than each SkillNode
@@ -57,7 +61,7 @@ export function PathPage() {
     observer.observe(goalRow);
     if (goalRow.firstElementChild) observer.observe(goalRow.firstElementChild);
     return () => observer.disconnect();
-  }, [isLoading, isError]);
+  }, [isLoading, isError, isMobile]);
 
   // Genuinely synchronizing with an external system (the browser's scroll
   // position), not deriving render output — a real effect, not a render-time
@@ -80,7 +84,8 @@ export function PathPage() {
     <PathThemeProvider containerRef={pageRef}>
       <div ref={stickyHeaderRef} className={styles.stickyHeader}>
         <div ref={goalRowRef} className={styles.headerRow}>
-          <DailyGoalRing courseCode={bootstrap.data?.course?.code} />
+          {/* On mobile the ring sits in the app header instead (AppShell). */}
+          {!isMobile && <DailyGoalRing courseCode={bootstrap.data?.course?.code} />}
         </div>
         {bootstrap.data?.update && bootstrap.data.course && (
           <CourseUpdateBanner course={bootstrap.data.course} update={bootstrap.data.update} />
@@ -88,7 +93,17 @@ export function PathPage() {
       </div>
       {path.map((unit) => (
         <section key={unit.unitKey} className={styles.section}>
-          <h2 className={styles.title}>{unit.title}</h2>
+          <h2 className={styles.title}>
+            <span className={styles.titleText}>{unit.title}</span>
+            <Link
+              to={`/vocabulary/${unit.unitKey}`}
+              className={styles.vocabLink}
+              aria-label={`Review vocabulary for ${unit.title}`}
+              title="Review vocabulary"
+            >
+              <BookIcon size="1.25rem" />
+            </Link>
+          </h2>
           {nextUnitEntryTarget?.unitKey === unit.unitKey && <PlacementTestNode target={nextUnitEntryTarget} />}
           <SkillRoad positions={unit.standardPositions} nextSkipTarget={nextSkipTarget} />
         </section>

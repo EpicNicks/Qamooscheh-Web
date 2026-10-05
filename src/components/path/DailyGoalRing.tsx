@@ -21,8 +21,13 @@ const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
  * page or finishing another lesson the same day doesn't replay it. A
  * learner who finds the animation distracting can turn it off entirely
  * (Settings) without losing the ring/progress tracking itself.
+ *
+ * `compact` is the mobile header's version (AppShell), beside the streak: a
+ * smaller ring and just the numbers. Only one of the two is ever mounted —
+ * PathPage drops its own below the mobile breakpoint — so the celebration
+ * can't play twice.
  */
-export function DailyGoalRing({ courseCode }: { courseCode: string | null | undefined }) {
+export function DailyGoalRing({ courseCode, compact = false }: { courseCode: string | null | undefined; compact?: boolean }) {
   const prefs = usePrefs();
   const activity = useActivity(courseCode);
   const [lastCelebrated, setLastCelebrated] = useLocalAppPref("lastGoalCelebrationDay", null);
@@ -64,7 +69,13 @@ export function DailyGoalRing({ courseCode }: { courseCode: string | null | unde
   const preset = matchDailyGoalPreset(goal);
 
   return (
-    <div ref={wrapRef} className={styles.wrap} role="status" aria-label={`${xp} of ${goal} daily XP goal`}>
+    <div
+      ref={wrapRef}
+      className={compact ? `${styles.wrap} ${styles.compact}` : styles.wrap}
+      role="status"
+      aria-label={`${xp} of ${goal} daily XP goal`}
+      title={compact ? `${xp} of ${goal} daily XP goal` : undefined}
+    >
       <svg viewBox="0 0 48 48" className={styles.ring} aria-hidden="true">
         <circle className={styles.track} cx="24" cy="24" r={RADIUS} />
         <circle
@@ -80,7 +91,7 @@ export function DailyGoalRing({ courseCode }: { courseCode: string | null | unde
         <span className={styles.xp}>
           {xp}/{goal}
         </span>
-        <span className={styles.caption}>{preset ? preset.label : "Daily XP"}</span>
+        {!compact && <span className={styles.caption}>{preset ? preset.label : "Daily XP"}</span>}
       </div>
     </div>
   );

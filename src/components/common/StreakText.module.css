@@ -96,7 +96,7 @@
   }
   55% {
     -webkit-text-stroke-color: var(--color-streak-to);
-    filter: drop-shadow(0 0 2.5px color-mix(in srgb, var(--color-streak-to) 50%, transparent));
+    filter: drop-shadow(0 0 2.5px color-mix(in srgb, var(--color-streak-to) 75%, transparent));
   }
   80% {
     -webkit-text-stroke-color: var(--color-streak);
@@ -120,5 +120,93 @@
     background-image: none;
     -webkit-text-stroke: 0;
     color: GrayText;
+  }
+}
+
+/* Done for today (practicedToday, with smoulderingStreak on): soft flames rise
+   behind the text — two blurred tongues of the streak's own gradient colors
+   on offset, uneven beats over a faint steady glow, each one swelling up from
+   the baseline and fading as it climbs. The flames get their own element
+   under the text (StreakText.tsx); isolation keeps their z-order local, so
+   they never slip behind a header or card background. */
+.blaze {
+  position: relative;
+  display: inline-flex;
+  isolation: isolate;
+}
+
+.blaze > .fire {
+  position: relative;
+  z-index: 1;
+}
+
+.flames {
+  position: absolute;
+  inset: -60% -20% -10%;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 55% 35% at 50% 100%,
+    color-mix(in srgb, var(--color-streak) 30%, transparent),
+    transparent
+  );
+}
+
+.flames::before,
+.flames::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  width: 60%;
+  height: 95%;
+  border-radius: 50% 50% 45% 45% / 65% 65% 35% 35%;
+  filter: blur(2px);
+  transform-origin: 50% 100%;
+  opacity: 0;
+}
+
+.flames::before {
+  left: 8%;
+  background: radial-gradient(
+    ellipse at 50% 100%,
+    color-mix(in srgb, var(--color-streak-from) 75%, transparent),
+    transparent 70%
+  );
+  animation: streak-flame-rise 2.8s ease-in-out infinite;
+}
+
+.flames::after {
+  right: 8%;
+  background: radial-gradient(
+    ellipse at 50% 100%,
+    color-mix(in srgb, var(--color-streak-to) 75%, transparent),
+    transparent 70%
+  );
+  animation: streak-flame-rise 3.5s ease-in-out -1.6s infinite;
+}
+
+@keyframes streak-flame-rise {
+  0% {
+    transform: translateY(15%) scale(0.7, 0.55);
+    opacity: 0;
+  }
+  35% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(-30%) scale(0.85, 1.1);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flames {
+    display: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .flames {
+    display: none;
   }
 }

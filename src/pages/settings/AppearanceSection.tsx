@@ -43,7 +43,7 @@ export function AppearanceSection({ courseCode }: SettingsSectionProps) {
 
       <label className={`${styles.field} ${styles.checkboxRow}`}>
         <input type="checkbox" checked={smoulderingStreak} onChange={(e) => setSmoulderingStreak(e.target.checked)} />
-        Animate my streak while it's waiting on today's lesson
+        Animate my streak: smouldering while it waits on today's lesson, flames once it's done
       </label>
     </div>
   );
