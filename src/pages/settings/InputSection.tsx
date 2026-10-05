@@ -1,7 +1,7 @@
 import { getLanguageInfo } from "../../domain/language";
 import { useLocalAppPref } from "../../hooks/useLocalAppPref";
 import { KeyboardModeToggle } from "../../components/lesson/languageSettings/KeyboardModeToggle";
-import { VoicePicker } from "./VoicePicker";
+import { VoicePicker } from "../../components/settings/VoicePicker";
 import type { SettingsSectionProps } from "./SettingsSectionProps";
 import styles from "./SettingsPage.module.css";
 
@@ -61,7 +61,11 @@ export function InputSection({ form, editForm, courseCode }: SettingsSectionProp
         Sound effects for right and wrong answers and finished lessons
       </label>
 
-      <VoicePicker form={form} editForm={editForm} />
+      <VoicePicker
+        value={form.preferredVoice ?? null}
+        onChange={(preferredVoice) => editForm({ preferredVoice })}
+        classNames={{ field: styles.field, note: styles.fieldNote, checkbox: `${styles.field} ${styles.checkboxRow}` }}
+      />
     </div>
   );
 }

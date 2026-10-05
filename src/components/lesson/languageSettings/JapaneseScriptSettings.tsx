@@ -1,6 +1,6 @@
 import { ScriptModeToggle } from "./ScriptModeToggle";
+import { SettingsGroup } from "./SettingsGroup";
 import type { LanguageSettingsProps } from "./LanguageSettingsProps";
-import styles from "./ScriptSettingsLayout.module.css";
 import checkboxStyles from "./CheckboxRow.module.css";
 
 /**
@@ -27,32 +27,36 @@ export function JapaneseScriptSettings({
   onChangeShowNativeHints,
 }: LanguageSettingsProps) {
   return (
-    <div className={styles.wrap}>
-      <ScriptModeToggle language="ja" value={scriptMode} onChange={onChangeScriptMode} />
-      <label className={checkboxStyles.row}>
-        <input type="checkbox" checked={showFurigana} onChange={(e) => onChangeShowFurigana(e.target.checked)} />
-        Furigana over kanji (ふりがな)
-      </label>
-      <label className={checkboxStyles.row}>
-        <input
-          type="checkbox"
-          checked={showRomanizationHints}
-          onChange={(e) => onChangeShowRomanizationHints(e.target.checked)}
-        />
-        Hover a word for its romanization
-      </label>
-      <label className={checkboxStyles.row}>
-        <input
-          type="checkbox"
-          checked={showTranslationHints}
-          onChange={(e) => onChangeShowTranslationHints(e.target.checked)}
-        />
-        Hover a word for its translation
-      </label>
-      <label className={checkboxStyles.row}>
-        <input type="checkbox" checked={showNativeHints} onChange={(e) => onChangeShowNativeHints(e.target.checked)} />
-        Hover an English word for the Japanese
-      </label>
-    </div>
+    <>
+      <SettingsGroup title="Text">
+        <ScriptModeToggle language="ja" value={scriptMode} onChange={onChangeScriptMode} />
+        <label className={checkboxStyles.row}>
+          <input type="checkbox" checked={showFurigana} onChange={(e) => onChangeShowFurigana(e.target.checked)} />
+          Furigana over kanji (ふりがな)
+        </label>
+      </SettingsGroup>
+      <SettingsGroup title="Hover hints">
+        <label className={checkboxStyles.row}>
+          <input
+            type="checkbox"
+            checked={showRomanizationHints}
+            onChange={(e) => onChangeShowRomanizationHints(e.target.checked)}
+          />
+          Hover a word for its romanization
+        </label>
+        <label className={checkboxStyles.row}>
+          <input
+            type="checkbox"
+            checked={showTranslationHints}
+            onChange={(e) => onChangeShowTranslationHints(e.target.checked)}
+          />
+          Hover a word for its translation
+        </label>
+        <label className={checkboxStyles.row}>
+          <input type="checkbox" checked={showNativeHints} onChange={(e) => onChangeShowNativeHints(e.target.checked)} />
+          Hover an English word for the Japanese
+        </label>
+      </SettingsGroup>
+    </>
   );
 }
