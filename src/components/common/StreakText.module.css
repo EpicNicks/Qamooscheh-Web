@@ -37,12 +37,13 @@
 .pending {
   font-weight: 800;
   color: var(--color-streak-ember);
-  -webkit-text-stroke: 1px var(--color-streak);
+  -webkit-text-stroke: 0.1px var(--color-streak);
 }
 
 /* A radial glow from the readable ember color at the center out to ash at the
    edges, under the outline. The fill is transparent here, so the stroke can't
-   tuck behind it — kept at 1px so it doesn't eat into the gradient. */
+   tuck behind it — kept hairline-thin (0.1px) so it traces the glyphs
+   without eating into the gradient; 1px read as a heavy border. */
 @supports (background-clip: text) or (-webkit-background-clip: text) {
   .pending {
     background-image: radial-gradient(
