@@ -8,6 +8,7 @@ import { RegistrationClosedNotice } from "../components/auth/RegistrationClosedN
 import { useRegistrationStatus } from "../hooks/useRegistrationStatus";
 import { GOOGLE_CLIENT_ID } from "../config";
 import { errorMessage } from "../lib/errors";
+import { registrationGate } from "../lib/registrationGate";
 import styles from "./AuthPage.module.css";
 
 export function RegisterPage() {
@@ -19,11 +20,12 @@ export function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // isPending (no cached answer yet, first load this session): render
-  // neither the form nor the closed-notice, rather than flash the form open
-  // and immediately hide it if the answer turns out to be "closed".
+  // The form shows only once the server has said registration is open. While
+  // the first answer is pending, render neither the form nor a notice, rather
+  // than flash one and swap it. A failed check is NOT "open": see
+  // registrationGate for why.
   const registrationStatus = useRegistrationStatus();
-  const isClosed = registrationStatus.data?.enabled === false;
+  const gate = registrationGate(registrationStatus);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -55,11 +57,24 @@ export function RegisterPage() {
       <div className={styles.card}>
         <div className={styles.brand}>ParsLing</div>
 
-        {isClosed && (
+        {gate === "closed" && (
           <RegistrationClosedNotice message="ParsLing is in alpha and closed to new sign-ups right now. Already have an account? Sign in below." />
         )}
 
-        {!isClosed && !registrationStatus.isPending && (
+        {gate === "unknown" && (
+          <>
+            <RegistrationClosedNotice message="Couldn't check whether sign-ups are open right now. Already have an account? Sign in below." />
+            <Button
+              variant="secondary"
+              disabled={registrationStatus.isFetching}
+              onClick={() => void registrationStatus.refetch()}
+            >
+              {registrationStatus.isFetching ? "Checking…" : "Try again"}
+            </Button>
+          </>
+        )}
+
+        {gate === "open" && (
           <>
             {error && <ErrorBanner message={error} />}
             <form className={styles.form} onSubmit={handleSubmit}>
