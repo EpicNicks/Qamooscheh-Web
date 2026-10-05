@@ -13,10 +13,15 @@ import {
   compareNative,
   compareRomanized,
   compareSpeak,
+  foldLatinVariance,
+  levenshteinDistance,
+  normalizeCase,
   separatorMistakes,
   type CorrectionReason,
+  type PersianComparisonResult,
   type SeparatorMistake,
 } from "./persian/comparators";
+import { foldCodepoints, normalizeStrict } from "./persian/normalize";
 import type { ExerciseArtifact } from "../types/content";
 
 export type AnswerVerdict = "correct" | "accepted_with_correction" | "incorrect";
@@ -33,14 +38,41 @@ const REASON_LABEL: Record<CorrectionReason, string> = {
   latinization_variance: "romanization spelling",
 };
 
-function describeReasons(reasons: CorrectionReason[]): string | null {
-  if (reasons.length === 0) return null;
-  return `Close — ${reasons.map((r) => REASON_LABEL[r]).join(", ")}.`;
-}
 
 /** A word in an English sentence, isolated so a Persian one keeps its place in the line. */
 function isolate(word: string): string {
   return `\u2068${word}\u2069`;
+}
+
+/**
+ * Which words a forgiven typo was in (issue #42) — "خانه, not خانا" — by
+ * lining `submitted` up word for word with the answer it was matched to,
+ * each word compared the way the comparator compared the whole. When the
+ * words don't line up (a romanized typo that added or dropped a space), the
+ * whole answer stands in for them.
+ */
+function describeTypo(submitted: string, matchedAnswer: string, romanized: boolean): string {
+  const words = (text: string) => (romanized ? normalizeCase(text) : normalizeStrict(text)).split(" ");
+  const fold = romanized ? foldLatinVariance : foldCodepoints;
+  const typedWords = words(submitted);
+  const acceptedWords = words(matchedAnswer);
+  if (typedWords.length !== acceptedWords.length) return `it's ${isolate(acceptedWords.join(" "))}`;
+  return acceptedWords
+    .map((accepted, i) => ({ accepted, typed: typedWords[i] }))
+    .filter(({ accepted, typed }) => fold(accepted) !== fold(typed))
+    .map(({ accepted, typed }) => `${isolate(accepted)}, not ${isolate(typed)}`)
+    .join("; ");
+}
+
+function describeReasons(result: PersianComparisonResult, submitted: string, romanized: boolean): string | null {
+  if (result.reasons.length === 0) return null;
+  const labels = result.reasons.map((r) => REASON_LABEL[r]);
+  const typoAt = result.reasons.indexOf("edit_distance_typo");
+  if (typoAt >= 0 && result.matchedAnswer !== null) {
+    const typo = describeTypo(submitted, result.matchedAnswer, romanized);
+    if (typo) labels[typoAt] += `: ${typo}`;
+  }
+  return `Close — ${labels.join(", ")}.`;
 }
 
 function describeSeparator({ after, expected, typed }: SeparatorMistake): string {
@@ -102,5 +134,22 @@ export function checkAnswer(
   if (result.verdict === "incorrect" && exercise.scriptMode !== "romanized") {
     return { verdict: "incorrect", note: describeSeparatorMistakes(submittedText, exercise.answer) };
   }
-  return { verdict: result.verdict, note: describeReasons(result.reasons) };
+  return { verdict: result.verdict, note: describeReasons(result, submittedText, exercise.scriptMode === "romanized") };
+}
+
+/**
+ * `answers` with whichever is closest to what the learner submitted first
+ * (issue #42), so a revealed answer is the one they were nearest to rather
+ * than whichever was authored first. Ties, and an empty submission, keep the
+ * authored order. Folds the way the Persian comparators do; for any other
+ * language that folding only touches case and spacing.
+ */
+export function closestAnswerFirst(submitted: string, answers: readonly string[]): string[] {
+  const fold = (text: string) => foldCodepoints(normalizeStrict(text)).toLowerCase();
+  const typed = fold(submitted);
+  if (typed === "" || answers.length < 2) return [...answers];
+  return answers
+    .map((answer, i) => ({ answer, i, distance: levenshteinDistance(typed, fold(answer)) }))
+    .sort((a, b) => a.distance - b.distance || a.i - b.i)
+    .map(({ answer }) => answer);
 }

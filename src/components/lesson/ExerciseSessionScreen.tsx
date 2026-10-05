@@ -16,6 +16,7 @@ import { useState, type ReactNode } from "react";
 import { ExerciseRenderer } from "./ExerciseRenderer";
 import { SessionProgressBar } from "./SessionProgressBar";
 import { AnswerFeedback } from "./AnswerFeedback";
+import { closestAnswerFirst } from "../../domain/answerFeedback";
 import { SaveWordsRow } from "../vocabulary/SaveWordsRow";
 import { SkipLessonModal } from "./SkipLessonModal";
 import { CloseLessonButton } from "./CloseLessonButton";
@@ -129,7 +130,7 @@ export function ExerciseSessionScreen<TItem extends ExerciseSessionItem, TFeedba
           answer={
             answerIsTokenized
               ? revealedTileOrder(answeredItem.exercise, feedback.submittedText)
-              : answeredItem.exercise.answer
+              : closestAnswerFirst(feedback.submittedText, answeredItem.exercise.answer)
           }
           answerIsTokenized={answerIsTokenized}
           // A type-in or word-bank answer stays visible in the (red/green)

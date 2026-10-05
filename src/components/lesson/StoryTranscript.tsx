@@ -9,6 +9,7 @@ import { useLayoutEffect, useRef } from "react";
 import { ExerciseRenderer } from "./ExerciseRenderer";
 import { SessionProgressBar } from "./SessionProgressBar";
 import { AnswerFeedback } from "./AnswerFeedback";
+import { closestAnswerFirst } from "../../domain/answerFeedback";
 import { AnnotatedText } from "./AnnotatedText";
 import { SentenceRomanization } from "./SentenceRomanization";
 import { SkipLessonModal } from "./SkipLessonModal";
@@ -174,7 +175,7 @@ export function StoryTranscript({
                   answer={
                     answerIsTokenized
                       ? revealedTileOrder(answeredItem.exercise, feedback.submittedText)
-                      : answeredItem.exercise.answer
+                      : closestAnswerFirst(feedback.submittedText, answeredItem.exercise.answer)
                   }
                   answerIsTokenized={answerIsTokenized}
                   // A type-in or word-bank answer stays visible in the (red/green)
