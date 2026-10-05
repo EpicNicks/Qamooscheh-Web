@@ -8,12 +8,12 @@ import { reportContextFor, type ExerciseReportContext, type ReportableItem } fro
 import type { AudioMap } from "../types/content";
 
 type Item = ReportableItem & {
-  exercise: ReportableItem["exercise"] & { promptAudio?: AudioMap | null; answerAudio?: AudioMap | null; speaker?: string | null };
+  exercise: ReportableItem["exercise"] & { prompt: string; answer: readonly string[]; promptAudio?: AudioMap | null; answerAudio?: AudioMap | null; speaker?: string | null };
 };
 
 export function useExerciseReportContext(item: Item | null, submittedText: string | null): ExerciseReportContext | null {
   const courseVersion = useBootstrap().data?.course?.version ?? null;
-  const recordings = useRecordings();
+  const recordings = useRecordings(item?.exercise ?? null);
   if (!item || submittedText == null) return null;
   const { promptAudio, answerAudio, speaker } = item.exercise;
   return reportContextFor(item, submittedText, courseVersion, [

@@ -42,7 +42,7 @@ export function useAnswerAudio(
   const text = exercise ? (tokenized ? exercise.answer.join(" ") : (exercise.answer[0] ?? "")) : "";
   const courseLang = getLanguageInfo(courseCode)?.speechLang ?? null;
   const inCourseLanguage = !!text && !!courseLang && getSpeechLang(courseCode, text) === courseLang;
-  const audioUrl = useRecordings().phraseUrl(inCourseLanguage ? exercise?.answerAudio : null, exercise?.speaker);
+  const audioUrl = useRecordings(exercise).phraseUrl(inCourseLanguage ? exercise?.answerAudio : null, exercise?.speaker);
   const voiceAvailable = useVoiceAvailability(inCourseLanguage ? courseLang : null);
   const playable = inCourseLanguage && (audioUrl != null || voiceAvailable);
   const audio = usePhraseAudio({ text, speechLang: inCourseLanguage ? courseLang : null, audioUrl });

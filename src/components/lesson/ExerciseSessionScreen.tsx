@@ -24,6 +24,7 @@ import { LanguageSettingsButton } from "./languageSettings/LanguageSettingsButto
 import { gateLexemeHintMap } from "../../domain/romanization";
 import { useAnswerAudio } from "../../hooks/useAnswerAudio";
 import { useExerciseReportContext } from "../../hooks/useExerciseReportContext";
+import { ExerciseVoiceScope } from "../../hooks/exerciseVoiceScope";
 import type { ExerciseSession } from "../../hooks/useExerciseSession";
 import type { ExerciseType } from "../../domain/enums";
 import { revealedTileOrder } from "../../domain/wordBankOrders";
@@ -127,30 +128,33 @@ export function ExerciseSessionScreen<TItem extends ExerciseSessionItem, TFeedba
       <div className={styles.wrap}>
         {topRow()}
         {title && <h1 className={styles.chapterTitle}>{title}</h1>}
-        <AnswerFeedback
-          key={confirmation.submissionCount}
-          correct={feedback.correct}
-          answerAudio={answerAudio}
-          note={feedback.note}
-          xp={feedbackXp?.(feedback)}
-          answer={
-            answerIsTokenized
-              ? revealedTileOrder(answeredItem.exercise, feedback.submittedText)
-              : closestAnswerFirst(feedback.submittedText, answeredItem.exercise.answer)
-          }
-          answerIsTokenized={answerIsTokenized}
-          // A type-in or word-bank answer stays visible in the (red/green)
-          // exercise below, so the feedback box shows only the correct answer.
-          submittedText={answeredItem.renderType === "type_in" || answeredItem.renderType === "word_bank" ? undefined : feedback.submittedText}
-          hintMap={hintMap}
-          textSettings={textSettings}
-          answerRomanization={{
-            text: answerIsTokenized ? answeredItem.exercise.answer.join(" ") : answeredItem.exercise.answer[0],
-            romanization: answeredItem.exercise.answerRomanization,
-          }}
-          tags={answeredItem.exercise.tags}
-          reportContext={reportContext}
-        />
+        {/* The answer's words, hovered, are heard in the question's voice too. */}
+        <ExerciseVoiceScope.Provider value={answeredItem.exercise}>
+          <AnswerFeedback
+            key={confirmation.submissionCount}
+            correct={feedback.correct}
+            answerAudio={answerAudio}
+            note={feedback.note}
+            xp={feedbackXp?.(feedback)}
+            answer={
+              answerIsTokenized
+                ? revealedTileOrder(answeredItem.exercise, feedback.submittedText)
+                : closestAnswerFirst(feedback.submittedText, answeredItem.exercise.answer)
+            }
+            answerIsTokenized={answerIsTokenized}
+            // A type-in or word-bank answer stays visible in the (red/green)
+            // exercise below, so the feedback box shows only the correct answer.
+            submittedText={answeredItem.renderType === "type_in" || answeredItem.renderType === "word_bank" ? undefined : feedback.submittedText}
+            hintMap={hintMap}
+            textSettings={textSettings}
+            answerRomanization={{
+              text: answerIsTokenized ? answeredItem.exercise.answer.join(" ") : answeredItem.exercise.answer[0],
+              romanization: answeredItem.exercise.answerRomanization,
+            }}
+            tags={answeredItem.exercise.tags}
+            reportContext={reportContext}
+          />
+        </ExerciseVoiceScope.Provider>
         <SaveWordsRow tags={answeredItem.exercise.tags} />
         <ExerciseRenderer
           key={answeredItem.key}
