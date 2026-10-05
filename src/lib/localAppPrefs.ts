@@ -204,7 +204,8 @@ export interface LocalAppPrefs {
   /**
    * Whether a streak waiting on today's lesson (StreakText's grace-day ash)
    * slowly smoulders — a drifting glow and a flickering outline — or sits
-   * still. A per-device motion choice like goalCelebrationEnabled; the OS
+   * still — and whether one already extended today has soft flames rising
+   * behind it. The name predates the flames. A per-device motion choice like goalCelebrationEnabled; the OS
    * reduced-motion setting stills it regardless. Defaults on.
    */
   smoulderingStreak: boolean;
