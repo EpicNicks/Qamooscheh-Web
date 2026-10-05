@@ -1,7 +1,9 @@
 // The one place that talks to Qamooscheh.Api over HTTP. Every api/*.ts
 // module (other than auth.ts's register/login/google, which are
 // [AllowAnonymous]) goes through `apiFetch`, which:
-//   - prefixes API_BASE_URL and injects `Authorization: Bearer <accessToken>`
+//   - prefixes API_BASE_URL and injects `Authorization: Bearer <accessToken>`,
+//     plus `X-Time-Zone: <device IANA zone>` so the server counts the streak
+//     in the learner's own local day (TimeZoneSyncMiddleware)
 //   - refreshes up front when the stored token is at/near its expiry, rather
 //     than paying a 401 to find that out
 //   - on a 401, refreshes once (de-duplicated across concurrent callers) and
@@ -141,13 +143,30 @@ export interface ApiFetchOptions {
   signal?: AbortSignal;
 }
 
+/** The device's IANA zone ("America/New_York"), or null where Intl can't say. */
+function deviceTimeZone(): string | null {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || null;
+  } catch {
+    return null;
+  }
+}
+
 async function doFetch(path: string, options: ApiFetchOptions, accessToken: string | null): Promise<Response> {
   // Only describe a body that actually exists. `Content-Type: application/json`
   // is not a CORS-safelisted value, so setting it on a bodiless GET forces a
   // preflight OPTIONS round trip before every single read.
   const headers: Record<string, string> = {};
   if (options.body !== undefined) headers["Content-Type"] = "application/json";
-  if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+  if (accessToken) {
+    headers.Authorization = `Bearer ${accessToken}`;
+    // Only alongside Authorization, which already isn't CORS-safelisted — so
+    // this rides the preflight that request was paying anyway rather than
+    // adding one to an anonymous call. Read per request, not once at load:
+    // a laptop left open across a flight should report where it landed.
+    const timeZone = deviceTimeZone();
+    if (timeZone) headers["X-Time-Zone"] = timeZone;
+  }
 
   return fetch(`${API_BASE_URL}${path}`, {
     method: options.method ?? "GET",

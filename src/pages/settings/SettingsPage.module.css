@@ -113,6 +113,13 @@
   min-width: 0;
 }
 
+/* A read-only value inside a .field label (StreakSection's reset time and pause range). */
+.fieldValue {
+  font-size: 1rem;
+  font-weight: 400;
+  color: var(--color-text);
+}
+
 .fieldNote {
   font-weight: 400;
   color: var(--color-text-muted);

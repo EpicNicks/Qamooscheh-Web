@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useProfile, useUpdateProfile } from "../hooks/useProfile";
 import { useStreak } from "../hooks/useStreak";
-import { formatStreakDays } from "../domain/streak";
+import { formatStreakDays, formatTimeLeft } from "../domain/streak";
 import { StreakText } from "../components/common/StreakText";
 import { Button } from "../components/common/Button";
 import { Spinner } from "../components/common/Spinner";
@@ -113,12 +113,13 @@ export function ProfilePage() {
 function StreakSummary() {
   const streak = useStreak();
   if (!streak.data) return null;
-  const { currentStreakDays, longestStreakDays, practicedToday } = streak.data;
+  const { currentStreakDays, longestStreakDays, practicedToday, pausedToday } = streak.data;
+  const safeToday = practicedToday || pausedToday;
 
   return (
     <section className={styles.streak} aria-label="Streak">
       <div className={styles.stat}>
-        <StreakText days={currentStreakDays} practicedToday={practicedToday} className={styles.statValue}>
+        <StreakText days={currentStreakDays} practicedToday={safeToday} className={styles.statValue}>
           {formatStreakDays(currentStreakDays)}
         </StreakText>
         <span className={styles.statLabel}>Current streak</span>
@@ -129,9 +130,12 @@ function StreakSummary() {
         </StreakText>
         <span className={styles.statLabel}>Longest streak</span>
       </div>
-      {currentStreakDays > 0 && !practicedToday && (
-        <p className={styles.streakHint}>Practice today to keep your streak going.</p>
+      {currentStreakDays > 0 && !safeToday && (
+        <p className={styles.streakHint}>
+          Practice in the next {formatTimeLeft(new Date(streak.data.nextDayStartsAt))} to keep your streak going.
+        </p>
       )}
+      {pausedToday && <p className={styles.streakHint}>Your streak is paused today.</p>}
     </section>
   );
 }

@@ -9,16 +9,51 @@ export function formatStreakDays(days: number): string {
   return days === 1 ? "1 day" : `${days} days`;
 }
 
+/** "3h 12m" / "45m" / "under a minute" — time left until `deadline`, for a countdown. */
+export function formatTimeLeft(deadline: Date, now: Date = new Date()): string {
+  const minutes = Math.floor((deadline.getTime() - now.getTime()) / 60_000);
+  if (minutes < 1) return "under a minute";
+  const hours = Math.floor(minutes / 60);
+  return hours > 0 ? `${hours}h ${minutes % 60}m` : `${minutes}m`;
+}
+
 /**
  * The full sentence a compact display (the header's bare number) needs as its
- * accessible name and tooltip. Separates the three states a learner can
- * actually be in: no streak, a streak already safe for today, and one alive
- * only on the grace day — practised yesterday, not yet today — which the
- * server still counts but which ends if today passes without a lesson.
+ * accessible name and tooltip. Separates the states a learner can actually be
+ * in: no streak, a streak already safe for today (practised, or paused), and
+ * one alive only on the grace day — practised yesterday, not yet today — which
+ * the server still counts but which ends when today's streak-day does, so that
+ * one says how long is left.
  */
-export function describeStreak(streak: StreakResponse): string {
-  const { currentStreakDays, practicedToday } = streak;
+export function describeStreak(streak: StreakResponse, now: Date = new Date()): string {
+  const { currentStreakDays, practicedToday, pausedToday, nextDayStartsAt } = streak;
   if (currentStreakDays === 0) return "No streak yet. Finish a lesson today to start one.";
   const run = `${currentStreakDays}-day streak`;
-  return practicedToday ? `${run}. You've practiced today.` : `${run}. Practice today to keep it going.`;
+  if (practicedToday) return `${run}. You've practiced today.`;
+  if (pausedToday) return `${run}. Paused today, so it's safe.`;
+  return `${run}. Practice in the next ${formatTimeLeft(new Date(nextDayStartsAt), now)} to keep it going.`;
+}
+
+/** "3:00 AM" — the wall-clock time a new streak-day starts, in the zone the server counts the streak in. */
+export function formatDayStart(streak: StreakResponse): string {
+  return new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit", timeZone: streak.timeZone }).format(
+    new Date(streak.nextDayStartsAt),
+  );
+}
+
+/** `day` ("YYYY-MM-DD") moved by `days`, as a plain calendar date — no time zone involved. */
+export function addDays(day: string, days: number): string {
+  const date = new Date(`${day}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+/** "Mon, Oct 5" — a streak-day for display. Parsed as UTC and formatted as UTC, so no zone can shift it a day. */
+export function formatStreakDay(day: string): string {
+  return new Date(`${day}T00:00:00Z`).toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  });
 }
