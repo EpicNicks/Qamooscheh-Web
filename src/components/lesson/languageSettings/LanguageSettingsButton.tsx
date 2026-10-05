@@ -9,11 +9,16 @@ import { useShowNativeHints } from "../../../hooks/useShowNativeHints";
 import { useShowSentenceRomanization } from "../../../hooks/useShowSentenceRomanization";
 import { useShowTranslationHints } from "../../../hooks/useShowTranslationHints";
 import { useNativeTextAlign } from "../../../hooks/useNativeTextAlign";
+import { useBootstrap } from "../../../hooks/useBootstrap";
+import { useAudioIndex } from "../../../hooks/useCourseContent";
+import { VoicePicker } from "../../settings/VoicePicker";
+import { SettingsGroup } from "./SettingsGroup";
 import { PersianScriptSettings } from "./PersianScriptSettings";
 import { JapaneseScriptSettings } from "./JapaneseScriptSettings";
 import { LanguageSettingsPopover } from "./LanguageSettingsPopover";
 import type { LanguageSettingsProps } from "./LanguageSettingsProps";
 import styles from "./LanguageSettingsButton.module.css";
+import checkboxStyles from "./CheckboxRow.module.css";
 
 /**
  * The single place deciding which languages get an in-lesson script
@@ -28,10 +33,11 @@ const LANGUAGE_SETTINGS: Partial<Record<Language, ComponentType<LanguageSettings
 };
 
 /**
- * A cog that opens the current course's language-specific script settings
- * (native/romanized display, plus Japanese's furigana toggle) without
- * leaving the lesson. Renders nothing when the course's language has no
- * panel in LANGUAGE_SETTINGS above.
+ * A cog that opens the lesson's settings without leaving it, in titled
+ * groups: the course language's own script settings (LANGUAGE_SETTINGS
+ * above), the voice recordings play in (the same VoicePicker as Settings ->
+ * Input), and the walkthrough replay. Renders nothing when none of those
+ * apply.
  */
 interface LanguageSettingsButtonProps {
   courseCode: string | null | undefined;
@@ -55,8 +61,10 @@ export function LanguageSettingsButton({ courseCode, onReplayTutorial }: Languag
   const vowelMarks = useShowVowelMarks();
   const nativeHints = useShowNativeHints();
   const sentenceRomanization = useShowSentenceRomanization();
+  const course = useBootstrap().data?.course ?? null;
+  const hasVoices = (useAudioIndex(course).data?.voices.length ?? 0) > 0;
 
-  if (!SettingsPanel && !onReplayTutorial) return null;
+  if (!SettingsPanel && !hasVoices && !onReplayTutorial) return null;
 
   return (
     <>
@@ -84,6 +92,15 @@ export function LanguageSettingsButton({ courseCode, onReplayTutorial }: Languag
               nativeTextAlign={nativeTextAlign.align}
               onChangeNativeTextAlign={nativeTextAlign.setNativeTextAlign}
             />
+          )}
+          {hasVoices && (
+            <SettingsGroup title="Audio">
+              <VoicePicker
+                value={prefs.data.preferredVoice ?? null}
+                onChange={(preferredVoice) => updatePrefs.mutate({ ...prefs.data!, preferredVoice })}
+                classNames={{ field: styles.voiceField, note: styles.voiceNote, checkbox: checkboxStyles.row }}
+              />
+            </SettingsGroup>
           )}
           {onReplayTutorial && (
             <div className={styles.tutorialSection}>

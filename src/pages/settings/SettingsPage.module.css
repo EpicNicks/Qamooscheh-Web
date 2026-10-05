@@ -101,18 +101,6 @@
   font-weight: 400;
 }
 
-/* The voice select with its preview button beside it (VoicePicker). */
-.voiceRow {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.voiceRow select {
-  flex: 1;
-  min-width: 0;
-}
-
 /* A read-only value inside a .field label (StreakSection's reset time and pause range). */
 .fieldValue {
   font-size: 1rem;

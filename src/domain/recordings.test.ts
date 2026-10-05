@@ -32,6 +32,34 @@ describe("pickRecording", () => {
     expect(pickRecording(null, NO_PREFERENCE)).toBeNull();
     expect(pickRecording({ setareh: [] }, NO_PREFERENCE)).toBeNull();
   });
+
+  describe("shuffled", () => {
+    const lines = Array.from({ length: 40 }, (_, i) => ({ setareh: [`s${i}.mp3`], hooman: [`h${i}.mp3`] }));
+
+    it("keeps a line's voice for the same seed", () => {
+      const choice = { preferredVoice: "setareh", defaultVoice: "setareh", shuffleSeed: 7 };
+      for (const line of lines) expect(pickRecording(line, choice)).toBe(pickRecording(line, choice));
+    });
+
+    it("spreads lines across the voices that recorded them, ignoring the preferred one", () => {
+      const picked = lines.map((line) => pickRecording(line, { preferredVoice: "setareh", defaultVoice: "setareh", shuffleSeed: 7 }));
+      expect(picked.some((path) => path?.startsWith("h"))).toBe(true);
+      expect(picked.some((path) => path?.startsWith("s"))).toBe(true);
+    });
+
+    it("only draws voices with a take", () => {
+      for (let seed = 0; seed < 20; seed++) {
+        expect(pickRecording({ setareh: [], hooman: ["h0.mp3"] }, { ...NO_PREFERENCE, shuffleSeed: seed })).toBe("h0.mp3");
+      }
+    });
+
+    it("keeps a speaker's line to that speaker's voices", () => {
+      const cast = { setareh: ["s0.mp3"], hooman: ["h0.mp3"], ali: ["a0.mp3"] };
+      for (let seed = 0; seed < 20; seed++) {
+        expect(pickRecording(cast, { ...NO_PREFERENCE, speakerVoices: ["hooman"], shuffleSeed: seed })).toBe("h0.mp3");
+      }
+    });
+  });
 });
 
 describe("wordRecording", () => {

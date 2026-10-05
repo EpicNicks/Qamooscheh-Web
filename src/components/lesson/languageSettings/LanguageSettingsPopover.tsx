@@ -53,10 +53,12 @@ export function LanguageSettingsPopover({ anchorEl, onClose, children }: Languag
     position: "fixed",
     top: rect.bottom + 8,
     right: window.innerWidth - rect.right,
+    // With every group open it can outgrow a short window; scroll inside rather than run off the bottom.
+    maxHeight: window.innerHeight - rect.bottom - 16,
   };
 
   return createPortal(
-    <div ref={popoverRef} className={styles.popover} style={style} role="dialog" aria-label="Script settings">
+    <div ref={popoverRef} className={styles.popover} style={style} role="dialog" aria-label="Lesson settings">
       {children}
     </div>,
     document.body,

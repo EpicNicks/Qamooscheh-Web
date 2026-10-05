@@ -16,6 +16,42 @@ export interface VoiceChoice {
   defaultVoice: string | null;
   /** The line's speaker's voices (audio.json `speakers`), when it has a speaker. Empty means any voice. */
   speakerVoices?: readonly string[] | null;
+  /**
+   * Set when the learner shuffles voices (localAppPrefs' shuffleVoices): each
+   * line plays a voice drawn from those that recorded it, instead of the
+   * preferred one. The draw hashes this seed with the line's own takes, so a
+   * line keeps its voice for as long as the seed lasts (every replay, and the
+   * take an exercise report cites, agree) while different lines spread across
+   * the cast.
+   */
+  shuffleSeed?: number | null;
+}
+
+/**
+ * FNV-1a, finished with murmur3's fmix32. The finisher matters: FNV-1a's low
+ * bit is only the parity of the input's characters, so `% 2` over two voices
+ * would give every line with the same digits the same voice.
+ */
+function hash(text: string): number {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  h ^= h >>> 16;
+  h = Math.imul(h, 0x85ebca6b);
+  h ^= h >>> 13;
+  h = Math.imul(h, 0xc2b2ae35);
+  h ^= h >>> 16;
+  return h >>> 0;
+}
+
+/** The shuffled voice's take: one of `voices` that recorded the line, picked by the seed. Null when none of them did. */
+function shuffledTake(audio: AudioMap, voices: readonly string[], seed: number): string | null {
+  const recorded = [...new Set(voices)].filter((voice) => audio[voice]?.[0]).sort();
+  if (recorded.length === 0) return null;
+  const key = recorded.map((voice) => audio[voice][0]).join("|");
+  return audio[recorded[hash(`${seed}:${key}`) % recorded.length]][0];
 }
 
 /**
@@ -28,6 +64,13 @@ export function pickRecording(audio: AudioMap | null | undefined, choice: VoiceC
   const takeOf = (voice: string | null | undefined) => (voice ? (audio[voice]?.[0] ?? null) : null);
 
   const speakerVoices = choice.speakerVoices ?? [];
+  if (choice.shuffleSeed != null) {
+    // A speaker's line still stays in that character's voices; only which of them is drawn.
+    const shuffled =
+      (speakerVoices.length > 0 ? shuffledTake(audio, speakerVoices, choice.shuffleSeed) : null) ??
+      shuffledTake(audio, Object.keys(audio), choice.shuffleSeed);
+    if (shuffled) return shuffled;
+  }
   if (speakerVoices.length > 0) {
     if (choice.preferredVoice && speakerVoices.includes(choice.preferredVoice)) {
       const preferred = takeOf(choice.preferredVoice);

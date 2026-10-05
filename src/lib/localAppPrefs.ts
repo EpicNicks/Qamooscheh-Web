@@ -182,6 +182,14 @@ export interface LocalAppPrefs {
   /** The same for an English word (an English prompt) — off by default, since it's a word the learner already knows how to say. */
   speakHoveredEnglish: boolean;
   /**
+   * Whether recordings play in a voice drawn from the course's cast instead
+   * of always the preferred one (domain/recordings.ts's shuffleSeed), for
+   * hearing a word from more than one speaker. Local rather than a synced
+   * user_prefs column like preferred_voice: a listening-variety choice per
+   * device, like speakAnswers. Defaults off.
+   */
+  shuffleVoices: boolean;
+  /**
    * Short feedback sounds (domain/sfx.ts, issue #32): a right or wrong
    * answer, a lesson passed or not, the day's goal reached. A per-device
    * sound choice like speakWordBankTiles. Defaults on.
@@ -227,6 +235,7 @@ const DEFAULTS: LocalAppPrefs = {
   speakAnswers: true,
   speakHoveredWords: true,
   speakHoveredEnglish: false,
+  shuffleVoices: false,
   soundEffects: true,
   colorVision: "default",
   smoulderingStreak: true,

@@ -7,10 +7,18 @@
 import { useCallback, useMemo } from "react";
 import { useBootstrap } from "./useBootstrap";
 import { usePrefs } from "./usePrefs";
+import { useLocalAppPref } from "./useLocalAppPref";
 import { useAudioIndex, useLexemeIndex } from "./useCourseContent";
 import { contentUrl } from "../api/content";
 import { pickRecording, wordRecording, type VoiceChoice } from "../domain/recordings";
 import type { AudioMap } from "../types/content";
+
+/**
+ * One draw per page load: with shuffleVoices on, a line keeps the voice it
+ * got for the whole visit (replays, its report, a word heard again in the
+ * next exercise) and gets a fresh one next time.
+ */
+const SHUFFLE_SEED = Math.floor(Math.random() * 0x7fffffff);
 
 export interface Recordings {
   /** URL of a phrase's recording (an exercise's promptAudio/answerAudio), or null. `speaker` keeps a story line to its character's voices. */
@@ -24,6 +32,7 @@ export interface Recordings {
 export function useRecordings(): Recordings {
   const course = useBootstrap().data?.course ?? null;
   const preferredVoice = usePrefs().data?.preferredVoice ?? null;
+  const [shuffleVoices] = useLocalAppPref("shuffleVoices", false);
   const audioIndex = useAudioIndex(course).data;
   const lexemeIndex = useLexemeIndex(course).data;
 
@@ -32,8 +41,9 @@ export function useRecordings(): Recordings {
       preferredVoice,
       defaultVoice: audioIndex?.voices[0]?.id ?? null,
       speakerVoices: speaker ? audioIndex?.speakers.find((s) => s.id === speaker)?.voices : null,
+      shuffleSeed: shuffleVoices ? SHUFFLE_SEED : null,
     }),
-    [preferredVoice, audioIndex],
+    [preferredVoice, shuffleVoices, audioIndex],
   );
 
   return useMemo<Recordings>(() => {
