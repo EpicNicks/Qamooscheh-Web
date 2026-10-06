@@ -19,12 +19,23 @@ import { API_BASE_URL, CLIENT_HEADER } from "../config";
 import { clearSession, loadSession, saveSession, type StoredSession } from "../lib/storage";
 import type { ApiErrorBody, AuthResponse } from "../types/api";
 
+/**
+ * What a bodiless error says. A 429 gets words of its own: the sign-in limit
+ * (API_SPEC.md §3 "Per-client limits") explains itself in `error`, but a 429
+ * that arrives with no body shouldn't leave a learner on the login form
+ * reading a status code.
+ */
+function fallbackMessage(status: number): string {
+  if (status === 429) return "Too many attempts. Wait a moment and try again.";
+  return `Request failed with status ${status}`;
+}
+
 export class ApiError extends Error {
   readonly status: number;
   readonly body: ApiErrorBody | null;
 
   constructor(status: number, body: ApiErrorBody | null) {
-    super(body?.error ?? `Request failed with status ${status}`);
+    super(body?.error || fallbackMessage(status));
     this.name = "ApiError";
     this.status = status;
     this.body = body;
