@@ -198,8 +198,8 @@ describe("ApiError messages", () => {
     vi.unstubAllGlobals();
   });
 
-  it("shows the server's words for a sign-in backoff 429", async () => {
-    const body = { error: "Too many failed sign-ins. Try again in 2 minutes.", retryAfterSeconds: 120 };
+  it("shows the server's words for a sign-in limit 429", async () => {
+    const body = { error: "Too many sign-in attempts. Try again in 12 seconds.", retryAfterSeconds: 12 };
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => json(429, body)),
@@ -208,11 +208,11 @@ describe("ApiError messages", () => {
     const error = await apiFetch("/v1/auth/login", { method: "POST", body: {}, anonymous: true }).catch((e: unknown) => e);
 
     expect(error).toBeInstanceOf(ApiError);
-    expect((error as ApiError).message).toBe("Too many failed sign-ins. Try again in 2 minutes.");
-    expect((error as ApiError).body?.retryAfterSeconds).toBe(120);
+    expect((error as ApiError).message).toBe("Too many sign-in attempts. Try again in 12 seconds.");
+    expect((error as ApiError).body?.retryAfterSeconds).toBe(12);
   });
 
-  it("says something readable for the rate limiter's bodiless 429", async () => {
+  it("says something readable for a bodiless 429", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => new Response(null, { status: 429, headers: { "Retry-After": "60" } })),

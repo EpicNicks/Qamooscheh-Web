@@ -20,10 +20,10 @@ import { clearSession, loadSession, saveSession, type StoredSession } from "../l
 import type { ApiErrorBody, AuthResponse } from "../types/api";
 
 /**
- * What a bodiless error says. A 429 gets words of its own: sign-in backoff
- * (API_SPEC.md §3 "Per-client limits") explains itself in `error`, but the
- * rate limiter's own 429 arrives with no body, and a learner who hits it on
- * the login form shouldn't read a status code.
+ * What a bodiless error says. A 429 gets words of its own: the sign-in limit
+ * (API_SPEC.md §3 "Per-client limits") explains itself in `error`, but a 429
+ * that arrives with no body shouldn't leave a learner on the login form
+ * reading a status code.
  */
 function fallbackMessage(status: number): string {
   if (status === 429) return "Too many attempts. Wait a moment and try again.";
