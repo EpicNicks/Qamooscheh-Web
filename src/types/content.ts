@@ -88,6 +88,13 @@ export interface ExerciseArtifact {
   promptAudio?: AudioMap | null;
   /** Recordings of the first accepted answer, the same shape. */
   answerAudio?: AudioMap | null;
+  /**
+   * One entry per accepted answer, null where that variant has no recording yet
+   * (domain/answerVariants.ts). word_bank/match: 0 = `answer` joined, i =
+   * `alternativeAnswers[i - 1]`; every other type: i = `answer[i]`. Entry 0
+   * equals `answerAudio`. Missing when there is one variant or none is recorded.
+   */
+  answerVariantAudio?: (AudioMap | null)[] | null;
   /** Who says this line, an id from audio.json's `speakers` — whose voices to prefer. Missing or null for a line nobody in particular says. */
   speaker?: string | null;
 }

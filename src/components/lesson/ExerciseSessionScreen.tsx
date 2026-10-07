@@ -100,6 +100,7 @@ export function ExerciseSessionScreen<TItem extends ExerciseSessionItem, TFeedba
     confirmation.submissionCount,
     confirmation.answeredItem?.renderType ?? null,
     confirmation.feedback?.correct ?? false,
+    confirmation.feedback?.submittedText,
   );
   const reportContext = useExerciseReportContext(confirmation.answeredItem, confirmation.feedback?.submittedText ?? null);
 

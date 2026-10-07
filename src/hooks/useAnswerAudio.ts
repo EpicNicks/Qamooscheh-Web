@@ -12,6 +12,7 @@ import { getLanguageInfo, getSpeechLang } from "../domain/language";
 import type { ExerciseArtifact } from "../types/content";
 import type { ExerciseType } from "../domain/enums";
 import { playSound, soundLength } from "../domain/sfx";
+import { shownAnswerVariant, variantAudio } from "../domain/answerVariants";
 
 /**
  * The answer's playback control, or null when there's nothing to play: no
@@ -34,15 +35,18 @@ export function useAnswerAudio(
   submissionCount: number,
   renderType: ExerciseType | null,
   correct: boolean,
+  submittedText?: string,
 ): PhraseAudio | null {
   const [speakAnswers] = useLocalAppPref("speakAnswers", true);
   const [speakTiles] = useLocalAppPref("speakWordBankTiles", true);
   const [soundEffects] = useLocalAppPref("soundEffects", true);
-  const tokenized = exercise?.type === "word_bank" || exercise?.type === "match";
-  const text = exercise ? (tokenized ? exercise.answer.join(" ") : (exercise.answer[0] ?? "")) : "";
+  // The accepted answer the review shows (the closest to the submission), and
+  // its own recording — answerAudio when that variant has none.
+  const shown = exercise ? shownAnswerVariant(exercise, submittedText) : null;
+  const text = shown?.text ?? "";
   const courseLang = getLanguageInfo(courseCode)?.speechLang ?? null;
   const inCourseLanguage = !!text && !!courseLang && getSpeechLang(courseCode, text) === courseLang;
-  const audioUrl = useRecordings(exercise).phraseUrl(inCourseLanguage ? exercise?.answerAudio : null, exercise?.speaker);
+  const audioUrl = useRecordings(exercise).phraseUrl(inCourseLanguage && exercise && shown ? variantAudio(exercise, shown.index) : null, exercise?.speaker);
   const voiceAvailable = useVoiceAvailability(inCourseLanguage ? courseLang : null);
   const playable = inCourseLanguage && (audioUrl != null || voiceAvailable);
   const audio = usePhraseAudio({ text, speechLang: inCourseLanguage ? courseLang : null, audioUrl });

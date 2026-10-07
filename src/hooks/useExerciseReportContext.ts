@@ -5,17 +5,21 @@
 import { useBootstrap } from "./useBootstrap";
 import { useRecordings } from "./useRecordings";
 import { reportContextFor, type ExerciseReportContext, type ReportableItem } from "../domain/exerciseReport";
-import type { AudioMap } from "../types/content";
+import { shownAnswerVariant, variantAudio } from "../domain/answerVariants";
+import type { ExerciseArtifact } from "../types/content";
 
 type Item = ReportableItem & {
-  exercise: ReportableItem["exercise"] & { prompt: string; answer: readonly string[]; promptAudio?: AudioMap | null; answerAudio?: AudioMap | null; speaker?: string | null };
+  exercise: ReportableItem["exercise"] &
+    Pick<ExerciseArtifact, "type" | "tiles" | "answer" | "alternativeAnswers" | "promptAudio" | "answerAudio" | "answerVariantAudio" | "speaker">;
 };
 
 export function useExerciseReportContext(item: Item | null, submittedText: string | null): ExerciseReportContext | null {
   const courseVersion = useBootstrap().data?.course?.version ?? null;
   const recordings = useRecordings(item?.exercise ?? null);
   if (!item || submittedText == null) return null;
-  const { promptAudio, answerAudio, speaker } = item.exercise;
+  const { promptAudio, speaker } = item.exercise;
+  // The take cited is the one played for the variant shown.
+  const answerAudio = variantAudio(item.exercise, shownAnswerVariant(item.exercise, submittedText).index);
   return reportContextFor(item, submittedText, courseVersion, [
     recordings.phrasePath(promptAudio, speaker),
     recordings.phrasePath(answerAudio, speaker),
