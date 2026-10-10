@@ -1,0 +1,14 @@
+{
+  "name": "lesson-end-buttons",
+  "repo": "web",
+  "branch": "lesson-end-buttons",
+  "title": "Clear lesson-complete buttons: Next lesson and Replay this lesson",
+  "closes": 57,
+  "issue": "Issue #57. On the passed-lesson screen (src/pages/LessonPage.tsx, engine.status === 'done') the 'Practice again' button calls engine.startPractice (src/hooks/useLessonEngine.ts), which rebuilds from plan.data.skills / the path position, i.e. after a pass it starts the NEXT lesson, and as an ungraded practice round. APPROVED PLAN: (1) Rename that button 'Next lesson'. It must start the next lesson as a normal graded run, the same way opening that lesson from the path does (reuse that navigation/start path; do not duplicate engine logic). If there is no next lesson (end of course or deep dive), hide the button. (2) Add a secondary 'Replay this lesson' button on the same screen that restarts the lesson just finished (the session's own skill refs, as retake() uses) as a practice round (no submission, as startPractice's practice mode does today), so finishing it never earns review credit twice. (3) Keep 'Back to path'. Button order: Back to path, Replay this lesson, Next lesson (primary). (4) The failed-lesson screen keeps 'Try again' unchanged. If (1) cannot be done without restructuring the engine, stop with needsUser.",
+  "allowedPaths": ["^src/"],
+  "acceptance": ["Next lesson starts the next lesson graded; Replay this lesson replays the finished lesson ungraded", "Unit test for any new engine/domain logic", "lint, tsc -b, build, test green locally and in CI"],
+  "gate": "plan approved by the user 2026-10-10",
+  "approved": true,
+  "reviewer": "opus",
+  "reviewers": 2
+}
