@@ -177,13 +177,33 @@ export function SavedPracticePage() {
     if (!isReviewing) shownAt.current = performance.now();
   }, [isReviewing, position]);
 
-  useEffect(() => {
-    if (isReviewing || !finishPending.current) return;
+  function settlePending(keepalive = false) {
+    if (!finishPending.current) return;
     finishPending.current = false;
-    void finish(answers, cards);
+    void finish(answers, cards, keepalive);
+  }
+
+  // A waiting submit must not be lost when the review is left some other way
+  // than Continue: leaving the page (Close, a nav link) submits it as it
+  // unmounts, closing the tab submits it with keepalive as the page hides.
+  const settleRef = useRef(settlePending);
+  useEffect(() => {
+    settleRef.current = settlePending;
+  });
+  useEffect(() => {
+    const settle = settleRef;
+    const onPageHide = () => settle.current(true);
+    window.addEventListener("pagehide", onPageHide);
+    return () => {
+      window.removeEventListener("pagehide", onPageHide);
+      settle.current();
+    };
+  }, []);
+  useEffect(() => {
+    if (!isReviewing) settlePending();
   });
 
-  async function finish(finalAnswers: RecordedAnswer[], finalCards: { tag: string; correct: boolean }[]) {
+  async function finish(finalAnswers: RecordedAnswer[], finalCards: { tag: string; correct: boolean }[], keepalive = false) {
     if (!course || !userId || !practice.data) return;
     setStatus("submitting");
 
@@ -192,6 +212,7 @@ export function SavedPracticePage() {
       courseCode: course.code,
       courseVersion: practice.data.courseVersion,
       answers: finalAnswers,
+      keepalive,
     });
 
     let flashcardXp: number | null = 0;
@@ -203,7 +224,7 @@ export function SavedPracticePage() {
           occurredAt: new Date().toISOString(),
           inRemix: true,
           cards: finalCards.map((card) => ({ ...card, kind: "self_rated" as const })),
-        });
+        }, { keepalive });
         flashcardXp = response.xp;
       } catch {
         flashcardXp = null;

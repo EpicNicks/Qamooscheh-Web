@@ -18,7 +18,7 @@
 //      merge the returned card states locally and refresh bootstrap/plan.
 //      A network failure queues the session for a later flush instead of
 //      losing it (lib/offlineQueue.ts).
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useBootstrap } from "./useBootstrap";
 import { useSkillArtifactsForRefs, useSkillArtifactsForLessonRefs, useThemeIndex, refKey } from "./useCourseContent";
@@ -600,14 +600,31 @@ export function useLessonEngine(
   }
 
   /** Called once the review of an answer closes: submits the lesson if its last answer was waiting on a retype. */
-  function settleAnswer() {
+  function settleAnswer(options?: { keepalive?: boolean }) {
     const score = pendingFinish.current;
     if (score === null) return;
     pendingFinish.current = null;
-    void finishLesson(items, score);
+    void finishLesson(items, score, options?.keepalive);
   }
 
-  async function finishLesson(finalItems: RecordedItem[], score: number) {
+  // A waiting submit must not be lost when the review is left some other way
+  // than Continue: leaving the page (Close, a nav link) submits it as it
+  // unmounts, closing the tab submits it with keepalive as the page hides.
+  const settleRef = useRef(settleAnswer);
+  useEffect(() => {
+    settleRef.current = settleAnswer;
+  });
+  useEffect(() => {
+    const settle = settleRef;
+    const onPageHide = () => settle.current({ keepalive: true });
+    window.addEventListener("pagehide", onPageHide);
+    return () => {
+      window.removeEventListener("pagehide", onPageHide);
+      settle.current();
+    };
+  }, []);
+
+  async function finishLesson(finalItems: RecordedItem[], score: number, keepalive = false) {
     if (!plan.data || !course) return;
     setStatus("submitting");
 
@@ -657,7 +674,7 @@ export function useLessonEngine(
     }
 
     try {
-      const response = await submitSessions(sessions);
+      const response = await submitSessions(sessions, { keepalive });
       // Cards come back per session; every one of them needs merging. `result`
       // only drives the recap's "Already recorded." line, so the first
       // response stands in for the batch.

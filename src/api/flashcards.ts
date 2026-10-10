@@ -3,6 +3,6 @@
 import { apiFetch } from "./httpClient";
 import type { SubmitFlashcardsRequest, SubmitFlashcardsResponse } from "../types/api";
 
-export function submitFlashcards(request: SubmitFlashcardsRequest): Promise<SubmitFlashcardsResponse> {
-  return apiFetch<SubmitFlashcardsResponse>("/v1/flashcards/submit", { method: "POST", body: request });
+export function submitFlashcards(request: SubmitFlashcardsRequest, options?: { keepalive?: boolean }): Promise<SubmitFlashcardsResponse> {
+  return apiFetch<SubmitFlashcardsResponse>("/v1/flashcards/submit", { method: "POST", body: request, keepalive: options?.keepalive });
 }

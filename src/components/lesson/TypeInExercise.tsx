@@ -61,6 +61,8 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
   const [retypeOpen, setRetypeOpen] = useState(false);
   // The last retype didn't match — cleared by the next edit.
   const [retypeWrong, setRetypeWrong] = useState(false);
+  // Counts misses, so a repeated one re-mounts its note and is announced again.
+  const [retypeMisses, setRetypeMisses] = useState(0);
   // Set once a retype matches: the XP it earned, popped beside it.
   const [retypedXp, setRetypedXp] = useState<number | null>(null);
   const retyping = !!retype && retypeOpen && retypedXp === null;
@@ -85,6 +87,7 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
   const restoreSelectionRef = useRef(false);
 
   const inputWrapRef = useRef<HTMLDivElement>(null);
+  const actionsRef = useRef<HTMLDivElement>(null);
   // Whether the answer input has focus — when it doesn't, VirtualCaret draws
   // the caret the browser stops drawing (issue #24).
   const [inputFocused, setInputFocused] = useState(false);
@@ -230,8 +233,16 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
     if (!retype) return;
     const typed = typedText();
     if (retype.matches(typed)) setRetypedXp(retype.onMatched(typed));
-    else setRetypeWrong(true);
+    else {
+      setRetypeWrong(true);
+      setRetypeMisses((n) => n + 1);
+    }
   }
+
+  // A match unmounts the focused field: hand focus to Continue, not the page.
+  useEffect(() => {
+    if (retypedXp !== null) actionsRef.current?.querySelector("button")?.focus();
+  }, [retypedXp]);
 
   /**
    * Handles every keystroke for this exercise at the WINDOW level rather
@@ -303,6 +314,8 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
     }
 
     if (event.key === " ") {
+      // Space on a focused button (Continue, Submit, ...) presses it, even mid-retype.
+      if (retyping && isInteractiveTarget(event.target, inputRef.current)) return;
       event.preventDefault();
       pressSpace();
       return;
@@ -375,19 +388,25 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
       )}
       {retyping && <p className={styles.note}>Type the correct answer once more to practice it.</p>}
       {retypedXp !== null && (
-        <>
-          <div
-            className={`${styles.input} ${styles.reviewedInput} ${styles.reviewedRight}`}
-            dir={isNativeScript ? languageInfo?.direction : "ltr"}
-            style={isNativeScript && languageInfo ? { fontFamily: `var(--font-script-${languageInfo.language})` } : undefined}
-            aria-label={`Your retype: ${text}`}
-          >
-            {text}
-          </div>
-          <p className={styles.note} role="status">
-            Correct! <XpBurst amount={retypedXp} />
-          </p>
-        </>
+        <div
+          className={`${styles.input} ${styles.reviewedInput} ${styles.reviewedRight}`}
+          dir={isNativeScript ? languageInfo?.direction : "ltr"}
+          style={isNativeScript && languageInfo ? { fontFamily: `var(--font-script-${languageInfo.language})` } : undefined}
+          aria-label={`Your retype: ${text}`}
+        >
+          {text}
+        </div>
+      )}
+      {/* Live regions stay mounted while a retype is offered, so what lands in them is announced. */}
+      {retype && (
+        <div role="status">
+          {retypedXp !== null && (
+            <p className={styles.note}>
+              Correct! <XpBurst amount={retypedXp} />
+              {retypedXp > 0 && <span className={styles.srOnly}>{`+${retypedXp} XP`}</span>}
+            </p>
+          )}
+        </div>
       )}
       {(!reviewedAnswer || retyping) && (
         <div className={styles.inputWrap} ref={inputWrapRef}>
@@ -441,10 +460,14 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
           {engine.overlayNode}
         </div>
       )}
-      {retypeWrong && (
-        <p className={styles.note} role="status">
-          Not quite. Try again, or continue.
-        </p>
+      {retype && (
+        <div role="status">
+          {retypeWrong && (
+            <p key={retypeMisses} className={styles.note}>
+              Not quite. Try again, or continue.
+            </p>
+          )}
+        </div>
       )}
       {languageInfo && !isNativeScript && <p className={styles.note}>Type this one in Latin letters (romanized), not the native script.</p>}
       {arabicVariantHits.length > 0 && (
@@ -458,7 +481,7 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
 
       <div className={styles.keyboardBleed}>{engine.keyboardNode}</div>
 
-      <div className={styles.actions}>
+      <div className={styles.actions} ref={actionsRef}>
         {retype && advance && retypedXp === null ? (
           // Retry, then Submit, sit just left of Continue, all on Submit's side of the row.
           <div className={styles.retypeActions}>
