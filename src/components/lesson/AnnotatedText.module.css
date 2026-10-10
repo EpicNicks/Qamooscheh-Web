@@ -90,6 +90,12 @@
   transform: translate(-50%, 0);
 }
 
+/* A toggle closed by a press or Escape stays closed under hover/focus. */
+.wrap[data-dismissed] .tooltip {
+  opacity: 0;
+  visibility: hidden;
+}
+
 /* MistakeHintChip: a small always-visible "explain" button next to a marked
    word, opening the mistake's explanation in the word tooltip above. */
 .hintChip {
