@@ -11,6 +11,15 @@ import { checkAnswer, type AnswerVerdict } from "../domain/answerFeedback";
 import { resolveExerciseType } from "../domain/exerciseResolution";
 import { flashcardWords, type FlashcardWord } from "../domain/flashcards";
 import { xpForAnswer } from "../domain/xp";
+import {
+  includesExercise,
+  includesFlashcards,
+  initialRemixContents,
+  remixContentsOptions,
+  type RemixContents,
+} from "../domain/remixContents";
+import { useLocalAppPref } from "../hooks/useLocalAppPref";
+import { RemixContentsPicker } from "../components/lesson/RemixContentsPicker";
 import { loadCardStates } from "../lib/cardStateStore";
 import { submitRecordedAnswers, type RecordedAnswer, type SubmitOutcome } from "../lib/submitRecordedAnswers";
 import { ExerciseSessionScreen, type ExerciseSessionFeedback, type ExerciseSessionItem } from "../components/lesson/ExerciseSessionScreen";
@@ -100,9 +109,10 @@ export function SavedPracticePage() {
   const ready =
     practice.data != null && lexemeIndex.data != null && userId != null && refs.every((ref) => content.skills.has(refKey(ref)));
 
-  // Built once, when everything it reads has loaded — a background refetch
-  // must not rebuild it mid-run (the same lazy seeding useLessonEngine does).
-  if (queue === null && ready) {
+  // Everything the picked words bring, before the learner's contents choice
+  // (issue #45) narrows it.
+  const built = useMemo<RemixItem[] | null>(() => {
+    if (!ready) return null;
     const cardStates = loadCardStates(userId!);
     const items: RemixItem[] = [];
     const seen = new Set<string>();
@@ -126,6 +136,31 @@ export function SavedPracticePage() {
         });
       }
     }
+    return items;
+  }, [ready, practice.data, lexemeIndex.data, content.skills, userId]);
+
+  const [rememberedContents, setRememberedContents] = useLocalAppPref("remixContents", { lesson: "all", saved: "flashcards_and_all" });
+  const contentsOptions = remixContentsOptions(built?.some((item) => item.kind === "flashcard") ?? false);
+  const [chosenContents, setChosenContents] = useState<RemixContents | null>(null);
+  const [choiceEmpty, setChoiceEmpty] = useState(false);
+  const shownContents = chosenContents ?? initialRemixContents(rememberedContents.saved, contentsOptions, "all");
+
+  function filtered(items: readonly RemixItem[], contents: RemixContents): RemixItem[] {
+    return items.filter((item) =>
+      item.kind === "flashcard" ? includesFlashcards(contents) : includesExercise(contents, item.renderType),
+    );
+  }
+
+  function start() {
+    if (!built) return;
+    const items = filtered(built, shownContents);
+    if (items.length === 0) {
+      setChoiceEmpty(true);
+      return;
+    }
+    setRememberedContents({ ...rememberedContents, saved: shownContents });
+    // Built once — a background refetch must not rebuild it mid-run (the
+    // same lazy seeding useLessonEngine does).
     setQueue(items);
   }
 
@@ -236,15 +271,32 @@ export function SavedPracticePage() {
     return <ErrorBanner message="Couldn't put together your saved-words practice." />;
   }
 
-  if (queue === null) return <Spinner label="Gathering your saved words…" />;
+  if (built === null) return <Spinner label="Gathering your saved words…" />;
 
-  if (queue.length === 0) {
+  if (built.length === 0) {
     return (
       <div className={styles.done}>
         <h1>Nothing to practise yet</h1>
         <p>Save words from this course — with the ★ on the vocabulary list, or after an answer in a lesson — and they'll show up here.</p>
         <Button onClick={() => navigate("/vocabulary")}>Back to vocabulary</Button>
       </div>
+    );
+  }
+
+  if (queue === null) {
+    return (
+      <RemixContentsPicker
+        options={contentsOptions}
+        value={shownContents}
+        onChange={(next) => {
+          setChosenContents(next);
+          setChoiceEmpty(false);
+        }}
+        onStart={start}
+        emptyMessage={choiceEmpty ? "Your saved words have none of those right now — pick something else." : null}
+        backLabel="Back to vocabulary"
+        onBack={() => navigate("/vocabulary")}
+      />
     );
   }
 
@@ -257,11 +309,13 @@ export function SavedPracticePage() {
       <div className={styles.done}>
         <h1>Saved words practised!</h1>
         {exerciseCount > 0 && <LessonResults correct={firstTryCorrect} total={exerciseCount} sound="lessonPassed" />}
-        <p className={styles.practiceNote}>
-          You knew {knownCards} of {cards.length} flashcard{cards.length === 1 ? "" : "s"}
-          {outcome.flashcardXp != null && outcome.flashcardXp > 0 && ` (+${outcome.flashcardXp} XP)`}.
-          {outcome.flashcardXp === null && " Couldn't save the flashcards' XP."}
-        </p>
+        {cards.length > 0 && (
+          <p className={styles.practiceNote}>
+            You knew {knownCards} of {cards.length} flashcard{cards.length === 1 ? "" : "s"}
+            {outcome.flashcardXp != null && outcome.flashcardXp > 0 && ` (+${outcome.flashcardXp} XP)`}.
+            {outcome.flashcardXp === null && " Couldn't save the flashcards' XP."}
+          </p>
+        )}
         {outcome.lessons === "queued" && <p className={styles.practiceNote}>Your answers will sync when you're back online.</p>}
         {outcome.lessons === "rejected" && <p className={styles.practiceNote}>Some answers weren't saved — your course may have been updated.</p>}
         <div className={styles.doneActions}>

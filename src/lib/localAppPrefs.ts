@@ -12,6 +12,7 @@
 // keyed per-user the same way they are, so two accounts sharing a browser
 // don't inherit each other's dismissals.
 import { safeStorage } from "./safeStorage";
+import type { RemixContents } from "../domain/remixContents";
 
 /** Which virtual keyboard a learner sees for a given language — a UI choice, not an FSRS/grading concern, so it lives here rather than in usePrefs. */
 export interface KeyboardInputMethod {
@@ -209,6 +210,13 @@ export interface LocalAppPrefs {
    * reduced-motion setting stills it regardless. Defaults on.
    */
   smoulderingStreak: boolean;
+  /**
+   * The last choice of what a remix holds (domain/remixContents.ts, issue
+   * #45), kept separately for the lesson remixes and the saved-words one:
+   * each defaults to what it held before there was a choice, and the
+   * saved-words one is the only one with flashcards.
+   */
+  remixContents: { lesson: RemixContents; saved: RemixContents };
 }
 
 const DEFAULTS: LocalAppPrefs = {
@@ -240,6 +248,7 @@ const DEFAULTS: LocalAppPrefs = {
   soundEffects: true,
   colorVision: "default",
   smoulderingStreak: true,
+  remixContents: { lesson: "all", saved: "flashcards_and_all" },
 };
 
 function storageKey(userId: string): string {
