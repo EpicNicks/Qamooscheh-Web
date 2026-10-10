@@ -10,6 +10,7 @@ import { useDeviceInputEnabled } from "../../hooks/useDeviceInputEnabled";
 import { markTypedAnswer, type MarkedWord } from "../../domain/typedAnswerMarks";
 import { mistakeKind } from "../../domain/mistakeHints";
 import { MistakeHintChip } from "./AnnotatedText";
+import { XpBurst } from "./XpBurst";
 import { submittedSpelling } from "../../domain/persian/typedAnswer";
 import type { ExerciseProps } from "./ExerciseRenderer";
 import styles from "./Exercise.module.css";
@@ -56,8 +57,15 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
   const [text, setText] = useState(initialText);
   const [usedHint, setUsedHint] = useState(false);
   const [hintShown, setHintShown] = useState(false);
+  // A retype is offered, not required: Retry opens the field for it.
+  const [retypeOpen, setRetypeOpen] = useState(false);
   // The last retype didn't match — cleared by the next edit.
   const [retypeWrong, setRetypeWrong] = useState(false);
+  // Set once a retype matches: the XP it earned, popped beside it.
+  const [retypedXp, setRetypedXp] = useState<number | null>(null);
+  const retyping = !!retype && retypeOpen && retypedXp === null;
+  // The field only takes typing while it's being answered or retyped.
+  const inactive = disabled || (!!retype && !retyping);
   const inputRef = useRef<HTMLInputElement>(null);
   // Mirrors `text` synchronously (state updates are batched/async, but
   // submit() needs the just-finalized value immediately — see submit()) —
@@ -198,7 +206,7 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
   // `text` for the engines is only what's before the caret: the candidate
   // picker floats over the character just before it, and the kana keyboard's
   // dakuten key modifies that same character.
-  engine = useScriptEngine({ keyboardKind, updateText, keyboardMode, disabled, text: text.slice(0, caret), languageInfo, inputWrapRef, handlers, fa, ja, deviceInput });
+  engine = useScriptEngine({ keyboardKind, updateText, keyboardMode, disabled: inactive, text: text.slice(0, caret), languageInfo, inputWrapRef, handlers, fa, ja, deviceInput });
 
   const arabicVariantHits = isPersian(courseCode) && exercise.scriptMode === "native" ? detectArabicVariants(text) : [];
 
@@ -217,10 +225,11 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
     setHintShown(false);
   }
 
-  /** Practice only: a match moves on, a miss stays to be tried again. Never reaches onSubmit. */
+  /** A match is handed up (and stays, marked right); a miss stays to be tried again. Never reaches onSubmit. */
   function submitRetype() {
     if (!retype) return;
-    if (retype.matches(typedText())) retype.onContinue();
+    const typed = typedText();
+    if (retype.matches(typed)) setRetypedXp(retype.onMatched(typed));
     else setRetypeWrong(true);
   }
 
@@ -236,7 +245,7 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
    */
   function handleKeyDown(event: KeyboardEvent) {
     // The review screen around a retype has fields of its own to type in.
-    if (retype && isOtherTextField(event.target, inputRef.current)) return;
+    if (retyping && isOtherTextField(event.target, inputRef.current)) return;
 
     const hasModifier = event.ctrlKey || event.metaKey || event.altKey;
 
@@ -267,7 +276,7 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
       // While retyping, Enter is this field's, not the review's Enter-to-
       // continue (useAnswerConfirmation, listening on window after this one
       // — see the capture flag below), which would skip the retype.
-      if (retype) event.stopPropagation();
+      if (retyping) event.stopPropagation();
       // Enter belongs to whatever control is focused when that control has
       // its own answer for it — pressing it on "Use a hint" must reveal the
       // hint, not submit the exercise. The answer input itself is the one
@@ -275,7 +284,7 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
       if (isInteractiveTarget(event.target, inputRef.current)) return;
       event.preventDefault();
       if (textRef.current.trim().length > 0) {
-        if (retype) submitRetype();
+        if (retyping) submitRetype();
         else submit();
       }
       return;
@@ -306,10 +315,10 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
   }
 
   useEffect(() => {
-    if (disabled) return;
+    if (inactive) return;
     // Capture while retyping, so this runs before useAnswerConfirmation's own
     // window listener and can keep Enter from it.
-    const capture = !!retype;
+    const capture = retyping;
     window.addEventListener("keydown", handleKeyDown, capture);
     return () => window.removeEventListener("keydown", handleKeyDown, capture);
   });
@@ -364,8 +373,23 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
           })}
         </div>
       )}
-      {retype && <p className={styles.note}>Type the correct answer once more to practice it.</p>}
-      {(!reviewedAnswer || retype) && (
+      {retyping && <p className={styles.note}>Type the correct answer once more to practice it.</p>}
+      {retypedXp !== null && (
+        <>
+          <div
+            className={`${styles.input} ${styles.reviewedInput} ${styles.reviewedRight}`}
+            dir={isNativeScript ? languageInfo?.direction : "ltr"}
+            style={isNativeScript && languageInfo ? { fontFamily: `var(--font-script-${languageInfo.language})` } : undefined}
+            aria-label={`Your retype: ${text}`}
+          >
+            {text}
+          </div>
+          <p className={styles.note} role="status">
+            Correct! <XpBurst amount={retypedXp} />
+          </p>
+        </>
+      )}
+      {(!reviewedAnswer || retyping) && (
         <div className={styles.inputWrap} ref={inputWrapRef}>
           <input
             ref={inputRef}
@@ -379,7 +403,7 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
             onBlur={() => setInputFocused(false)}
             // A click or tap is about to move the caret: same as CARET_KEY above.
             onPointerDown={() => engine.finalize()}
-            disabled={disabled}
+            disabled={inactive}
             autoFocus
             // A keyboardKind means an on-screen keyboard (engine.keyboardNode)
             // is already doing the typing — the phone's own keyboard popping
@@ -405,7 +429,7 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
           {/* Only with an on-screen keyboard: without one, letters only reach a
               focused input (see handleKeyDown), so a caret drawn on an unfocused
               one would promise typing that doesn't happen. */}
-          {keyboardKind && !inputFocused && !disabled && (
+          {keyboardKind && !inputFocused && !inactive && (
             <VirtualCaret
               inputRef={inputRef}
               wrapRef={inputWrapRef}
@@ -419,7 +443,7 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
       )}
       {retypeWrong && (
         <p className={styles.note} role="status">
-          Not quite. Try again, or skip.
+          Not quite. Try again, or continue.
         </p>
       )}
       {languageInfo && !isNativeScript && <p className={styles.note}>Type this one in Latin letters (romanized), not the native script.</p>}
@@ -435,15 +459,34 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
       <div className={styles.keyboardBleed}>{engine.keyboardNode}</div>
 
       <div className={styles.actions}>
-        {retype ? (
-          // Skip sits just left of Submit, both on Submit's side of the row.
+        {retype && advance && retypedXp === null ? (
+          // Retry, then Submit, sit just left of Continue, all on Submit's side of the row.
           <div className={styles.retypeActions}>
-            <Button variant="secondary" onClick={retype.onContinue}>
-              Skip
-            </Button>
-            <Button onClick={submitRetype} disabled={disabled || text.trim().length === 0}>
-              Submit
-            </Button>
+            {retyping ? (
+              <>
+                <Button variant="secondary" onClick={advance.onAdvance}>
+                  {advance.label}
+                </Button>
+                <Button onClick={submitRetype} disabled={inactive || text.trim().length === 0}>
+                  Submit
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  variant="secondary"
+                  onClick={() => setRetypeOpen(true)}
+                  // Enter here presses Retry, not on to useAnswerConfirmation's
+                  // window listener, which would also move on past the review.
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") event.stopPropagation();
+                  }}
+                >
+                  Retry
+                </Button>
+                <Button onClick={advance.onAdvance}>{advance.label}</Button>
+              </>
+            )}
           </div>
         ) : advance ? (
           <Button onClick={advance.onAdvance}>{advance.label}</Button>

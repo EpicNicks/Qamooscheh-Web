@@ -33,6 +33,7 @@ import { checkAnswer, type AnswerVerdict } from "../domain/answerFeedback";
 import { resolveExerciseType } from "../domain/exerciseResolution";
 import { LESSON_PASS_THRESHOLD, verdictWeight } from "../domain/lessonScore";
 import { filterRemixExercises, type RemixContents } from "../domain/remixContents";
+import { needsRetype } from "../domain/retype";
 import type { SessionPlanResponse, SkillRef, SubmittedItem, SubmittedSession, SubmittedSessionResponse } from "../types/api";
 import type { ExerciseArtifact, SkillArtifact } from "../types/content";
 import type { ExerciseType, SkillCategory } from "../domain/enums";
@@ -95,7 +96,7 @@ export interface SubmitAnswerResult {
   requeued: boolean;
   /** A short correction hint (e.g. "Close — a small typo.") when the answer was accepted imperfectly or rejected close — see domain/answerFeedback.ts. */
   note: string | null;
-  /** The underlying verdict and 1-indexed attempt number, for domain/xp.ts's cosmetic per-answer XP tiering. */
+  /** The underlying verdict and 1-indexed attempt number, for domain/xp.ts's per-answer XP. */
   verdict: AnswerVerdict;
   attempt: number;
   /** What was actually graded — surfaced on the revealed-answer feedback so a learner can see exactly what the grader received (e.g. a word-bank submission whose tile order wasn't what they intended). */
@@ -347,6 +348,17 @@ export function useLessonEngine(
   // queue, a replay). Null until a graded, non-remix run finishes (practice
   // rounds and remixes complete nothing).
   const [lessonCompleted, setLessonCompleted] = useState<boolean | null>(null);
+  // The XP the server credited the submitted session(s) (API_SPEC.md §2.3
+  // point 8), summed — null until a response carries it.
+  const [sessionXp, setSessionXp] = useState<number | null>(null);
+  // The answer under review, which a retype (domain/retype.ts) is recorded
+  // against, and the exercises (by instance key) already retyped this run:
+  // the server credits one retype per exercise, so a later one is practice.
+  const lastAnswer = useRef<{ instance: LessonExerciseInstance; attempt: number } | null>(null);
+  const retypedKeys = useRef(new Set<string>());
+  // The last answer's score while its submit waits for the review to close —
+  // a wrong typed last answer may still be retyped, and that goes in the submit.
+  const pendingFinish = useRef<number | null>(null);
   // Snapshot of plan.data.skills taken once, when the queue is first built —
   // retained even after the queue empties (unlike plan.data itself, which a
   // background refetch could change). LessonPage's deep-dive recap needs this
@@ -476,6 +488,10 @@ export function useLessonEngine(
     if (instances.length === 0) return;
     setIsPracticeMode(practice);
     setLessonCompleted(null);
+    setSessionXp(null);
+    lastAnswer.current = null;
+    retypedKeys.current = new Set();
+    pendingFinish.current = null;
     setItems([]);
     setFirstTryCorrect(0);
     setFirstTryPoints(0);
@@ -527,6 +543,7 @@ export function useLessonEngine(
       }),
     );
     setItems((prev) => [...prev, ...newItems]);
+    lastAnswer.current = { instance: current, attempt };
 
     const rest = queue.slice(1);
     let requeued = false;
@@ -545,14 +562,53 @@ export function useLessonEngine(
     // time too. The page calls markShown() when the next one is really shown.
 
     if (rest.length === 0) {
-      void finishLesson([...items, ...newItems], totalCount === 0 ? 0 : points / totalCount);
+      const score = totalCount === 0 ? 0 : points / totalCount;
+      if (needsRetype(current.renderType, correct)) {
+        // Submitted by settleAnswer once the review closes.
+        pendingFinish.current = score;
+        setStatus("submitting");
+      } else {
+        void finishLesson([...items, ...newItems], score);
+      }
     }
 
     return { correct, requeued, note: feedback.note, verdict: feedback.verdict, attempt, submittedText };
   }
 
+  /**
+   * Records a retype that matched (domain/retype.ts) on the answer under
+   * review, as its items' `retypeText`. Returns the retype's verdict, or
+   * null when it doesn't count: the exercise was already retyped this run
+   * (the server credits one per exercise) or nothing is under review.
+   */
+  function recordRetype(retypeText: string): { verdict: AnswerVerdict; attempt: number } | null {
+    const answer = lastAnswer.current;
+    if (!answer || retypedKeys.current.has(answer.instance.key)) return null;
+    retypedKeys.current.add(answer.instance.key);
+    const { instance, attempt } = answer;
+    setItems((prev) =>
+      prev.map((recorded) =>
+        recorded.unitKey === instance.unitKey &&
+        recorded.skillKey === instance.skillKey &&
+        recorded.item.exerciseOrdinal === instance.ordinal &&
+        recorded.item.attempt === attempt
+          ? { ...recorded, item: { ...recorded.item, retypeText } }
+          : recorded,
+      ),
+    );
+    return { verdict: checkAnswer(course?.code, instance.exercise, retypeText).verdict, attempt };
+  }
+
+  /** Called once the review of an answer closes: submits the lesson if its last answer was waiting on a retype. */
+  function settleAnswer() {
+    const score = pendingFinish.current;
+    if (score === null) return;
+    pendingFinish.current = null;
+    void finishLesson(items, score);
+  }
+
   async function finishLesson(finalItems: RecordedItem[], score: number) {
-    if (!plan.data || !current || !course) return;
+    if (!plan.data || !course) return;
     setStatus("submitting");
 
     if (isPracticeMode) {
@@ -606,6 +662,8 @@ export function useLessonEngine(
       // only drives the recap's "Already recorded." line, so the first
       // response stands in for the batch.
       setResult(response.sessions[0] ?? null);
+      const credited = response.sessions.map((s) => s.xp).filter((xp): xp is number => xp != null);
+      setSessionXp(credited.length > 0 ? credited.reduce((sum, xp) => sum + xp, 0) : null);
       // The server's verdict outranks the local one whenever it gave one —
       // only a freshly processed session carries it (a replay reports null).
       const verdicts = response.sessions.map((s) => s.lessonCompleted).filter((v): v is boolean => v != null);
@@ -708,11 +766,15 @@ export function useLessonEngine(
     isRemix,
     remixCount,
     submitAnswer,
+    recordRetype,
+    settleAnswer,
     startPractice,
     retake,
     replay,
     /** See the state's own comment — false means this run ended without finishing the lesson, so it didn't unlock what comes next. */
     lessonCompleted,
+    /** XP the server credited this run, when its response said (API_SPEC.md §2.3 point 8). */
+    sessionXp,
     markShown,
     result,
     /** Non-null exactly when `status === "rejected"` — what the server refused, and how much of the batch. */

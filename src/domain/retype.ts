@@ -1,7 +1,7 @@
-// Retyping the correct answer after a wrong typed one (issue #44): practice
-// only. Nothing here feeds grading, score, XP, requeueing or what the
-// session submits — the answer that counted was already recorded before the
-// retype is offered, and a retype is never handed to an engine.
+// Retyping the correct answer after a wrong typed one (issue #44). Optional,
+// and it never changes the answer's grade, score or requeueing: a match is
+// only sent as that item's `retypeText`, which earns retype XP
+// (domain/xp.ts, API_SPEC.md §2.3 point 8) and nothing else.
 import { checkAnswer } from "./answerFeedback";
 import type { ExerciseType } from "./enums";
 import type { ExerciseArtifact } from "../types/content";

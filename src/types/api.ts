@@ -178,6 +178,12 @@ export interface SubmittedItem {
   usedHint: boolean;
   latencyMs: number | null;
   attempt: number;
+  /**
+   * The correct answer retyped after this wrong typed attempt (domain/retype.ts),
+   * sent only when it matched. Earns retype XP only; never changes the grade,
+   * review_log, score or completion (API_SPEC.md §2.3 point 8).
+   */
+  retypeText?: string;
 }
 
 export interface SubmittedSession {
@@ -218,6 +224,8 @@ export interface SubmittedSessionResponse {
   score?: number | null;
   /** Whether this session completed its skill: every exercise answered and `score` at or above the pass mark. Null unless `outcome` is "Processed". */
   lessonCompleted?: boolean | null;
+  /** XP this session credited (API_SPEC.md §2.3 point 8, summed per answer as domain/xp.ts prices it). Null unless `outcome` is "Processed". */
+  xp?: number | null;
 }
 
 export interface SubmitSessionsResponse {
@@ -287,6 +295,8 @@ export interface CheckpointSubmitResponse {
   requiresTest: boolean;
   /** Whether this call actually moved the cursor — false covers a failed attempt, a target with no cursor row, and "the learner already reached-or-passed the target another way." */
   applied: boolean;
+  /** XP this attempt credited — 0 for an auto-pass that graded nothing, null on a replay. */
+  xp?: number | null;
 }
 
 // ---------------------------------------------------------------------------

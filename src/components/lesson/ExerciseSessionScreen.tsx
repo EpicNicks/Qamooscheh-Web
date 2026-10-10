@@ -10,9 +10,9 @@
 // LessonPage, StoryPage and PracticePage all render exactly this; what differs
 // between them is which engine feeds it and what surrounds it (the
 // nothing-due/complete screens each page keeps to itself), not the screen. The
-// three genuinely per-mode pieces inside it are props: an optional chapter
-// title, the cosmetic XP burst (lessons only — see domain/xp.ts), and the
-// first-lesson tutorial spotlight (lessons only).
+// genuinely per-mode pieces inside it are props: an optional chapter title,
+// the per-answer XP burst (domain/xp.ts), what a retype is recorded as, and
+// the first-lesson tutorial spotlight (lessons only).
 import { useState, type ReactNode } from "react";
 import { ExerciseRenderer } from "./ExerciseRenderer";
 import { SessionProgressBar } from "./SessionProgressBar";
@@ -67,8 +67,14 @@ interface ExerciseSessionScreenProps<TItem extends ExerciseSessionItem, TFeedbac
   onSubmit: (submittedText: string, opts?: { usedHint?: boolean }) => void;
   /** Shown under the top row in both states — the chapter/lesson title Story and Practice have. A lesson is planned across skills and has no single title, so it passes none. */
   title?: string | null;
-  /** Cosmetic per-answer XP for the review screen's burst (domain/xp.ts). Omitted — by Story and Practice — renders no burst at all. */
+  /** Per-answer XP for the review screen's burst (domain/xp.ts). Omitted — by Practice — renders no burst at all. */
   feedbackXp?: (feedback: TFeedback) => number;
+  /**
+   * Records a retype that matched, for the answer under review (sent as its
+   * item's `retypeText`), and returns the XP to pop for it. Omitted — by a
+   * run that's never submitted — a retype is practice only, with no burst.
+   */
+  onRetype?: (text: string) => number;
   /**
    * The first-lesson tutorial spotlight, rendered only while asking (never
    * over a review) and handed the DOM nodes it points at. A render prop rather
@@ -90,6 +96,7 @@ export function ExerciseSessionScreen<TItem extends ExerciseSessionItem, TFeedba
   onSubmit,
   title,
   feedbackXp,
+  onRetype,
   overlay,
   onReplayTutorial,
 }: ExerciseSessionScreenProps<TItem, TFeedback>) {
@@ -130,9 +137,8 @@ export function ExerciseSessionScreen<TItem extends ExerciseSessionItem, TFeedba
   if (answeredItem && feedback) {
     const hintMap = hintMapFor(answeredItem.exercise);
     const answerIsTokenized = answeredItem.exercise.type === "word_bank" || answeredItem.exercise.type === "match";
-    // A wrong typed answer is retyped correctly once more before moving on
-    // (issue #44) — practice only: the answer was already graded and
-    // recorded, and the retype goes nowhere but domain/retype.ts.
+    // A wrong typed answer can be retyped correctly once more (issue #44). It
+    // never changes the answer's grade, only earns retype XP via onRetype.
     const retyping = needsRetype(answeredItem.renderType, feedback.correct);
     return (
       <div className={styles.wrap}>
@@ -183,7 +189,7 @@ export function ExerciseSessionScreen<TItem extends ExerciseSessionItem, TFeedba
           reviewedAnswer={{ text: feedback.submittedText, correct: feedback.correct }}
           retype={
             retyping
-              ? { matches: (text) => retypeMatches(courseCode, answeredItem.exercise, text), onContinue: confirmation.confirm }
+              ? { matches: (text) => retypeMatches(courseCode, answeredItem.exercise, text), onMatched: (text) => onRetype?.(text) ?? 0 }
               : undefined
           }
         />

@@ -57,7 +57,7 @@ const FAQ: FaqEntry[] = [
         </p>
         <p>
           Revealing the Persian for an English word marks that exercise as hinted. A hinted answer doesn't count as
-          remembering the word: it earns no XP, and the word comes back for review sooner.
+          remembering the word: it earns half the XP, and the word comes back for review sooner.
         </p>
         <p>
           To look words up before a lesson, open its Start popover on the path and choose <em>Review vocabulary</em>.
@@ -112,13 +112,15 @@ const FAQ: FaqEntry[] = [
     answer: (
       <>
         <p>
-          Mostly from lessons: every word an exercise tests earns XP when you get it right on the first try — more
-          for a quick answer, less for a slow one or one with a typo, and none for a wrong or hinted answer. Each
-          word counts once per lesson. Flashcards add more (see above).
+          Mostly from lessons, for each exercise you answer: 10 XP for getting it right first time, 7 with a small
+          typo, and 3 for getting it right when it comes back after a miss. After a wrong typed answer,{" "}
+          <em>Retry</em> lets you type the correct answer once more for 2 XP. A hinted answer earns half, and a wrong
+          one nothing; how fast you answer doesn't matter. Flashcards add more (see above).
         </p>
         <p>
-          The XP that pops up after each answer is only an estimate; what you earn is worked out when the lesson is
-          saved. Practice rounds (<em>Practice anyway</em>) earn none, since they don't count toward your reviews.
+          The XP that pops up after each answer is what the lesson earns you once it's saved, and the total shows at
+          the end. Practice rounds (<em>Practice anyway</em>, <em>Replay this lesson</em>) earn none, since they don't
+          count toward your reviews.
           Your daily goal is in Settings → Goals, and leagues rank you by the XP you earn.
         </p>
       </>

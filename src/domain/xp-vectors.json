@@ -1,0 +1,18 @@
+[
+  { "name": "right first time", "verdict": "Correct", "attempt": 1, "usedHint": false, "retype": false, "xp": 10 },
+  { "name": "accepted with a correction first time", "verdict": "AcceptedWithCorrection", "attempt": 1, "usedHint": false, "retype": false, "xp": 7 },
+  { "name": "right on a requeue", "verdict": "Correct", "attempt": 2, "usedHint": false, "retype": false, "xp": 3 },
+  { "name": "right on a later requeue", "verdict": "Correct", "attempt": 5, "usedHint": false, "retype": false, "xp": 3 },
+  { "name": "accepted with a correction on a requeue", "verdict": "AcceptedWithCorrection", "attempt": 3, "usedHint": false, "retype": false, "xp": 3 },
+  { "name": "correct retype", "verdict": "Correct", "attempt": 1, "usedHint": false, "retype": true, "xp": 2 },
+  { "name": "retype accepted with a correction", "verdict": "AcceptedWithCorrection", "attempt": 1, "usedHint": false, "retype": true, "xp": 2 },
+  { "name": "retype on a requeue", "verdict": "Correct", "attempt": 2, "usedHint": false, "retype": true, "xp": 2 },
+  { "name": "wrong", "verdict": "Incorrect", "attempt": 1, "usedHint": false, "retype": false, "xp": 0 },
+  { "name": "wrong on a requeue with a hint", "verdict": "Incorrect", "attempt": 2, "usedHint": true, "retype": false, "xp": 0 },
+  { "name": "wrong retype", "verdict": "Incorrect", "attempt": 1, "usedHint": false, "retype": true, "xp": 0 },
+  { "name": "hinted right first time", "verdict": "Correct", "attempt": 1, "usedHint": true, "retype": false, "xp": 5 },
+  { "name": "hinted accepted with a correction", "verdict": "AcceptedWithCorrection", "attempt": 1, "usedHint": true, "retype": false, "xp": 4 },
+  { "name": "hinted right on a requeue", "verdict": "Correct", "attempt": 2, "usedHint": true, "retype": false, "xp": 2 },
+  { "name": "hinted accepted on a requeue", "verdict": "AcceptedWithCorrection", "attempt": 2, "usedHint": true, "retype": false, "xp": 2 },
+  { "name": "hinted retype", "verdict": "Correct", "attempt": 1, "usedHint": true, "retype": true, "xp": 1 }
+]
