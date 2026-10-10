@@ -33,7 +33,7 @@ import { checkAnswer, type AnswerVerdict } from "../domain/answerFeedback";
 import { resolveExerciseType } from "../domain/exerciseResolution";
 import { LESSON_PASS_THRESHOLD, verdictWeight } from "../domain/lessonScore";
 import type { SessionPlanResponse, SkillRef, SubmittedItem, SubmittedSession, SubmittedSessionResponse } from "../types/api";
-import type { ExerciseArtifact } from "../types/content";
+import type { ExerciseArtifact, SkillArtifact } from "../types/content";
 import type { ExerciseType, SkillCategory } from "../domain/enums";
 
 const RETRY_DEPTH = 3;
@@ -246,13 +246,17 @@ export function useLessonEngine(deepDiveLessonKeys?: string[], selectedSkillKey?
    * FSRS due-ness — every session except a remix, since only a whole lesson
    * can complete its skill (see the header comment).
    */
-  function buildInstances(skillRefs: readonly SkillRef[], dueTagsFilter: Set<string> | null): LessonExerciseInstance[] {
+  function buildInstances(
+    skillRefs: readonly SkillRef[],
+    dueTagsFilter: Set<string> | null,
+    artifacts: ReadonlyMap<string, SkillArtifact> = skillArtifacts,
+  ): LessonExerciseInstance[] {
     if (!userId) return [];
     const localCards = loadCardStates(userId);
     const instances: LessonExerciseInstance[] = [];
 
     for (const ref of skillRefs) {
-      const artifact = skillArtifacts.get(refKey(ref));
+      const artifact = artifacts.get(refKey(ref));
       if (!artifact) continue;
       artifact.exercises.forEach((exercise, ordinal) => {
         if (dueTagsFilter && !exercise.tags.some((tag) => dueTagsFilter.has(tag))) return;
@@ -324,6 +328,11 @@ export function useLessonEngine(deepDiveLessonKeys?: string[], selectedSkillKey?
   // whether the lesson it just finished had a journey position at all.
   const [sessionSkillRefs, setSessionSkillRefs] = useState<SkillRef[]>([]);
   const [sessionSkillCategory, setSessionSkillCategory] = useState<SkillCategory | null>(null);
+  // The artifacts of sessionSkillRefs, snapshotted alongside them — after a
+  // pass the plan/position refetch moves on to the next lesson, so
+  // skillArtifacts stops holding the one just finished and retake()/replay()
+  // would otherwise build nothing.
+  const [sessionArtifacts, setSessionArtifacts] = useState<ReadonlyMap<string, SkillArtifact>>(new Map());
   const shownAt = useRef<number>(performance.now());
 
   // The learner's cursor position captured once, the first time bootstrap
@@ -357,6 +366,14 @@ export function useLessonEngine(deepDiveLessonKeys?: string[], selectedSkillKey?
       playedRefs.push({ unitKey: instance.unitKey, skillKey: instance.skillKey });
     }
     setSessionSkillRefs(playedRefs);
+    setSessionArtifacts(
+      new Map(
+        playedRefs.flatMap((ref) => {
+          const artifact = skillArtifacts.get(refKey(ref));
+          return artifact ? [[refKey(ref), artifact] as const] : [];
+        }),
+      ),
+    );
     const primaryRef = playedRefs[0];
     setSessionSkillCategory(primaryRef ? (skillArtifacts.get(refKey(primaryRef))?.category ?? null) : null);
     shownAt.current = performance.now();
@@ -402,7 +419,7 @@ export function useLessonEngine(deepDiveLessonKeys?: string[], selectedSkillKey?
    */
   function retake() {
     if (sessionSkillRefs.length === 0) return;
-    restart(buildInstances(sessionSkillRefs, null), false);
+    restart(buildInstances(sessionSkillRefs, null, sessionArtifacts), false);
   }
 
   /**
@@ -413,7 +430,7 @@ export function useLessonEngine(deepDiveLessonKeys?: string[], selectedSkillKey?
    */
   function replay() {
     if (sessionSkillRefs.length === 0) return;
-    const built = buildInstances(sessionSkillRefs, null);
+    const built = buildInstances(sessionSkillRefs, null, sessionArtifacts);
     restart(isRemix ? built.slice(0, REMIX_MAX_EXERCISES) : built, true);
   }
 
