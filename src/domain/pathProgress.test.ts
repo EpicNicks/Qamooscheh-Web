@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computePathProgress, findNextStandardTarget, findNextUnitEntryTarget, groupByArc, isFirstStandardPosition } from "./pathProgress";
+import { computePathProgress, findLessonAfter, findNextStandardTarget, findNextUnitEntryTarget, groupByArc, isFirstStandardPosition } from "./pathProgress";
 import type { PathUnitInput, SkillStatus } from "./pathProgress";
 
 function standard(skillKey: string) {
@@ -231,5 +231,37 @@ describe("isFirstStandardPosition", () => {
     const path = computePathProgress(courseFixture(), { unitKey: "u1", skillKey: "a1" });
     expect(isFirstStandardPosition(path, { unitKey: "u1", skillKey: "nope" })).toBe(false);
     expect(isFirstStandardPosition([], { unitKey: "u1", skillKey: "a1" })).toBe(false);
+  });
+});
+
+describe("findLessonAfter", () => {
+  it("returns the cursor's position once it has moved past the finished lesson", () => {
+    const path = computePathProgress(courseFixture(), { unitKey: "u1", skillKey: "c1" });
+    expect(findLessonAfter(path, [{ unitKey: "u1", skillKey: "b2" }])).toEqual({ unitKey: "u1", skillKey: "c1" });
+  });
+
+  it("crosses into the next unit", () => {
+    const path = computePathProgress(courseFixture(), { unitKey: "u2", skillKey: "d1" });
+    expect(findLessonAfter(path, [{ unitKey: "u1", skillKey: "c1" }])).toEqual({ unitKey: "u2", skillKey: "d1" });
+  });
+
+  it("uses the first alternate when the next position is a fork", () => {
+    const path = computePathProgress(courseFixture(), { unitKey: "u1", skillKey: "b2" });
+    expect(findLessonAfter(path, [{ unitKey: "u1", skillKey: "a1" }])).toEqual({ unitKey: "u1", skillKey: "b1" });
+  });
+
+  it("returns null while the cursor still sits on the finished lesson", () => {
+    // A path not yet refreshed after the pass, or the course's last lesson.
+    const path = computePathProgress(courseFixture(), { unitKey: "u2", skillKey: "e1" });
+    expect(findLessonAfter(path, [{ unitKey: "u2", skillKey: "e1" }])).toBeNull();
+  });
+
+  it("treats the finished lesson's fork alternate as the same position", () => {
+    const path = computePathProgress(courseFixture(), { unitKey: "u1", skillKey: "b1" });
+    expect(findLessonAfter(path, [{ unitKey: "u1", skillKey: "b2" }])).toBeNull();
+  });
+
+  it("returns null with no cursor", () => {
+    expect(findLessonAfter(computePathProgress(courseFixture(), null), [{ unitKey: "u1", skillKey: "a1" }])).toBeNull();
   });
 });
