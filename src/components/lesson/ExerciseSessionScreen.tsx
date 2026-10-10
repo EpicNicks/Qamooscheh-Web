@@ -1,7 +1,8 @@
 // The screen a learner is actually looking at while working through a queue
 // of exercises, in both of its states:
 //
-//   * asking — top row, the exercise, the skip modal if it's been requested;
+//   * asking — top row, the Report control, the exercise, the skip modal if
+//     it's been requested;
 //   * reviewing — the same top row, this answer's feedback, and the answered
 //     exercise still on screen (disabled, its submit control replaced by
 //     "Continue") until the learner confirms.
@@ -16,6 +17,7 @@ import { useState, type ReactNode } from "react";
 import { ExerciseRenderer } from "./ExerciseRenderer";
 import { SessionProgressBar } from "./SessionProgressBar";
 import { AnswerFeedback } from "./AnswerFeedback";
+import { ReportIssue } from "./ReportIssue";
 import { closestAnswerFirst } from "../../domain/answerFeedback";
 import { SaveWordsRow } from "../vocabulary/SaveWordsRow";
 import { SkipLessonModal } from "./SkipLessonModal";
@@ -103,6 +105,8 @@ export function ExerciseSessionScreen<TItem extends ExerciseSessionItem, TFeedba
     confirmation.feedback?.submittedText,
   );
   const reportContext = useExerciseReportContext(confirmation.answeredItem, confirmation.feedback?.submittedText ?? null);
+  // The exercise still being asked has nothing submitted to cite.
+  const askingReportContext = useExerciseReportContext(current, null);
 
   /** Whether this exercise has any native-script text worth hovering — see gateLexemeHintMap's own conditions. */
   const hintMapFor = (exercise: ExerciseArtifact) =>
@@ -201,6 +205,7 @@ export function ExerciseSessionScreen<TItem extends ExerciseSessionItem, TFeedba
     <div className={styles.wrap}>
       {topRow(overlay ? setTopRowEl : undefined)}
       {title && <h1 className={styles.chapterTitle}>{title}</h1>}
+      {askingReportContext && <ReportIssue key={current.key} context={askingReportContext} stage="unanswered" />}
       {overlay ? <div ref={setExerciseEl}>{exercise}</div> : exercise}
       {overlay?.({ item: current, topRowEl, exerciseEl })}
       {skipModal}
