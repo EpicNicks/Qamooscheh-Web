@@ -53,6 +53,15 @@ export interface ExerciseProps {
    * types ignore it.
    */
   reviewedAnswer?: ReviewedAnswer;
+  /**
+   * Set while reviewing a wrong typed answer (domain/retype.ts): the learner
+   * types the correct answer once more as practice, or skips it. Replaces the
+   * `advance` button with Skip and Submit; both move on the way `advance`
+   * would. Practice only — `matches` is checked here, and nothing reaches
+   * onSubmit or the grader. Only TypeInExercise reads it, and it's expected
+   * to render enabled while this is set.
+   */
+  retype?: { matches: (text: string) => boolean; onContinue: () => void };
 }
 
 /** Renders the exercise inside its ExerciseVoiceScope, so a shuffled voice holds for everything heard in it (hooks/exerciseVoiceScope.ts). */
@@ -82,6 +91,7 @@ function ExerciseByType({
   textSettings,
   advance,
   reviewedAnswer,
+  retype,
 }: ExerciseProps & { renderType: ExerciseType }) {
   switch (renderType) {
     case "word_bank":
@@ -111,6 +121,7 @@ function ExerciseByType({
           textSettings={textSettings}
           advance={advance}
           reviewedAnswer={reviewedAnswer}
+          retype={retype}
         />
       );
     case "match":

@@ -352,3 +352,11 @@
   font-style: italic;
   overflow-wrap: anywhere;
 }
+
+/* Skip + Submit while retyping a wrong answer (issue #44), kept together on
+   the right where Continue/Submit normally sit. */
+.retypeActions {
+  display: flex;
+  gap: var(--space-2);
+  margin-left: auto;
+}

@@ -17,6 +17,7 @@ import { ExerciseRenderer } from "./ExerciseRenderer";
 import { SessionProgressBar } from "./SessionProgressBar";
 import { AnswerFeedback } from "./AnswerFeedback";
 import { closestAnswerFirst } from "../../domain/answerFeedback";
+import { needsRetype, retypeMatches } from "../../domain/retype";
 import { SaveWordsRow } from "../vocabulary/SaveWordsRow";
 import { SkipLessonModal } from "./SkipLessonModal";
 import { CloseLessonButton } from "./CloseLessonButton";
@@ -125,6 +126,10 @@ export function ExerciseSessionScreen<TItem extends ExerciseSessionItem, TFeedba
   if (answeredItem && feedback) {
     const hintMap = hintMapFor(answeredItem.exercise);
     const answerIsTokenized = answeredItem.exercise.type === "word_bank" || answeredItem.exercise.type === "match";
+    // A wrong typed answer is retyped correctly once more before moving on
+    // (issue #44) — practice only: the answer was already graded and
+    // recorded, and the retype goes nowhere but domain/retype.ts.
+    const retyping = needsRetype(answeredItem.renderType, feedback.correct);
     return (
       <div className={styles.wrap}>
         {topRow()}
@@ -162,7 +167,9 @@ export function ExerciseSessionScreen<TItem extends ExerciseSessionItem, TFeedba
           exercise={answeredItem.exercise}
           renderType={answeredItem.renderType}
           onSubmit={() => {}}
-          disabled
+          // A retype takes typing, so it stays enabled — but, as while asking,
+          // not under the Skip modal.
+          disabled={retyping ? skip.isConfirming : true}
           courseCode={courseCode}
           keyboardMode={keyboardMode}
           autoplayAudio={autoplayAudio}
@@ -170,6 +177,11 @@ export function ExerciseSessionScreen<TItem extends ExerciseSessionItem, TFeedba
           textSettings={textSettings}
           advance={{ label: "Continue", onAdvance: confirmation.confirm }}
           reviewedAnswer={{ text: feedback.submittedText, correct: feedback.correct }}
+          retype={
+            retyping
+              ? { matches: (text) => retypeMatches(courseCode, answeredItem.exercise, text), onContinue: confirmation.confirm }
+              : undefined
+          }
         />
         {skipModal}
       </div>
