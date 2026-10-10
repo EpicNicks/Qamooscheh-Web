@@ -4,8 +4,14 @@
 // or cache, and they're tuned to sit under a voice rather than over it.
 // A channel of their own: unlike domain/playback.ts, a sound never stops
 // whatever is being read aloud, and reading aloud never stops a sound.
+// The one exception to synthesis is a story's end, which plays the same
+// recording the Android app's finished-lesson sound does.
 
-export type SoundEffect = "correct" | "wrong" | "lessonPassed" | "lessonFailed" | "goalReached";
+import storyCompleteUrl from "../assets/sfx/story-complete.wav";
+
+type SynthEffect = "correct" | "wrong" | "lessonPassed" | "lessonFailed" | "goalReached";
+type SampleEffect = "storyComplete";
+export type SoundEffect = SynthEffect | SampleEffect;
 
 interface Note {
   /** Hz. */
@@ -21,7 +27,7 @@ const notes = (freqs: number[], step: number, length: number, lastLength = lengt
 
 // Rising for good news, falling for bad; the wrong-answer sound is low and
 // soft so that hearing it over and over doesn't sting.
-export const SOUNDS: Record<SoundEffect, { wave: OscillatorType; volume: number; notes: Note[] }> = {
+export const SOUNDS: Record<SynthEffect, { wave: OscillatorType; volume: number; notes: Note[] }> = {
   correct: { wave: "sine", volume: 0.18, notes: notes([659.25, 987.77], 0.08, 0.12, 0.22) }, // E5 B5
   wrong: { wave: "triangle", volume: 0.16, notes: notes([233.08, 174.61], 0.11, 0.14, 0.24) }, // Bb3 F3
   lessonPassed: { wave: "sine", volume: 0.18, notes: notes([523.25, 659.25, 783.99, 1046.5], 0.11, 0.16, 0.5) }, // C5 E5 G5 C6
@@ -29,8 +35,16 @@ export const SOUNDS: Record<SoundEffect, { wave: OscillatorType; volume: number;
   goalReached: { wave: "sine", volume: 0.16, notes: notes([783.99, 1046.5, 1318.51], 0.09, 0.14, 0.4) }, // G5 C6 E6
 };
 
+/** Recorded sounds: `length` is the recording's, in seconds, so it's known before it loads. */
+export const SAMPLES: Record<SampleEffect, { url: string; volume: number; length: number }> = {
+  storyComplete: { url: storyCompleteUrl, volume: 0.6, length: 0.7 },
+};
+
+const isSample = (effect: SoundEffect): effect is SampleEffect => effect in SAMPLES;
+
 /** Seconds from a sound's start to its last note's end — how long anything meant to follow it waits (hooks/useAnswerAudio.ts). */
 export function soundLength(effect: SoundEffect): number {
+  if (isSample(effect)) return SAMPLES[effect].length;
   return Math.max(...SOUNDS[effect].notes.map((note) => note.at + note.length));
 }
 
@@ -68,7 +82,35 @@ export function playSound(effect: SoundEffect): void {
   }
 }
 
+/** A recording's bytes, fetched once; decoded per play, which for a sound this short is quick. */
+const sampleBytes = new Map<SampleEffect, Promise<ArrayBuffer>>();
+
+function fetchSample(effect: SampleEffect): Promise<ArrayBuffer> {
+  let bytes = sampleBytes.get(effect);
+  if (!bytes) {
+    bytes = fetch(SAMPLES[effect].url).then((response) => {
+      if (!response.ok) throw new Error(`${response.status}`);
+      return response.arrayBuffer();
+    });
+    // A failed fetch may be retried by the next play.
+    bytes.catch(() => sampleBytes.delete(effect));
+    sampleBytes.set(effect, bytes);
+  }
+  return bytes;
+}
+
+/**
+ * Starts fetching a recorded sound ahead of when it's played, so that it
+ * comes out on cue rather than being dropped as late. No audio context is
+ * needed for this, so it's fine before any gesture.
+ */
+export function preloadSound(effect: SoundEffect): void {
+  if (!isSample(effect) || typeof fetch === "undefined") return;
+  fetchSample(effect).catch(() => {});
+}
+
 function schedule(ctx: AudioContext, effect: SoundEffect): void {
+  if (isSample(effect)) return scheduleSample(ctx, effect);
   const { wave, volume, notes } = SOUNDS[effect];
   const start = ctx.currentTime + 0.01;
   for (const note of notes) {
@@ -84,4 +126,21 @@ function schedule(ctx: AudioContext, effect: SoundEffect): void {
     oscillator.start(start + note.at);
     oscillator.stop(start + note.at + note.length + 0.02);
   }
+}
+
+function scheduleSample(ctx: AudioContext, effect: SampleEffect): void {
+  const asked = performance.now();
+  fetchSample(effect)
+    // decodeAudioData detaches the buffer it's given: hand it a copy.
+    .then((bytes) => ctx.decodeAudioData(bytes.slice(0)))
+    .then((buffer) => {
+      if (performance.now() - asked >= MAX_START_DELAY_MS) return;
+      const source = ctx.createBufferSource();
+      const gain = ctx.createGain();
+      source.buffer = buffer;
+      gain.gain.value = SAMPLES[effect].volume;
+      source.connect(gain).connect(ctx.destination);
+      source.start();
+    })
+    .catch(() => {});
 }
