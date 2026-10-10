@@ -146,6 +146,30 @@ export function findNextStandardTarget(path: PathUnit[]): PositionKey | null {
 }
 
 /**
+ * The lesson a learner who just finished `finished` would start next from
+ * the path — the cursor's current position, once it has moved past every
+ * lesson in `finished`. Returns null while the cursor still sits on one of
+ * them (the path hasn't caught up with the pass yet, a practice round that
+ * completed nothing, or the very last lesson of the course, which has no
+ * position after it) and when there's no current position at all. For a fork
+ * the first alternate is used, as findNextStandardTarget does.
+ */
+export function findLessonAfter(
+  path: PathUnit[],
+  finished: readonly { unitKey: string | null; skillKey: string }[],
+): PositionKey | null {
+  for (const unit of path) {
+    const current = unit.standardPositions.find((p) => p.status === "current");
+    if (!current) continue;
+    const stillCurrent = current.skills.some((s) =>
+      finished.some((ref) => ref.unitKey === unit.unitKey && ref.skillKey === s.skillKey),
+    );
+    return stillCurrent ? null : { unitKey: unit.unitKey, skillKey: current.skills[0].skillKey };
+  }
+  return null;
+}
+
+/**
  * The (unitKey, skillKey) of the NEXT unit's own first standard position —
  * distinct from findNextStandardTarget, which finds the position immediately
  * after the cursor within its current progression and so can still be

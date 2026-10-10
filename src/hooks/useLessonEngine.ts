@@ -33,7 +33,7 @@ import { checkAnswer, type AnswerVerdict } from "../domain/answerFeedback";
 import { resolveExerciseType } from "../domain/exerciseResolution";
 import { LESSON_PASS_THRESHOLD, verdictWeight } from "../domain/lessonScore";
 import type { SessionPlanResponse, SkillRef, SubmittedItem, SubmittedSession, SubmittedSessionResponse } from "../types/api";
-import type { ExerciseArtifact } from "../types/content";
+import type { ExerciseArtifact, SkillArtifact } from "../types/content";
 import type { ExerciseType, SkillCategory } from "../domain/enums";
 
 const RETRY_DEPTH = 3;
@@ -246,13 +246,17 @@ export function useLessonEngine(deepDiveLessonKeys?: string[], selectedSkillKey?
    * FSRS due-ness — every session except a remix, since only a whole lesson
    * can complete its skill (see the header comment).
    */
-  function buildInstances(skillRefs: readonly SkillRef[], dueTagsFilter: Set<string> | null): LessonExerciseInstance[] {
+  function buildInstances(
+    skillRefs: readonly SkillRef[],
+    dueTagsFilter: Set<string> | null,
+    artifacts: ReadonlyMap<string, SkillArtifact> = skillArtifacts,
+  ): LessonExerciseInstance[] {
     if (!userId) return [];
     const localCards = loadCardStates(userId);
     const instances: LessonExerciseInstance[] = [];
 
     for (const ref of skillRefs) {
-      const artifact = skillArtifacts.get(refKey(ref));
+      const artifact = artifacts.get(refKey(ref));
       if (!artifact) continue;
       artifact.exercises.forEach((exercise, ordinal) => {
         if (dueTagsFilter && !exercise.tags.some((tag) => dueTagsFilter.has(tag))) return;
@@ -324,6 +328,11 @@ export function useLessonEngine(deepDiveLessonKeys?: string[], selectedSkillKey?
   // whether the lesson it just finished had a journey position at all.
   const [sessionSkillRefs, setSessionSkillRefs] = useState<SkillRef[]>([]);
   const [sessionSkillCategory, setSessionSkillCategory] = useState<SkillCategory | null>(null);
+  // The artifacts of sessionSkillRefs, snapshotted alongside them — after a
+  // pass the plan/position refetch moves on to the next lesson, so
+  // skillArtifacts stops holding the one just finished and retake()/replay()
+  // would otherwise build nothing.
+  const [sessionArtifacts, setSessionArtifacts] = useState<ReadonlyMap<string, SkillArtifact>>(new Map());
   const shownAt = useRef<number>(performance.now());
 
   // The learner's cursor position captured once, the first time bootstrap
@@ -336,6 +345,35 @@ export function useLessonEngine(deepDiveLessonKeys?: string[], selectedSkillKey?
     startingPositionRef.current = bootstrap.data?.position ?? null;
   }
 
+  /**
+   * Records which lessons a queue actually plays, and their artifacts. Derived
+   * from the built (and possibly REMIX_MAX_EXERCISES-truncated) queue, not
+   * plan.data.skills directly — a remix's merged plan can list a lesson whose
+   * exercises got truncated away entirely, and that lesson was never actually
+   * played.
+   */
+  function snapshotSession(instances: readonly LessonExerciseInstance[], artifacts: ReadonlyMap<string, SkillArtifact>) {
+    const playedRefs: SkillRef[] = [];
+    const seenKeys = new Set<string>();
+    for (const instance of instances) {
+      const key = refKey(instance);
+      if (seenKeys.has(key)) continue;
+      seenKeys.add(key);
+      playedRefs.push({ unitKey: instance.unitKey, skillKey: instance.skillKey });
+    }
+    setSessionSkillRefs(playedRefs);
+    setSessionArtifacts(
+      new Map(
+        playedRefs.flatMap((ref) => {
+          const artifact = artifacts.get(refKey(ref));
+          return artifact ? [[refKey(ref), artifact] as const] : [];
+        }),
+      ),
+    );
+    const primaryRef = playedRefs[0];
+    setSessionSkillCategory(primaryRef ? (artifacts.get(refKey(primaryRef))?.category ?? null) : null);
+  }
+
   // Seed local state once content resolves — a ref-guarded effect would be
   // the "proper" way, but a plain lazy check keeps this hook dependency-free
   // of useEffect entirely, which matters here because re-seeding on every
@@ -344,21 +382,7 @@ export function useLessonEngine(deepDiveLessonKeys?: string[], selectedSkillKey?
   if (queue === null && skillsReady && plan.data) {
     setQueue(initialQueue);
     setTotalCount(initialQueue.length);
-    // Derived from the actual built (and possibly REMIX_MAX_EXERCISES-
-    // truncated) queue, not plan.data.skills directly — a remix's merged
-    // plan can list a lesson whose exercises got truncated away entirely,
-    // and that lesson was never actually played.
-    const playedRefs: SkillRef[] = [];
-    const seenKeys = new Set<string>();
-    for (const instance of initialQueue) {
-      const key = refKey(instance);
-      if (seenKeys.has(key)) continue;
-      seenKeys.add(key);
-      playedRefs.push({ unitKey: instance.unitKey, skillKey: instance.skillKey });
-    }
-    setSessionSkillRefs(playedRefs);
-    const primaryRef = playedRefs[0];
-    setSessionSkillCategory(primaryRef ? (skillArtifacts.get(refKey(primaryRef))?.category ?? null) : null);
+    snapshotSession(initialQueue, skillArtifacts);
     shownAt.current = performance.now();
   }
 
@@ -391,7 +415,12 @@ export function useLessonEngine(deepDiveLessonKeys?: string[], selectedSkillKey?
     const refs = plan.data.skills.length > 0 ? lessonSkills(plan.data.skills) : positionRef ? [positionRef] : [];
     if (refs.length === 0) return;
     const built = buildInstances(refs, null);
-    restart(isRemix ? built.slice(0, REMIX_MAX_EXERCISES) : built, true);
+    const instances = isRemix ? built.slice(0, REMIX_MAX_EXERCISES) : built;
+    if (instances.length === 0) return;
+    // The nothing-due screen seeded an empty session, so this round is what
+    // replay() and the recap's Next lesson have to go on.
+    snapshotSession(instances, skillArtifacts);
+    restart(instances, true);
   }
 
   /**
@@ -402,7 +431,19 @@ export function useLessonEngine(deepDiveLessonKeys?: string[], selectedSkillKey?
    */
   function retake() {
     if (sessionSkillRefs.length === 0) return;
-    restart(buildInstances(sessionSkillRefs, null), false);
+    restart(buildInstances(sessionSkillRefs, null, sessionArtifacts), false);
+  }
+
+  /**
+   * Go through the lesson just finished again as a practice round — the same
+   * skills retake() rebuilds, but with no submission (see finishLesson), so a
+   * lesson already passed never earns review credit twice. Wired to the
+   * passed-lesson screen's "Replay this lesson".
+   */
+  function replay() {
+    if (sessionSkillRefs.length === 0) return;
+    const built = buildInstances(sessionSkillRefs, null, sessionArtifacts);
+    restart(isRemix ? built.slice(0, REMIX_MAX_EXERCISES) : built, true);
   }
 
   function restart(instances: LessonExerciseInstance[], practice: boolean) {
@@ -638,6 +679,7 @@ export function useLessonEngine(deepDiveLessonKeys?: string[], selectedSkillKey?
     submitAnswer,
     startPractice,
     retake,
+    replay,
     /** See the state's own comment — false means this run ended without finishing the lesson, so it didn't unlock what comes next. */
     lessonCompleted,
     markShown,
