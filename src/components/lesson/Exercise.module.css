@@ -352,3 +352,22 @@
   font-style: italic;
   overflow-wrap: anywhere;
 }
+
+/* Retry + Continue, then Continue + Submit while retyping, on a wrong typed
+   answer's review (issue #44), kept together on the right where
+   Continue/Submit normally sit. */
+.retypeActions {
+  display: flex;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+
+/* Read out, not shown — the visible "+N XP" beside it is decorative. */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

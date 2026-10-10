@@ -26,8 +26,10 @@ export async function submitRecordedAnswers(params: {
   courseCode: string;
   courseVersion: number;
   answers: readonly RecordedAnswer[];
+  /** See ApiFetchOptions.keepalive. */
+  keepalive?: boolean;
 }): Promise<SubmitOutcome> {
-  const { userId, courseCode, courseVersion, answers } = params;
+  const { userId, courseCode, courseVersion, answers, keepalive } = params;
   const occurredAt = new Date().toISOString();
   const bySkill = new Map<string, SubmittedSession>();
   for (const answer of answers) {
@@ -55,7 +57,7 @@ export async function submitRecordedAnswers(params: {
   if (sessions.length === 0) return "saved";
 
   try {
-    const response = await submitSessions(sessions);
+    const response = await submitSessions(sessions, { keepalive });
     for (const result of response.sessions) {
       if (result.outcome !== "Rejected") mergeCardStates(userId, result.cards);
     }

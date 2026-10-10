@@ -200,11 +200,21 @@ function LessonPageContent() {
   // (by the Continue button OR the hook's own Enter handling), not when that
   // answer was submitted. Otherwise feedback-reading time is billed to the
   // next exercise's latencyMs, which the server grades on.
-  const { markShown } = engine;
+  const { markShown, settleAnswer } = engine;
   const isReviewing = confirmation.answeredItem !== null;
   useEffect(() => {
     if (!isReviewing) markShown();
   }, [isReviewing, markShown]);
+  // A last answer that could be retyped is submitted only once its review
+  // closes (useLessonEngine's settleAnswer) — a no-op every other time.
+  useEffect(() => {
+    if (!isReviewing) settleAnswer();
+  });
+
+  // What the server credited, on either end screen (API_SPEC.md §2.3 point 8).
+  const earnedXp = engine.sessionXp != null && engine.sessionXp > 0 && (
+    <p className={styles.practiceNote}>+{engine.sessionXp} XP</p>
+  );
 
   if (isThemeRemixRoute && themeIndex.isError) {
     return <ErrorBanner message="Couldn't load themes from the CDN." />;
@@ -331,6 +341,7 @@ function LessonPageContent() {
             {isDeepDive ? "" : " and unlock the next one"}. Your answers still count toward your reviews — take it
             again to pass.
           </p>
+          {earnedXp}
           <LessonResults
             correct={engine.score.correct}
             total={engine.score.total}
@@ -356,6 +367,7 @@ function LessonPageContent() {
           {engine.isPracticeMode && <p className={styles.practiceNote}>Practice round — doesn't count toward your review schedule.</p>}
           {engine.result && engine.result.outcome === "AlreadyProcessed" && <p>Already recorded.</p>}
           {engine.journeyAdvanced && <p className={styles.practiceNote}>This also moved you forward in your Journey.</p>}
+          {earnedXp}
           <LessonResults
             correct={engine.score.correct}
             total={engine.score.total}
@@ -425,7 +437,12 @@ function LessonPageContent() {
       progress={engine.progress}
       current={engine.current}
       onSubmit={handleSubmit}
-      feedbackXp={(feedback) => xpForAnswer(feedback.verdict, feedback.attempt, lastUsedHint)}
+      // A practice round is never submitted, so it earns nothing to pop.
+      feedbackXp={(feedback) => (engine.isPracticeMode ? 0 : xpForAnswer(feedback.verdict, feedback.attempt, lastUsedHint))}
+      onRetype={(text) => {
+        const retype = engine.recordRetype(text);
+        return retype && !engine.isPracticeMode ? xpForAnswer(retype.verdict, retype.attempt, lastUsedHint, true, retype.retypeNumber) : 0;
+      }}
       overlay={({ item, topRowEl, exerciseEl }) => (
         <RealLessonOverlay
           topRowEl={topRowEl}

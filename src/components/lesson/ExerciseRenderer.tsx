@@ -53,6 +53,15 @@ export interface ExerciseProps {
    * types ignore it.
    */
   reviewedAnswer?: ReviewedAnswer;
+  /**
+   * Set while reviewing a wrong typed answer (domain/retype.ts): a Retry
+   * button beside `advance` opens a field to type the correct answer once
+   * more, optionally. `matches` checks a retype; a match goes to `onMatched`,
+   * which records it and returns the XP it earned, for the pop. It never
+   * reaches onSubmit or changes the answer's grade. Only TypeInExercise reads
+   * it, and it's expected to render enabled while this is set.
+   */
+  retype?: { matches: (text: string) => boolean; onMatched: (text: string) => number };
 }
 
 /** Renders the exercise inside its ExerciseVoiceScope, so a shuffled voice holds for everything heard in it (hooks/exerciseVoiceScope.ts). */
@@ -82,6 +91,7 @@ function ExerciseByType({
   textSettings,
   advance,
   reviewedAnswer,
+  retype,
 }: ExerciseProps & { renderType: ExerciseType }) {
   switch (renderType) {
     case "word_bank":
@@ -111,6 +121,7 @@ function ExerciseByType({
           textSettings={textSettings}
           advance={advance}
           reviewedAnswer={reviewedAnswer}
+          retype={retype}
         />
       );
     case "match":

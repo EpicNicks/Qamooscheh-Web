@@ -11,6 +11,7 @@ import { checkAnswer, type AnswerVerdict } from "../domain/answerFeedback";
 import { resolveExerciseType } from "../domain/exerciseResolution";
 import { flashcardWords, type FlashcardWord } from "../domain/flashcards";
 import { xpForAnswer } from "../domain/xp";
+import { needsRetype } from "../domain/retype";
 import {
   includesExercise,
   includesFlashcards,
@@ -105,6 +106,9 @@ export function SavedPracticePage() {
   const [status, setStatus] = useState<"running" | "submitting" | "done">("running");
   const [outcome, setOutcome] = useState<Outcome | null>(null);
   const shownAt = useRef(0);
+  // Set when the last answer could still be retyped: the submit waits for its
+  // review to close, so a retype goes in it.
+  const finishPending = useRef(false);
 
   const ready =
     practice.data != null && lexemeIndex.data != null && userId != null && refs.every((ref) => content.skills.has(refKey(ref)));
@@ -173,7 +177,33 @@ export function SavedPracticePage() {
     if (!isReviewing) shownAt.current = performance.now();
   }, [isReviewing, position]);
 
-  async function finish(finalAnswers: RecordedAnswer[], finalCards: { tag: string; correct: boolean }[]) {
+  function settlePending(keepalive = false) {
+    if (!finishPending.current) return;
+    finishPending.current = false;
+    void finish(answers, cards, keepalive);
+  }
+
+  // A waiting submit must not be lost when the review is left some other way
+  // than Continue: leaving the page (Close, a nav link) submits it as it
+  // unmounts, closing the tab submits it with keepalive as the page hides.
+  const settleRef = useRef(settlePending);
+  useEffect(() => {
+    settleRef.current = settlePending;
+  });
+  useEffect(() => {
+    const settle = settleRef;
+    const onPageHide = () => settle.current(true);
+    window.addEventListener("pagehide", onPageHide);
+    return () => {
+      window.removeEventListener("pagehide", onPageHide);
+      settle.current();
+    };
+  }, []);
+  useEffect(() => {
+    if (!isReviewing) settlePending();
+  });
+
+  async function finish(finalAnswers: RecordedAnswer[], finalCards: { tag: string; correct: boolean }[], keepalive = false) {
     if (!course || !userId || !practice.data) return;
     setStatus("submitting");
 
@@ -182,6 +212,7 @@ export function SavedPracticePage() {
       courseCode: course.code,
       courseVersion: practice.data.courseVersion,
       answers: finalAnswers,
+      keepalive,
     });
 
     let flashcardXp: number | null = 0;
@@ -193,7 +224,7 @@ export function SavedPracticePage() {
           occurredAt: new Date().toISOString(),
           inRemix: true,
           cards: finalCards.map((card) => ({ ...card, kind: "self_rated" as const })),
-        });
+        }, { keepalive });
         flashcardXp = response.xp;
       } catch {
         flashcardXp = null;
@@ -209,10 +240,16 @@ export function SavedPracticePage() {
     setStatus("done");
   }
 
-  function advance(nextAnswers: RecordedAnswer[], nextCards: { tag: string; correct: boolean }[]) {
+  function advance(nextAnswers: RecordedAnswer[], nextCards: { tag: string; correct: boolean }[], holdFinish = false) {
     const next = position + 1;
     setPosition(next);
-    if (queue && next >= queue.length) void finish(nextAnswers, nextCards);
+    if (!queue || next < queue.length) return;
+    if (holdFinish) {
+      finishPending.current = true;
+      setStatus("submitting");
+    } else {
+      void finish(nextAnswers, nextCards);
+    }
   }
 
   function answerCard(word: FlashcardWord, correct: boolean) {
@@ -248,7 +285,21 @@ export function SavedPracticePage() {
     ];
     setAnswers(nextAnswers);
     confirmation.record(item, { correct, note: feedback.note, submittedText, verdict: feedback.verdict, usedHint });
-    advance(nextAnswers, cards);
+    advance(nextAnswers, cards, needsRetype(item.renderType, correct));
+  }
+
+  /** A retype that matched (domain/retype.ts), recorded on the reviewed exercise's items; returns the XP it earned. Each exercise is asked once, so retyped at most once. */
+  function recordRetype(retypeText: string): number {
+    const { answeredItem: item, feedback } = confirmation;
+    if (!item || !feedback) return 0;
+    setAnswers((prev) =>
+      prev.map((answer) =>
+        answer.unitKey === item.unitKey && answer.skillKey === item.skillKey && answer.item.exerciseOrdinal === item.ordinal
+          ? { ...answer, item: { ...answer.item, retypeText } }
+          : answer,
+      ),
+    );
+    return xpForAnswer(checkAnswer(course?.code, item.exercise, retypeText).verdict, 1, feedback.usedHint, true);
   }
 
   const progress = { completed: position, total: queue?.length ?? 0 };
@@ -263,6 +314,7 @@ export function SavedPracticePage() {
         current={null}
         onSubmit={() => {}}
         feedbackXp={(feedback) => xpForAnswer(feedback.verdict, 1, feedback.usedHint)}
+        onRetype={recordRetype}
       />
     );
   }

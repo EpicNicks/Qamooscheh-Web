@@ -152,6 +152,8 @@ export interface ApiFetchOptions {
   /** Skip attaching an Authorization header — only auth.ts's register/login/google need this. */
   anonymous?: boolean;
   signal?: AbortSignal;
+  /** Let the request outlive the page (fetch's `keepalive`) — for a submit started as the tab closes. Bodies over 64 KB then fail outright. */
+  keepalive?: boolean;
 }
 
 /** The device's IANA zone ("America/New_York"), or null where Intl can't say. */
@@ -187,6 +189,7 @@ async function doFetch(path: string, options: ApiFetchOptions, accessToken: stri
     headers,
     body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
     signal: options.signal,
+    keepalive: options.keepalive,
   });
 }
 
