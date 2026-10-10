@@ -9,6 +9,7 @@ import { useLayoutEffect, useRef } from "react";
 import { ExerciseRenderer } from "./ExerciseRenderer";
 import { SessionProgressBar } from "./SessionProgressBar";
 import { AnswerFeedback } from "./AnswerFeedback";
+import { ReportIssue } from "./ReportIssue";
 import { closestAnswerFirst } from "../../domain/answerFeedback";
 import { AnnotatedText } from "./AnnotatedText";
 import { SentenceRomanization } from "./SentenceRomanization";
@@ -67,6 +68,8 @@ export function StoryTranscript({
 
   const { answeredItem, feedback } = confirmation;
   const reportContext = useExerciseReportContext(answeredItem, feedback?.submittedText ?? null);
+  // The line still being asked has nothing submitted to cite.
+  const askingReportContext = useExerciseReportContext(answeredItem ? null : current, null);
   // Everything before this ordinal has been answered AND confirmed — the
   // reviewing line (if any) hasn't been confirmed yet, so it's excluded here
   // and rendered by its own branch below instead of as a collapsed past line.
@@ -212,6 +215,7 @@ export function StoryTranscript({
           if (!answeredItem && current && instance.ordinal === current.ordinal) {
             return (
               <div key={instance.key} className={styles.activeLine} ref={activeRef}>
+                {askingReportContext && <ReportIssue key={current.key} context={askingReportContext} stage="unanswered" />}
                 <ExerciseRenderer
                   exercise={current.exercise}
                   renderType={current.renderType}
