@@ -1,0 +1,21 @@
+{
+  "name": "retype-failed-typing",
+  "repo": "web",
+  "branch": "retype-failed-typing",
+  "title": "Retype the correct answer after a wrong typed answer",
+  "closes": 44,
+  "issue": "Issue #44. Plan: when a learner gets a typed exercise wrong (TypeInExercise only), the feedback screen shows a field where they type the correct answer once more as practice. It uses the same keyboard and input as the exercise, and is compared the same way the exercise compares answers, against any accepted answer. A wrong attempt can simply be tried again. A Skip button sits just left of the Submit button and continues as today. This practice step has no effect on grading, score, XP, requeueing or what is submitted to the server. It works everywhere the shared exercise session screen is used. Enter submits it, and focus moves to the field when the feedback appears. The logic for whether a retype is needed and whether it is correct goes in src/domain with unit tests.",
+  "allowedPaths": [
+    "^src/"
+  ],
+  "acceptance": [
+    "Wrong typed answer offers a retype with Skip to the left of Submit",
+    "Grading, score and submission unchanged (tested)",
+    "lint, tsc -b, build, test green locally and in CI"
+  ],
+  "gate": "plan approved by the user 2026-10-10",
+  "approved": true,
+  "reviewer": "opus",
+  "reviewers": 2,
+  "notes": "USER REVISION 2026-10-10 (supersedes the plan where they differ; your earlier judgement calls are otherwise accepted): The retype is entirely optional: pressing Skip goes straight to the next question (no extra step). Completing the retype correctly awards 3 XP, credited through whatever XP path the session already uses for client-awarded XP (check how flashcards award XP); if awarding it would need a backend change, stop with needsUser."
+}

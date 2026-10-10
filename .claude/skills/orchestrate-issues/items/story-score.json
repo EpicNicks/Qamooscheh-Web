@@ -1,0 +1,22 @@
+{
+  "name": "story-score",
+  "repo": "web",
+  "branch": "story-score",
+  "title": "Show a score at the end of a story",
+  "closes": 55,
+  "issue": "Issue #55. APPROVED PLAN: When a story (src/pages/StoryPage.tsx and what it renders) finishes, show its score the way a lesson does: reuse src/components/lesson/LessonResults.tsx (correct / total and percentage, first-try scoring as lessons count it), with no pass mark. Reveal it with a short CSS page-turn animation (the results card turning in like a page), disabled under prefers-reduced-motion. Keep the story's existing end actions. If stories have no graded questions to score, stop with needsUser.",
+  "allowedPaths": [
+    "^src/",
+    "^public/"
+  ],
+  "acceptance": [
+    "Story end shows correct/total and percentage",
+    "Page-turn reveal, none under reduced motion",
+    "lint, tsc -b, build, test green locally and in CI"
+  ],
+  "gate": "plan approved by the user 2026-10-10",
+  "approved": true,
+  "reviewer": "sonnet",
+  "reviewers": 1,
+  "notes": "USER REVISION 2026-10-10 (supersedes the plan where they differ; your earlier judgement calls are otherwise accepted): Play the story-complete sound the Android app uses (E:/Code/Projects/Qamooscheh-Android; find the sound its story/lesson completion plays and copy that asset into this repo, wired through the existing sfx system in src/domain/sfx.ts). Read-only access to the Android repo."
+}

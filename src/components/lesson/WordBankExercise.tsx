@@ -21,7 +21,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { Button } from "../common/Button";
 import { DirectionalText } from "../common/DirectionalText";
 import { ExercisePrompt } from "./ExercisePrompt";
-import { AnnotatedText } from "./AnnotatedText";
+import { AnnotatedText, MistakeHintChip } from "./AnnotatedText";
 import { EMPTY_HINT_MAP, PLAIN_TEXT, type TextDisplaySettings, type WordHint } from "../../domain/romanization";
 import { detectScriptDirection, getLanguageInfo, getSpeechLang } from "../../domain/language";
 import { hasVoiceFor } from "../../domain/tts";
@@ -29,6 +29,7 @@ import { play } from "../../domain/playback";
 import { useRecordings } from "../../hooks/useRecordings";
 import { useLocalAppPref } from "../../hooks/useLocalAppPref";
 import { acceptedTileOrders, closestTileOrder, missingBankTiles, tilesForSubmission, type TileMark } from "../../domain/wordBankOrders";
+import { mistakeKind } from "../../domain/mistakeHints";
 import type { ExerciseProps } from "./ExerciseRenderer";
 import styles from "./Exercise.module.css";
 
@@ -153,24 +154,30 @@ function SortableTile({ tileIndex, container, text, disabled, courseCode, hintMa
     transition,
     opacity: isDragging ? 0.4 : undefined,
   };
+  // A left-out tile that's a common mistake gets an "explain" chip beside it,
+  // not inside: the reviewed tile is a disabled button.
+  const mistake = mark === "missing" ? mistakeKind(courseCode, { text, mark }) : null;
   return (
-    <DirectionalText courseCode={courseCode}>
-      <button
-        ref={setNodeRef}
-        style={style}
-        type="button"
-        className={mark ? `${styles.tile} ${TILE_MARK_CLASS[mark]}` : styles.tile}
-        onClick={onActivate}
-        disabled={disabled}
-        {...attributes}
-        {...listeners}
-      >
-        {/* focusable={false}: the tile's own <button> is already the tab
-            stop, and a focusable span inside it would be both invalid
-            HTML and a second stop per tile. */}
-        <AnnotatedText text={text} hintMap={hintMap} settings={textSettings} tags={tags} focusable={false} />
-      </button>
-    </DirectionalText>
+    <>
+      <DirectionalText courseCode={courseCode}>
+        <button
+          ref={setNodeRef}
+          style={style}
+          type="button"
+          className={mark ? `${styles.tile} ${TILE_MARK_CLASS[mark]}` : styles.tile}
+          onClick={onActivate}
+          disabled={disabled}
+          {...attributes}
+          {...listeners}
+        >
+          {/* focusable={false}: the tile's own <button> is already the tab
+              stop, and a focusable span inside it would be both invalid
+              HTML and a second stop per tile. */}
+          <AnnotatedText text={text} hintMap={hintMap} settings={textSettings} tags={tags} focusable={false} />
+        </button>
+      </DirectionalText>
+      {mistake && <MistakeHintChip kind={mistake} />}
+    </>
   );
 }
 

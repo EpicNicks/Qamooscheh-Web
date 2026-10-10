@@ -1,0 +1,21 @@
+{
+  "name": "ra-mistake-hint",
+  "repo": "web",
+  "branch": "ra-mistake-hint",
+  "title": "Explain a missing object marker (ra) in the answer correction",
+  "closes": null,
+  "issue": "Part of issue #59 (the 'ra' reminder only; the 'ki' placement part stays open, so the PR says 'Part of #59', not Closes). APPROVED PLAN: On a Persian course, when the wrong-answer correction (src/domain/answerFeedback.ts / typedAnswerMarks.ts and the component that renders the marks) shows the token 'را' as inserted, i.e. the learner left the object marker out, that inserted mark gets a hover/focus hint (keyboard focusable, works on touch by tap) explaining it, e.g.: 'را marks a specific (definite) direct object. It follows the object: کتاب را خواندم, I read the book. Leave it out for an indefinite object: کتابی خواندم.' Keep the explanation text in one domain module keyed by the mistake kind, so more common-mistake hints can be added later. Detection lives in src/domain with unit tests (inserted 'را' detected; present 'را', other inserted words and non-Persian courses produce no hint). Match the existing hint/tooltip components rather than adding a new tooltip system.",
+  "allowedPaths": [
+    "^src/"
+  ],
+  "acceptance": [
+    "Inserted 'را' in a Persian correction shows the explanation on hover/focus/tap",
+    "Unit tests for detection",
+    "lint, tsc -b, build, test green locally and in CI"
+  ],
+  "gate": "plan approved by the user 2026-10-10",
+  "approved": true,
+  "reviewer": "opus",
+  "reviewers": 1,
+  "notes": "USER REVISION 2026-10-10 (supersedes the plan where they differ; your earlier judgement calls are otherwise accepted): (1) Word bank already marks a missing word; give that missing-word mark the same hint when it is a left-out را. (2) For both typed and word-bank corrections: show a small always-visible \"explain\" chip on the hinted mark (no hover needed); clicking/tapping it (or Enter/Space when focused) opens the explanation tooltip. Hover may still open it as today."
+}

@@ -1,5 +1,5 @@
-// What a learner can flag about one exercise from the wrong-answer screen
-// (components/lesson/ReportIssue.tsx) — POST /v1/exercise-reports
+// What a learner can flag about one exercise — before answering it, or on
+// either answer's feedback (components/lesson/ReportIssue.tsx) — POST /v1/exercise-reports
 // (Qamooscheh.Api's ExerciseReportReason, same string values via
 // [JsonStringEnumMemberName]).
 import type { ExerciseType } from "./enums";
@@ -11,6 +11,14 @@ export const EXERCISE_REPORT_REASONS: { value: ExerciseReportReason; label: stri
   { value: "answer_should_be_accepted", label: "The answer should be accepted" },
   { value: "other", label: "Something else went wrong" },
 ];
+
+/** Where the exercise stands when the learner opens the report. */
+export type ExerciseReportStage = "unanswered" | "correct" | "incorrect";
+
+/** The reasons worth offering at that stage: an answer can only "should be accepted" once it's been marked wrong. */
+export function reportReasonsFor(stage: ExerciseReportStage): { value: ExerciseReportReason; label: string }[] {
+  return stage === "incorrect" ? EXERCISE_REPORT_REASONS : EXERCISE_REPORT_REASONS.filter((r) => r.value !== "answer_should_be_accepted");
+}
 
 /**
  * Everything the Report control sends about the exercise under review.
@@ -48,14 +56,15 @@ export interface ReportableItem {
 }
 
 /**
- * The report context for an answered item. The location is included only
+ * The report context for an item, answered or not (a null submittedText,
+ * which the context then leaves out). The location is included only
  * when it's complete — the backend rejects half a location rather than guess
  * at the rest — and the played takes are de-duplicated, since one recording
  * can be both a prompt's and an answer's.
  */
 export function reportContextFor(
   item: ReportableItem,
-  submittedText: string,
+  submittedText: string | null,
   courseVersion: number | null,
   playedPaths: (string | null)[],
 ): ExerciseReportContext {
@@ -67,7 +76,7 @@ export function reportContextFor(
   return {
     prompt: item.exercise.prompt,
     exerciseTags: item.exercise.tags,
-    submittedText,
+    ...(submittedText != null && { submittedText }),
     renderType: item.renderType,
     location,
     audioFiles: [...new Set(playedPaths.filter((p): p is string => !!p))],
