@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SOUNDS, soundLength } from "./sfx";
+import { SAMPLES, SOUNDS, soundLength } from "./sfx";
 
 describe("feedback sounds", () => {
   it("keeps the answer sounds short enough to sit before the read-back", () => {
@@ -22,5 +22,9 @@ describe("feedback sounds", () => {
 
   it("measures a sound to its last note's end", () => {
     expect(soundLength("lessonPassed")).toBeCloseTo(0.33 + 0.5);
+  });
+
+  it("measures a recording by its known length", () => {
+    expect(soundLength("storyComplete")).toBe(SAMPLES.storyComplete.length);
   });
 });

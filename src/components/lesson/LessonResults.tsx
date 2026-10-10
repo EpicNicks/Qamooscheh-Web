@@ -28,7 +28,7 @@ export function LessonResults({
   score?: number;
   passMark?: number;
   /** Played once as the results appear (domain/sfx.ts) — omit for none, e.g. a session the server didn't save. */
-  sound?: "lessonPassed" | "lessonFailed";
+  sound?: "lessonPassed" | "lessonFailed" | "storyComplete";
 }) {
   const [soundEffects] = useLocalAppPref("soundEffects", true);
   // Once, as the results come up — not again if the setting changes after,

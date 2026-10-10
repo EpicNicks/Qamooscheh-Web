@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useSkillWalkthrough, type WalkthroughExerciseInstance, type WalkthroughAnswerResult } from "../hooks/useSkillWalkthrough";
 import { useExerciseSession } from "../hooks/useExerciseSession";
@@ -6,7 +6,10 @@ import { StoryTranscript } from "../components/lesson/StoryTranscript";
 import { Spinner } from "../components/common/Spinner";
 import { ErrorBanner } from "../components/common/ErrorBanner";
 import { Button } from "../components/common/Button";
+import { LessonResults } from "../components/lesson/LessonResults";
+import { preloadSound } from "../domain/sfx";
 import styles from "./LessonPage.module.css";
+import storyStyles from "./StoryPage.module.css";
 
 /**
  * Reading one chapter of a story (or a conversation, or a song). Thin over
@@ -26,6 +29,10 @@ export function StoryPage() {
   // snapshot (which clears on confirm) so a line already confirmed can still
   // show what was answered once it collapses into the transcript's history.
   const [resultsByOrdinal, setResultsByOrdinal] = useState<Map<number, WalkthroughAnswerResult>>(new Map());
+
+  // The end-of-chapter sound is a recording: fetch it while the story's read
+  // so it plays on cue.
+  useEffect(() => preloadSound("storyComplete"), []);
 
   if (walkthrough.status === "loading") {
     return <Spinner label="Opening the story…" />;
@@ -61,6 +68,15 @@ export function StoryPage() {
           {walkthrough.result && (
             <p>{walkthrough.result.outcome === "AlreadyProcessed" ? "Already recorded." : "Nicely read."}</p>
           )}
+          {/* Scored like a lesson, but a story has no pass mark to draw. */}
+          <div className={storyStyles.pageTurn}>
+            <LessonResults
+              correct={walkthrough.score.correct}
+              total={walkthrough.score.total}
+              score={walkthrough.score.score}
+              sound="storyComplete"
+            />
+          </div>
           <Button onClick={() => navigate("/path")}>Back to path</Button>
         </div>
       );
