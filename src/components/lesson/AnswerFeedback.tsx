@@ -82,22 +82,25 @@ export function AnswerFeedback({
 
   if (correct) {
     return (
-      <div className={styles.correct} role="status">
-        <span className={styles.verdict}>Correct!</span>
-        {note && <span className={styles.note}>{note}</span>}
-        <XpBurst amount={xp} />
-        {answerAudio && (
-          <span className={styles.play}>
-            <PlayAudioButton status={answerAudio.status} onClick={answerAudio.play} onSlowClick={answerAudio.playSlow} />
-          </span>
-        )}
+      <div className={styles.wrap}>
+        {reportContext && <ReportIssue context={reportContext} stage="correct" />}
+        <div className={styles.correct} role="status">
+          <span className={styles.verdict}>Correct!</span>
+          {note && <span className={styles.note}>{note}</span>}
+          <XpBurst amount={xp} />
+          {answerAudio && (
+            <span className={styles.play}>
+              <PlayAudioButton status={answerAudio.status} onClick={answerAudio.play} onSlowClick={answerAudio.playSlow} />
+            </span>
+          )}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className={styles.wrongWrap}>
-      {reportContext && <ReportIssue context={reportContext} />}
+    <div className={styles.wrap}>
+      {reportContext && <ReportIssue context={reportContext} stage="incorrect" />}
       <div className={`${styles.incorrect} ${styles.shake}`} role="status">
         {revealed ? (
           <div className={styles.revealed}>

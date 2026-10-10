@@ -29,6 +29,7 @@ import { mergeCardStates } from "../lib/cardStateStore";
 import { enqueue as enqueueOffline } from "../lib/offlineQueue";
 import { checkAnswer } from "../domain/answerFeedback";
 import { resolveExerciseType } from "../domain/exerciseResolution";
+import { verdictWeight } from "../domain/lessonScore";
 import type { SubmittedItem, SubmittedSession, SubmittedSessionResponse } from "../types/api";
 import type { ExerciseArtifact } from "../types/content";
 import type { ExerciseType } from "../domain/enums";
@@ -92,6 +93,11 @@ export function useSkillWalkthrough(unitKey: string, skillKey: string, options: 
   const [items, setItems] = useState<SubmittedItem[]>([]);
   const [status, setStatus] = useState<WalkthroughStatus>("loading");
   const [result, setResult] = useState<SubmittedSessionResponse | null>(null);
+  // Scored the way useLessonEngine scores first attempts — with no retry
+  // queue here, every answer is a first attempt. `correct` counts answers
+  // accepted at all; points weight them as domain/lessonScore.ts does.
+  const [correctCount, setCorrectCount] = useState(0);
+  const [points, setPoints] = useState(0);
 
   // Seeded lazily, exactly as useLessonEngine does and for the same reason:
   // re-seeding on a background refetch would discard answers already given.
@@ -121,6 +127,8 @@ export function useSkillWalkthrough(unitKey: string, skillKey: string, options: 
       }),
     );
     setItems((prev) => [...prev, ...newItems]);
+    if (feedback.verdict !== "incorrect") setCorrectCount((n) => n + 1);
+    setPoints((p) => p + verdictWeight(feedback.verdict));
 
     // Always advance: a chapter reads forward whether or not the learner got
     // the line exactly right. The server still grades every item.
@@ -199,6 +207,8 @@ export function useSkillWalkthrough(unitKey: string, skillKey: string, options: 
     /** The chapter's full, authored-order exercise list — every line, not just what's left in the queue. StoryTranscript reads this to render the lines already answered and the ones still ahead alongside `current`. */
     instances,
     progress: { completed: totalCount - (queue?.length ?? totalCount), total: totalCount },
+    /** First-try score, shaped like useLessonEngine's: `score` (0..1) is the weighted one. */
+    score: { correct: correctCount, total: totalCount, score: totalCount === 0 ? 0 : points / totalCount },
     isPracticeMode,
     submitAnswer,
     result,
