@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { segmentAnnotatedText } from "../../domain/annotation";
-import { registerLabel, type TextDisplaySettings, type WordHint } from "../../domain/romanization";
+import { PLAIN_TEXT, registerLabel, type TextDisplaySettings, type WordHint } from "../../domain/romanization";
+import { MISTAKE_HINTS, type MistakeKind } from "../../domain/mistakeHints";
 import { stripReadingAids } from "../../domain/persian/normalize";
 import { englishCandidates, segmentEnglish } from "../../domain/englishHints";
 import { cancelHoverSpeech, useHoverSpeech, type WordSpeech } from "../../hooks/useHoverSpeech";
@@ -45,6 +46,8 @@ interface AnnotatedWordProps {
   tooltip?: boolean;
   /** Reads the word aloud once hovered, focused or tapped (hooks/useHoverSpeech.ts) — null/omitted for none. */
   speech?: WordSpeech | null;
+  /** A button: click, tap, Enter or Space opens the tooltip and keeps it open until pressed again or left (MistakeHintChip). */
+  toggle?: boolean;
 }
 
 /**
@@ -88,7 +91,7 @@ interface TooltipPosition {
   below: boolean;
 }
 
-export function AnnotatedWord({ word, hint, settings, focusable = true, onReveal, tooltip = true, speech }: AnnotatedWordProps) {
+export function AnnotatedWord({ word, hint, settings, focusable = true, onReveal, tooltip = true, speech, toggle = false }: AnnotatedWordProps) {
   const wrapRef = useRef<HTMLSpanElement>(null);
   const tooltipRef = useRef<HTMLSpanElement>(null);
   // The tooltip is `position: fixed`, not absolute. That way no scrolling or
@@ -120,6 +123,13 @@ export function AnnotatedWord({ word, hint, settings, focusable = true, onReveal
     onReveal?.();
   }, [place, onReveal]);
   const hide = useCallback(() => setShown(false), []);
+  // Opened by a press (`toggle`), not hover/focus: no CSS state to show it
+  // with on a tap or a click, so it's shown by data-open instead.
+  const [pinned, setPinned] = useState(false);
+  const flipPinned = () => {
+    if (!pinned) show();
+    setPinned(!pinned);
+  };
   // This rendering of the word, as far as hover speech is concerned. A word
   // that goes away while it waits (the learner moved on) is never read.
   const [speechOwner] = useState(() => ({}));
@@ -144,15 +154,16 @@ export function AnnotatedWord({ word, hint, settings, focusable = true, onReveal
 
   // Fixed coordinates go stale when anything scrolls, so follow the word while
   // the tooltip is up. Capture phase catches inner scrollers like the transcript.
+  const open = shown || pinned;
   useEffect(() => {
-    if (!shown) return;
+    if (!open) return;
     window.addEventListener("scroll", place, { capture: true, passive: true });
     window.addEventListener("resize", place);
     return () => {
       window.removeEventListener("scroll", place, { capture: true });
       window.removeEventListener("resize", place);
     };
-  }, [shown, place]);
+  }, [open, place]);
 
   const register = registerLabel(hint?.register);
   // The ezafe (domain/ezafe.ts) is shown as its own piece after the word —
@@ -228,7 +239,23 @@ export function AnnotatedWord({ word, hint, settings, focusable = true, onReveal
       ref={wrapRef}
       className={styles.wrap}
       data-ezafe={ezafe ? "" : undefined}
+      data-open={pinned ? "" : undefined}
       tabIndex={focusable ? 0 : undefined}
+      role={toggle ? "button" : undefined}
+      aria-expanded={toggle ? pinned : undefined}
+      onClick={toggle ? flipPinned : undefined}
+      onKeyDown={
+        toggle
+          ? (event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                flipPinned();
+              } else if (event.key === "Escape") {
+                setPinned(false);
+              }
+            }
+          : undefined
+      }
       onMouseEnter={() => {
         show();
         speak();
@@ -243,6 +270,7 @@ export function AnnotatedWord({ word, hint, settings, focusable = true, onReveal
       }}
       onBlur={() => {
         hide();
+        setPinned(false);
         unspeak();
       }}
     >
@@ -262,6 +290,28 @@ export function AnnotatedWord({ word, hint, settings, focusable = true, onReveal
           </span>
         ))}
       </span>
+    </span>
+  );
+}
+
+/** A mistake hint is the chip's only tooltip line. */
+const MISTAKE_HINT_TEXT: TextDisplaySettings = { ...PLAIN_TEXT, translationEnabled: true, vowelMarks: true };
+
+/**
+ * An "explain" chip shown next to a word the correction marks, when that
+ * mark is a common mistake (domain/mistakeHints.ts). Pressing it opens the
+ * explanation in the word tooltip; hover and keyboard focus do too. Left to
+ * right: the explanation is an English sentence with Persian examples in it.
+ */
+export function MistakeHintChip({ kind }: { kind: MistakeKind }) {
+  return (
+    <span className={styles.hintChip} dir="ltr">
+      <AnnotatedWord
+        word="explain"
+        hint={{ translation: MISTAKE_HINTS[kind], romanization: null, ruby: null }}
+        settings={MISTAKE_HINT_TEXT}
+        toggle
+      />
     </span>
   );
 }

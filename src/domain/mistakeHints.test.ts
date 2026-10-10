@@ -23,6 +23,12 @@ describe("mistakeKind", () => {
     expect(marked.map((word) => mistakeKind("fa", word))).toEqual([null, null, null, null]);
   });
 
+  it("names a left-out را word-bank tile, and nothing for a placed one", () => {
+    expect(mistakeKind("fa", { text: "را", mark: "missing" })).toBe("missingRa");
+    expect(mistakeKind("fa", { text: "را", mark: "wrong" })).toBeNull();
+    expect(mistakeKind("fa", { text: "را", mark: "right" })).toBeNull();
+  });
+
   it("gives no hint outside a Persian course", () => {
     expect(mistakeKind("en", { text: "را", mark: "missing" })).toBeNull();
     expect(mistakeKind(null, { text: "را", mark: "missing" })).toBeNull();
