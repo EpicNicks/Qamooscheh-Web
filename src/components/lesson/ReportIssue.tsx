@@ -1,17 +1,26 @@
 import { useState } from "react";
 import { Button } from "../common/Button";
 import { FlagOutlinedIcon } from "../common/icons";
-import { EXERCISE_REPORT_REASONS, type ExerciseReportContext, type ExerciseReportReason } from "../../domain/exerciseReport";
+import { reportReasonsFor, type ExerciseReportContext, type ExerciseReportReason, type ExerciseReportStage } from "../../domain/exerciseReport";
 import { submitExerciseReport } from "../../api/exerciseReport";
 import styles from "./ReportIssue.module.css";
 
 interface ReportIssueProps {
   /** Cites which exercise the report is about — see domain/exerciseReport.ts. */
   context: ExerciseReportContext;
+  /** Which reasons are offered (domain/exerciseReport.ts's reportReasonsFor). */
+  stage: ExerciseReportStage;
 }
 
-/** Sits above the wrong-answer feedback row — POST /v1/exercise-reports. */
-export function ReportIssue({ context }: ReportIssueProps) {
+/**
+ * Sits above the exercise, or above either answer's feedback row — POST
+ * /v1/exercise-reports. It sits beside a live exercise, so it never takes
+ * the answer input's focus (the trigger's mousedown), and it keeps its own
+ * keystrokes from the exercise's window-level shortcuts: typing in
+ * "tell us more" doesn't type the answer, and Enter on "Submit report"
+ * doesn't check or advance it.
+ */
+export function ReportIssue({ context, stage }: ReportIssueProps) {
   const [open, setOpen] = useState(false);
   const [reasons, setReasons] = useState<Set<ExerciseReportReason>>(new Set());
   const [details, setDetails] = useState("");
@@ -50,7 +59,13 @@ export function ReportIssue({ context }: ReportIssueProps) {
 
   if (!open) {
     return (
-      <button type="button" className={styles.trigger} onClick={() => setOpen(true)}>
+      <button
+        type="button"
+        className={styles.trigger}
+        onMouseDown={(event) => event.preventDefault()}
+        onKeyDown={(event) => event.stopPropagation()}
+        onClick={() => setOpen(true)}
+      >
         <FlagOutlinedIcon />
         Report
       </button>
@@ -62,7 +77,12 @@ export function ReportIssue({ context }: ReportIssueProps) {
   }
 
   return (
-    <div className={styles.panel} role="group" aria-label="Report an issue with this exercise">
+    <div
+      className={styles.panel}
+      role="group"
+      aria-label="Report an issue with this exercise"
+      onKeyDown={(event) => event.stopPropagation()}
+    >
       <div className={styles.panelHeader}>
         <span className={styles.panelTitle}>
           <FlagOutlinedIcon />
@@ -74,7 +94,7 @@ export function ReportIssue({ context }: ReportIssueProps) {
       </div>
 
       <div className={styles.options}>
-        {EXERCISE_REPORT_REASONS.map(({ value, label }) => (
+        {reportReasonsFor(stage).map(({ value, label }) => (
           <label key={value} className={styles.checkbox}>
             <input type="checkbox" checked={reasons.has(value)} onChange={() => toggleReason(value)} />
             {label}

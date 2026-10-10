@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { reportContextFor, type ReportableItem } from "./exerciseReport";
+import { reportContextFor, reportReasonsFor, type ReportableItem } from "./exerciseReport";
 
 const item: ReportableItem = {
   exercise: { prompt: "How are you?", tags: ["خوب<adj>"] },
@@ -23,6 +23,13 @@ describe("reportContextFor", () => {
     });
   });
 
+  it("leaves out the submitted text before an answer", () => {
+    const context = reportContextFor(item, null, 3, ["../../../audio/a.mp3"]);
+
+    expect(context).not.toHaveProperty("submittedText");
+    expect(context.audioFiles).toEqual(["../../../audio/a.mp3"]);
+  });
+
   it("keeps a theme lesson's null unit", () => {
     const context = reportContextFor({ ...item, unitKey: null }, "x", 3, []);
 
@@ -37,5 +44,18 @@ describe("reportContextFor", () => {
 
   it("treats ordinal 0 as a real ordinal", () => {
     expect(reportContextFor({ ...item, ordinal: 0 }, "x", 3, []).location?.exerciseOrdinal).toBe(0);
+  });
+});
+
+describe("reportReasonsFor", () => {
+  const values = (stage: Parameters<typeof reportReasonsFor>[0]) => reportReasonsFor(stage).map((r) => r.value);
+
+  it("offers every reason after a wrong answer", () => {
+    expect(values("incorrect")).toEqual(["audio_wrong", "answer_should_be_accepted", "other"]);
+  });
+
+  it("offers only audio and other before answering and after a correct answer", () => {
+    expect(values("unanswered")).toEqual(["audio_wrong", "other"]);
+    expect(values("correct")).toEqual(["audio_wrong", "other"]);
   });
 });
