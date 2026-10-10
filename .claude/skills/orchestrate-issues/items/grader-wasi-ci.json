@@ -1,0 +1,14 @@
+{
+  "name": "grader-wasi-ci",
+  "repo": "backend",
+  "branch": "grader-wasi-ci",
+  "title": "Build the WASI grader in CI, report its size, and publish shared XP vectors",
+  "closes": null,
+  "issue": "User decision 2026-10-10: the WASI grader is to become authoritative for all clients (web issue EpicNicks/Qamooscheh-Web#71). Step one, measure and share: (1) CI builds the WASI grader variants (fa and ja) with wasi-sdk 25.0 exactly, as tools/README.md describes (GraderBuilder, WASI_SDK_PATH, wasi-experimental workload), on every PR, and uploads them as workflow artifacts. Keep the existing jobs unchanged. Also build the browser variant in the same job if cheap, for comparison. (2) The job runs verify-graders (tools/README.md) against the built bundles, including the new Xp export from PR #29, so the unverified WASI build from #29 is verified. (3) The job prints a size table (raw and gzip/brotli bytes of each .wasm, and the browser bundle's total) to the job summary ($GITHUB_STEP_SUMMARY). Put the measured sizes in the PR body. (4) XP VECTORS: add a JSON file of AnswerXp cases (inputs: outcome, attempt/requeued, hinted, retype; expected xp), covering every row of the API_SPEC.md XP table, next to the existing verify/vectors files. The backend's unit tests and verify-graders both check it, so clients can copy it as a conformance table. Document it in tools/README.md and API_SPEC.md. Do not change grading or XP behaviour. If CI can't install wasi-sdk 25 on the runner, stop with needsUser.",
+  "allowedPaths": ["^\\.github/", "^tools/", "^tests/", "^src/", "^verify/", "^features\\.yaml$"],
+  "acceptance": ["CI builds and verifies the WASI graders and reports sizes in the job summary", "XP vectors file checked by backend tests and verify-graders", "No grading/XP behaviour change; CI green"],
+  "gate": "plan approved by the user 2026-10-10",
+  "approved": true,
+  "reviewer": "opus",
+  "reviewers": 1
+}

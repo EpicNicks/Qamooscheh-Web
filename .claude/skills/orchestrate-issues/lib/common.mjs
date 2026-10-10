@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url"
 export const ORCH = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..").split(path.sep).join("/")
 export const REPOS = {
   web: { path: "E:/Code/Projects/Qamooscheh-Web/Qamooscheh-Web", slug: "EpicNicks/Qamooscheh-Web" },
+  backend: { path: "C:/Users/epicn/source/repos/Qamooscheh", slug: "EpicNicks/Qamooscheh-Backend" },
 }
 // Ledger and worktrees live outside the repo so they never show up in git status or CI.
 export const LEDGER = "E:/Code/Projects/Qamooscheh-Web/orchestrator-ledger"

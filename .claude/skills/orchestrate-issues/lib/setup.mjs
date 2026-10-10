@@ -12,7 +12,7 @@ if (!exists) {
   const r = git(item.repo, ["worktree", "add", wt, "-b", item.branch, "origin/master"])
   if (r.status !== 0) { out({ name, error: r.err.trim().slice(0, 300) }); process.exit(0) }
 }
-if (!fs.existsSync(`${wt}/node_modules`)) {
+if (item.repo === "web" && !fs.existsSync(`${wt}/node_modules`)) {
   const r = spawnSync("npm", ["ci", "--no-audit", "--no-fund"], { cwd: wt, encoding: "utf8", shell: true, maxBuffer: 64 << 20 })
   if (r.status !== 0) { out({ name, worktree: wt, error: `npm ci failed: ${(r.stderr || r.stdout).trim().slice(-300)}` }); process.exit(0) }
 }

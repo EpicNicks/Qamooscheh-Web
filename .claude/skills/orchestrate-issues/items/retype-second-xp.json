@@ -1,0 +1,14 @@
+{
+  "name": "retype-second-xp",
+  "repo": "backend",
+  "branch": "retype-second-xp",
+  "title": "A second correct retype of the same exercise earns 1 XP",
+  "closes": null,
+  "issue": "User decision 2026-10-10 (follow-up to PR #29 and web PR #65). Today a correct retype earns 2 XP and the server credits at most one retype per exercise. NEW: the first correct retype of an exercise in a session earns 2 XP, the second correct retype of the same exercise (on a later wrong typed attempt of it) earns 1 XP, any further ones earn 0. The hint rule applies as it does to retypes today (halving, with AnswerXp's existing rounding). Change AnswerXp (it needs to know whether this is the exercise's first or second credited retype; pass that in, keep the grader exports in step) and SessionXp's once-per-exercise retype limit (now up to two, in attempt order). Same validation as before: only an attempt graded wrong of a served type_in, only a matching retype. Add the new rows to verify/xp-vectors.json, update AnswerXpTests / SessionXp tests and API_SPEC.md §2.3 point 8. features.yaml: no new entry (per-answer-xp covers it). No other behaviour change.",
+  "allowedPaths": ["^src/", "^tests/", "^tools/", "^verify/"],
+  "acceptance": ["First retype 2, second 1, further 0 per exercise; vectors and spec updated", "dotnet build and test green locally and in CI"],
+  "gate": "plan approved by the user 2026-10-10",
+  "approved": true,
+  "reviewer": "opus",
+  "reviewers": 1
+}

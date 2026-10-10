@@ -19,7 +19,8 @@ Never resume an agent with SendMessage for a new step; every step is a fresh age
 ## Paths
 - Skill (scripts, items): `.claude/skills/orchestrate-issues/` in this repo. `S` below.
 - Ledger: `E:/Code/Projects/Qamooscheh-Web/orchestrator-ledger/<name>/` (dev.json, review.json, ci.json, ratify.json, state.json, briefs). `L` below.
-- Worktrees: `E:/Code/Projects/Qamooscheh-Web/Qamooscheh-Web-<name>` (created by setup.mjs, with `npm ci`).
+- Worktrees: `<repo path>-<name>` beside the repo (created by setup.mjs; `npm ci` for web).
+- Repos (`lib/common.mjs`): `web` (this repo) and `backend` (`C:/Users/epicn/source/repos/Qamooscheh`; briefs tell its devs to follow AGENTS.md, update API_SPEC.md and their own `features.yaml` key, and run `dotnet build`/`dotnet test`). A backend change a web item depends on runs first and merges before the web item's next round.
 
 ## Steps
 1. List `S/items/*.json`. An item with `gate` set and `approved: false` is blocked: ask the user for the design / approval, write it into `issue`, set `approved: true`.
@@ -54,4 +55,4 @@ Never resume an agent with SendMessage for a new step; every step is a fresh age
 - Anything that departs from the approved plan, or needs a design decision, is held for the user.
 
 ## Item file (`S/items/<name>.json`)
-`name, repo (web), branch, title, closes, issue (the approved plan), allowedPaths (regexes), acceptance, notes? (user revisions), gate, approved, reviewer (opus|sonnet), reviewers (count, default 1)`.
+`name, repo (web|backend), branch, title, closes, issue (the approved plan), allowedPaths (regexes), acceptance, notes? (user revisions), gate, approved, reviewer (opus|sonnet), reviewers (count, default 1)`.
