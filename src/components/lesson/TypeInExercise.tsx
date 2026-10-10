@@ -8,6 +8,9 @@ import { detectArabicVariants, stripReadingAids, ZWNJ } from "../../domain/persi
 import { useKeyboardInputMethod } from "../../hooks/useKeyboardInputMethod";
 import { useDeviceInputEnabled } from "../../hooks/useDeviceInputEnabled";
 import { markTypedAnswer, type MarkedWord } from "../../domain/typedAnswerMarks";
+import { MISTAKE_HINTS, mistakeKind } from "../../domain/mistakeHints";
+import { PLAIN_TEXT, type TextDisplaySettings } from "../../domain/romanization";
+import { AnnotatedWord } from "./AnnotatedText";
 import { submittedSpelling } from "../../domain/persian/typedAnswer";
 import type { ExerciseProps } from "./ExerciseRenderer";
 import styles from "./Exercise.module.css";
@@ -20,6 +23,8 @@ const WORD_MARK_CLASS: Record<MarkedWord["mark"], string> = {
   wrong: styles.wordWrong,
   missing: styles.wordMissing,
 };
+/** A mistake hint is the word's only tooltip line, and the word's text is already as it should show. */
+const MISTAKE_HINT_TEXT: TextDisplaySettings = { ...PLAIN_TEXT, translationEnabled: true, vowelMarks: true };
 /** Keys whose default action moves the caret or edits past it. Buffered engine state is resolved before they act (see handleKeyDown). */
 const CARET_KEY = /^(Arrow(Left|Right|Up|Down)|Home|End|PageUp|PageDown|Delete)$/;
 
@@ -314,11 +319,21 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
           style={isNativeScript && languageInfo ? { fontFamily: `var(--font-script-${languageInfo.language})` } : undefined}
           aria-label={`Your answer: ${reviewedAnswer.text || "nothing"}`}
         >
-          {reviewedWords.map((word, i) => (
-            <span key={i} className={WORD_MARK_CLASS[word.mark]}>
-              {word.text}
-            </span>
-          ))}
+          {reviewedWords.map((word, i) => {
+            const mistake = mistakeKind(courseCode, word);
+            // A common mistake explains itself on hover, focus or tap, in the
+            // word hints' own tooltip. Left to right: the explanation is an
+            // English sentence with Persian examples in it.
+            return mistake ? (
+              <span key={i} className={WORD_MARK_CLASS[word.mark]} dir="ltr">
+                <AnnotatedWord word={word.text} hint={{ translation: MISTAKE_HINTS[mistake], romanization: null, ruby: null }} settings={MISTAKE_HINT_TEXT} />
+              </span>
+            ) : (
+              <span key={i} className={WORD_MARK_CLASS[word.mark]}>
+                {word.text}
+              </span>
+            );
+          })}
         </div>
       ) : (
         <div className={styles.inputWrap} ref={inputWrapRef}>
