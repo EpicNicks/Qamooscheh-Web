@@ -32,6 +32,7 @@ import { enqueue as enqueueOffline } from "../lib/offlineQueue";
 import { checkAnswer, type AnswerVerdict } from "../domain/answerFeedback";
 import { resolveExerciseType } from "../domain/exerciseResolution";
 import { LESSON_PASS_THRESHOLD, verdictWeight } from "../domain/lessonScore";
+import { filterRemixExercises, type RemixContents } from "../domain/remixContents";
 import type { SessionPlanResponse, SkillRef, SubmittedItem, SubmittedSession, SubmittedSessionResponse } from "../types/api";
 import type { ExerciseArtifact, SkillArtifact } from "../types/content";
 import type { ExerciseType, SkillCategory } from "../domain/enums";
@@ -45,6 +46,7 @@ const MAX_RETRIES = 2;
 // due-tag union across several full lessons could otherwise run much longer
 // than an ordinary session. A single-lesson dive (or the cursor path) is
 // already naturally bounded by that one lesson's own size and stays uncapped.
+// Applied after the learner's remix contents filter, never before it.
 const REMIX_MAX_EXERCISES = 20;
 
 export interface LessonExerciseInstance {
@@ -58,7 +60,7 @@ export interface LessonExerciseInstance {
   attempt: number;
 }
 
-export type LessonStatus = "loading" | "empty" | "ready" | "submitting" | "done" | "rejected" | "error" | "unavailable";
+export type LessonStatus = "loading" | "choosing" | "empty" | "ready" | "submitting" | "done" | "rejected" | "error" | "unavailable";
 
 /**
  * A submission the server answered 200 to but explicitly refused — one or
@@ -124,8 +126,16 @@ export interface SubmitAnswerResult {
  * distinct (unitKey, skillKey) pairs actually got answered are what
  * finishLesson groups into one SubmittedSession each, regardless of how many
  * lessons that spans.
+ * @param remixContents A multi-lesson remix only: which kinds of exercise it
+ * holds (domain/remixContents.ts). Until it's set, a remix that has anything
+ * to offer waits in status "choosing" instead of starting; a single lesson
+ * ignores it.
  */
-export function useLessonEngine(deepDiveLessonKeys?: string[], selectedSkillKey?: string | null) {
+export function useLessonEngine(
+  deepDiveLessonKeys?: string[],
+  selectedSkillKey?: string | null,
+  remixContents?: RemixContents | null,
+) {
   const { userId } = useAuth();
   const queryClient = useQueryClient();
   // The ARRAY'S PRESENCE selects the mode, not its length — an empty array
@@ -289,12 +299,28 @@ export function useLessonEngine(deepDiveLessonKeys?: string[], selectedSkillKey?
     return [skills.find((ref) => ref.skillKey === selectedSkillKey) ?? skills[0]];
   }
 
+  /** A remix's due exercises before any contents filter — what the learner chooses from. */
+  const remixBuilt = useMemo<LessonExerciseInstance[]>(() => {
+    if (!isRemix || !skillsReady || !plan.data || !userId) return [];
+    return buildInstances(plan.data.skills, dueTags);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [skillsReady, plan.data, userId, dueTags, isRemix]);
+
   const initialQueue = useMemo<LessonExerciseInstance[]>(() => {
     if (!skillsReady || !plan.data || !userId) return [];
     if (!isRemix) return buildInstances(lessonSkills(plan.data.skills), null);
-    return buildInstances(plan.data.skills, dueTags).slice(0, REMIX_MAX_EXERCISES);
+    return filterRemixExercises(remixBuilt, remixContents ?? "all", REMIX_MAX_EXERCISES);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [skillsReady, plan.data, userId, dueTags, isRemix, selectedSkillKey]);
+  }, [skillsReady, plan.data, userId, isRemix, selectedSkillKey, remixBuilt, remixContents]);
+
+  // Nothing due at all goes straight to the "empty" screen as before — there
+  // is nothing to choose between.
+  const awaitingRemixContents = isRemix && remixContents == null && remixBuilt.length > 0;
+
+  /** How many exercises a remix would hold with `contents` — 0 means that choice leaves nothing. */
+  function remixCount(contents: RemixContents): number {
+    return filterRemixExercises(remixBuilt, contents, REMIX_MAX_EXERCISES).length;
+  }
 
   const [queue, setQueue] = useState<LessonExerciseInstance[] | null>(null);
   const [totalCount, setTotalCount] = useState(0);
@@ -379,7 +405,7 @@ export function useLessonEngine(deepDiveLessonKeys?: string[], selectedSkillKey?
   // of useEffect entirely, which matters here because re-seeding on every
   // background refetch of `plan`/`skillArtifacts` would blow away in-progress
   // answers.
-  if (queue === null && skillsReady && plan.data) {
+  if (queue === null && skillsReady && plan.data && !awaitingRemixContents) {
     setQueue(initialQueue);
     setTotalCount(initialQueue.length);
     snapshotSession(initialQueue, skillArtifacts);
@@ -415,7 +441,7 @@ export function useLessonEngine(deepDiveLessonKeys?: string[], selectedSkillKey?
     const refs = plan.data.skills.length > 0 ? lessonSkills(plan.data.skills) : positionRef ? [positionRef] : [];
     if (refs.length === 0) return;
     const built = buildInstances(refs, null);
-    const instances = isRemix ? built.slice(0, REMIX_MAX_EXERCISES) : built;
+    const instances = isRemix ? filterRemixExercises(built, remixContents ?? "all", REMIX_MAX_EXERCISES) : built;
     if (instances.length === 0) return;
     // The nothing-due screen seeded an empty session, so this round is what
     // replay() and the recap's Next lesson have to go on.
@@ -443,7 +469,7 @@ export function useLessonEngine(deepDiveLessonKeys?: string[], selectedSkillKey?
   function replay() {
     if (sessionSkillRefs.length === 0) return;
     const built = buildInstances(sessionSkillRefs, null, sessionArtifacts);
-    restart(isRemix ? built.slice(0, REMIX_MAX_EXERCISES) : built, true);
+    restart(isRemix ? filterRemixExercises(built, remixContents ?? "all", REMIX_MAX_EXERCISES) : built, true);
   }
 
   function restart(instances: LessonExerciseInstance[], practice: boolean) {
@@ -647,9 +673,11 @@ export function useLessonEngine(deepDiveLessonKeys?: string[], selectedSkillKey?
           ? "loading"
           : bootstrap.isError || plan.isError || skillsError
             ? "error"
-            : queue !== null && queue.length === 0 && totalCount === 0
-              ? "empty"
-              : "ready";
+            : awaitingRemixContents && queue === null
+              ? "choosing"
+              : queue !== null && queue.length === 0 && totalCount === 0
+                ? "empty"
+                : "ready";
 
   // Only meaningful once the deep dive is done and AT LEAST ONE session skill
   // had a journey position — a standalone lesson can never move the cursor,
@@ -676,6 +704,9 @@ export function useLessonEngine(deepDiveLessonKeys?: string[], selectedSkillKey?
     /** `correct` counts first attempts accepted at all; `score` (0..1) is the weighted one the pass mark is measured on (domain/lessonScore.ts). */
     score: { correct: firstTryCorrect, total: totalCount, score: totalCount === 0 ? 0 : firstTryPoints / totalCount },
     isPracticeMode,
+    /** A multi-lesson remix — the only kind that offers a contents choice (status "choosing"). */
+    isRemix,
+    remixCount,
     submitAnswer,
     startPractice,
     retake,
