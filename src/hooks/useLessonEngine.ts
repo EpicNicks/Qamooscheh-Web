@@ -405,6 +405,18 @@ export function useLessonEngine(deepDiveLessonKeys?: string[], selectedSkillKey?
     restart(buildInstances(sessionSkillRefs, null), false);
   }
 
+  /**
+   * Go through the lesson just finished again as a practice round — the same
+   * skills retake() rebuilds, but with no submission (see finishLesson), so a
+   * lesson already passed never earns review credit twice. Wired to the
+   * passed-lesson screen's "Replay this lesson".
+   */
+  function replay() {
+    if (sessionSkillRefs.length === 0) return;
+    const built = buildInstances(sessionSkillRefs, null);
+    restart(isRemix ? built.slice(0, REMIX_MAX_EXERCISES) : built, true);
+  }
+
   function restart(instances: LessonExerciseInstance[], practice: boolean) {
     if (instances.length === 0) return;
     setIsPracticeMode(practice);
@@ -638,6 +650,7 @@ export function useLessonEngine(deepDiveLessonKeys?: string[], selectedSkillKey?
     submitAnswer,
     startPractice,
     retake,
+    replay,
     /** See the state's own comment — false means this run ended without finishing the lesson, so it didn't unlock what comes next. */
     lessonCompleted,
     markShown,
