@@ -1,0 +1,21 @@
+{
+  "name": "report-anytime",
+  "repo": "web",
+  "branch": "report-anytime",
+  "title": "Report an exercise before answering and after a correct answer",
+  "closes": 49,
+  "issue": "Issue #49. Today the Report control (src/components/lesson/ReportIssue.tsx, shown from AnswerFeedback.tsx) only appears after a wrong answer. APPROVED PLAN: (1) It is also available while the exercise is unanswered and after a correct answer. (2) Reasons offered: before answering and after a correct answer, only 'The audio sounded wrong' and 'Something else went wrong'; after a wrong answer all three, as today. Put the reason filtering in src/domain/exerciseReport.ts with a unit test. (3) Before answering, the report context omits submittedText (it is optional); location, renderType and the takes played so far are included as today. (4) The control must not steal focus or keyboard shortcuts from the exercise (Enter still checks the answer while typing), and opening it must not count as an answer. (5) Applies wherever the shared exercise session screen is used.",
+  "allowedPaths": [
+    "^src/"
+  ],
+  "acceptance": [
+    "Report reachable before answering and after a correct answer with the reduced reason list",
+    "Unit test for the reason filtering",
+    "lint, tsc -b, build, test green locally and in CI"
+  ],
+  "gate": "plan approved by the user 2026-10-10",
+  "approved": true,
+  "reviewer": "opus",
+  "reviewers": 1,
+  "notes": "USER REVISION 2026-10-10 (supersedes the plan where they differ; your earlier judgement calls are otherwise accepted): Stories must also offer the Report control (audio_wrong / other) before answering, not only after a correct answer."
+}

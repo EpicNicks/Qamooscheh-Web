@@ -13,15 +13,15 @@ type Item = ReportableItem & {
     Pick<ExerciseArtifact, "type" | "tiles" | "answer" | "alternativeAnswers" | "promptAudio" | "answerAudio" | "answerVariantAudio" | "speaker">;
 };
 
+/** A null submittedText is an exercise not yet answered: no submission to cite, and no answer take played yet. */
 export function useExerciseReportContext(item: Item | null, submittedText: string | null): ExerciseReportContext | null {
   const courseVersion = useBootstrap().data?.course?.version ?? null;
   const recordings = useRecordings(item?.exercise ?? null);
-  if (!item || submittedText == null) return null;
+  if (!item) return null;
   const { promptAudio, speaker } = item.exercise;
+  const promptPath = recordings.phrasePath(promptAudio, speaker);
+  if (submittedText == null) return reportContextFor(item, null, courseVersion, [promptPath]);
   // The take cited is the one played for the variant shown.
   const answerAudio = variantAudio(item.exercise, shownAnswerVariant(item.exercise, submittedText).index);
-  return reportContextFor(item, submittedText, courseVersion, [
-    recordings.phrasePath(promptAudio, speaker),
-    recordings.phrasePath(answerAudio, speaker),
-  ]);
+  return reportContextFor(item, submittedText, courseVersion, [promptPath, recordings.phrasePath(answerAudio, speaker)]);
 }

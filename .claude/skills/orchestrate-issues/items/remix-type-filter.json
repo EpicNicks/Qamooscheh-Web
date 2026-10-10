@@ -1,0 +1,14 @@
+{
+  "name": "remix-type-filter",
+  "repo": "web",
+  "branch": "remix-type-filter",
+  "title": "Choose which exercise types a remix uses",
+  "closes": 45,
+  "issue": "Issue #45. Plan: before a remix starts, the learner picks what it contains: All exercises (default, today's behaviour), Typing only, Word bank only, Flashcards only, Flashcards + all exercises. (1) Offer it wherever a remix is started on the web (theme remixes in src/pages/ThemeRemixPage.tsx and the saved-words practice in src/pages/SavedPracticePage.tsx; find any others via the engine's isRemix). Flashcard options appear only where that remix has flashcards today; hide options a remix cannot fill. (2) Filtering is client-side over the exercises the remix already builds, by render type, applied before the REMIX_MAX_EXERCISES cap so a filtered remix is still full when enough matching exercises exist. If a choice leaves nothing, say so and keep the picker open. (3) Remember the last choice per device with the existing local app prefs (src/lib/localAppPrefs.ts). (4) Submission, XP and review credit behave exactly as for an unfiltered remix. (5) Put the filtering in src/domain with unit tests. If remix contents are chosen by the backend so the client cannot filter without changing the request, stop with needsUser.",
+  "allowedPaths": ["^src/"],
+  "acceptance": ["Picker with the five choices where they apply; default unchanged", "Unit tests for the filter and the cap order", "lint, tsc -b, build, test green locally and in CI"],
+  "gate": "plan approved by the user 2026-10-10",
+  "approved": true,
+  "reviewer": "opus",
+  "reviewers": 2
+}
