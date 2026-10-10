@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useIsFetching } from "@tanstack/react-query";
 import { useLessonEngine, type SubmitAnswerResult, type LessonExerciseInstance } from "../hooks/useLessonEngine";
 import { useExerciseSession } from "../hooks/useExerciseSession";
 import { useBootstrap } from "../hooks/useBootstrap";
 import { useAuth } from "../auth/useAuth";
 import { useCoursePath, useAllThemeSkillArtifacts, useThemeIndex, refKey } from "../hooks/useCourseContent";
-import { isFirstStandardPosition } from "../domain/pathProgress";
+import { findLessonAfter, isFirstStandardPosition } from "../domain/pathProgress";
 import { xpForAnswer } from "../domain/xp";
 import { rootThemesForLesson } from "../domain/themeTree";
 import { buildRemixPool, computeMasteryScore, selectRemixLessons, REMIX_MAX_LESSONS } from "../domain/deepDiveRemix";
@@ -26,8 +27,17 @@ import styles from "./LessonPage.module.css";
  * shared with StoryPage and PracticePage; what's here is what's specific to a
  * real, graded lesson — the nothing-due offer, the XP burst, the first-lesson
  * tutorial spotlight, and the scored recap.
+ *
+ * Keyed on the navigation, so the recap's "Next lesson" — another /lesson
+ * URL on this same route — mounts a fresh engine for it rather than leaving
+ * the finished one's state on screen.
  */
 export function LessonPage() {
+  const { key } = useLocation();
+  return <LessonPageContent key={key} />;
+}
+
+function LessonPageContent() {
   const navigate = useNavigate();
   const location = useLocation();
   const { lessonKey } = useParams();
@@ -158,6 +168,17 @@ export function LessonPage() {
   // (content/CLAUDE.md), and this also happens to compensate for a known
   // backend gap where the publisher doesn't yet filter them out itself.
   const showDeepDiveBridge = lessonThemes.length > 0 && engine.sessionSkillCategory === "standard";
+
+  // "Next lesson" on the passed recap: whatever the path would now offer as
+  // its current lesson, started the same way the path starts it. Hidden for a
+  // deep dive, at the end of the course, and until the pass's own refresh of
+  // the cursor and the session plan has landed — before then the path still
+  // points at the lesson just finished, and the plan would replay it.
+  const sessionPlanRefreshing = useIsFetching({ queryKey: ["sessionPlan"] }) > 0;
+  const nextLesson =
+    !isDeepDive && engine.status === "done" && !sessionPlanRefreshing
+      ? findLessonAfter(path, engine.sessionSkillRefs)
+      : null;
 
   // Restart the engine's latency clock exactly when an exercise becomes
   // visible — i.e. once the previous answer's feedback has been dismissed
@@ -304,10 +325,17 @@ export function LessonPage() {
             sound="lessonPassed"
           />
           <div className={styles.doneActions}>
-            <Button onClick={() => navigate("/path")}>Back to path</Button>
-            <Button variant="secondary" onClick={engine.startPractice}>
-              Practice again
+            <Button variant={nextLesson ? "secondary" : "primary"} onClick={() => navigate("/path")}>
+              Back to path
             </Button>
+            <Button variant="secondary" onClick={engine.replay}>
+              Replay this lesson
+            </Button>
+            {nextLesson && (
+              <Button onClick={() => navigate(`/lesson?skill=${encodeURIComponent(nextLesson.skillKey)}`)}>
+                Next lesson
+              </Button>
+            )}
           </div>
           {showDeepDiveBridge && primarySkillRef && (
             <div className={styles.doneActions}>
