@@ -10,7 +10,10 @@ import { findLessonAfter, isFirstStandardPosition } from "../domain/pathProgress
 import { xpForAnswer } from "../domain/xp";
 import { rootThemesForLesson } from "../domain/themeTree";
 import { buildRemixPool, computeMasteryScore, selectRemixLessons, REMIX_MAX_LESSONS } from "../domain/deepDiveRemix";
+import { initialRemixContents, remixContentsOptions, type RemixContents } from "../domain/remixContents";
 import { loadCardStates } from "../lib/cardStateStore";
+import { useLocalAppPref } from "../hooks/useLocalAppPref";
+import { RemixContentsPicker } from "../components/lesson/RemixContentsPicker";
 import { ExerciseSessionScreen } from "../components/lesson/ExerciseSessionScreen";
 import { RealLessonOverlay } from "../components/tutorial/RealLessonOverlay";
 import { LessonResults } from "../components/lesson/LessonResults";
@@ -130,9 +133,21 @@ function LessonPageContent() {
   );
   const themeRemixIsEmpty = themeRemixReady && themeRemixPool.length === 0;
 
+  // What a remix holds (issue #45): `chosenContents` is the learner's pick in
+  // the picker, `remixContents` only becomes set once Start finds something
+  // of that kind, which is what lets the engine start the remix.
+  const [rememberedContents, setRememberedContents] = useLocalAppPref("remixContents", { lesson: "all", saved: "flashcards_and_all" });
+  const remixOptions = remixContentsOptions(false);
+  const [chosenContents, setChosenContents] = useState<RemixContents>(() =>
+    initialRemixContents(rememberedContents.lesson, remixOptions, "all"),
+  );
+  const [remixContents, setRemixContents] = useState<RemixContents | null>(null);
+  const [remixChoiceEmpty, setRemixChoiceEmpty] = useState(false);
+
   const engine = useLessonEngine(
     isThemeRemixRoute ? themeRemixKeys : isRemixRoute ? remixKeys : isDeepDive && lessonKey ? [lessonKey] : undefined,
     searchParams.get("skill"),
+    remixContents,
   );
   const session = useExerciseSession<LessonExerciseInstance, SubmitAnswerResult>(engine.course);
   const { confirmation } = session;
@@ -213,6 +228,30 @@ function LessonPageContent() {
 
   if (engine.status === "error") {
     return <ErrorBanner message="Couldn't load your next lesson." />;
+  }
+
+  if (engine.status === "choosing") {
+    return (
+      <RemixContentsPicker
+        options={remixOptions}
+        value={chosenContents}
+        onChange={(next) => {
+          setChosenContents(next);
+          setRemixChoiceEmpty(false);
+        }}
+        onStart={() => {
+          if (engine.remixCount(chosenContents) === 0) {
+            setRemixChoiceEmpty(true);
+            return;
+          }
+          setRememberedContents({ ...rememberedContents, lesson: chosenContents });
+          setRemixContents(chosenContents);
+        }}
+        emptyMessage={remixChoiceEmpty ? "This remix has none of those right now — pick something else." : null}
+        backLabel="Back to browsing"
+        onBack={() => navigate(isThemeRemixRoute ? "/theme-remix" : "/themes")}
+      />
+    );
   }
 
   // A deep-dive lesson key that names no lesson in the caller's pinned
