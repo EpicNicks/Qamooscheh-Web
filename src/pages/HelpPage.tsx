@@ -114,7 +114,8 @@ const FAQ: FaqEntry[] = [
         <p>
           Mostly from lessons, for each exercise you answer: 10 XP for getting it right first time, 7 with a small
           typo, and 3 for getting it right when it comes back after a miss. After a wrong typed answer,{" "}
-          <em>Retry</em> lets you type the correct answer once more for 2 XP. A hinted answer earns half, and a wrong
+          <em>Retry</em> lets you type the correct answer once more: 2 XP the first time for that exercise, 1 the second, and
+          nothing after that. A hinted answer earns half, and a wrong
           one nothing; how fast you answer doesn't matter. Flashcards add more (see above).
         </p>
         <p>

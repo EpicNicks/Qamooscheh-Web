@@ -13,6 +13,7 @@ interface XpVector {
   attempt: number;
   usedHint: boolean;
   retype: boolean;
+  retypeNumber: number;
   xp: number;
 }
 
@@ -30,6 +31,6 @@ describe("xpForAnswer matches the backend's AnswerXp", () => {
   });
 
   it.each(vectors.map((v) => [v.name, v] as const))("%s", (_, v) => {
-    expect(xpForAnswer(VERDICTS[v.verdict], v.attempt, v.usedHint, v.retype)).toBe(v.xp);
+    expect(xpForAnswer(VERDICTS[v.verdict], v.attempt, v.usedHint, v.retype, v.retypeNumber)).toBe(v.xp);
   });
 });

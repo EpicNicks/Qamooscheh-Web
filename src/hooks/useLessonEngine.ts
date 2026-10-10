@@ -33,7 +33,7 @@ import { checkAnswer, type AnswerVerdict } from "../domain/answerFeedback";
 import { resolveExerciseType } from "../domain/exerciseResolution";
 import { LESSON_PASS_THRESHOLD, verdictWeight } from "../domain/lessonScore";
 import { filterRemixExercises, type RemixContents } from "../domain/remixContents";
-import { needsRetype } from "../domain/retype";
+import { MAX_CREDITED_RETYPES, needsRetype } from "../domain/retype";
 import type { SessionPlanResponse, SkillRef, SubmittedItem, SubmittedSession, SubmittedSessionResponse } from "../types/api";
 import type { ExerciseArtifact, SkillArtifact } from "../types/content";
 import type { ExerciseType, SkillCategory } from "../domain/enums";
@@ -352,10 +352,11 @@ export function useLessonEngine(
   // point 8), summed — null until a response carries it.
   const [sessionXp, setSessionXp] = useState<number | null>(null);
   // The answer under review, which a retype (domain/retype.ts) is recorded
-  // against, and the exercises (by instance key) already retyped this run:
-  // the server credits one retype per exercise, so a later one is practice.
+  // against, and how many times each exercise (by instance key) was retyped
+  // this run: the server credits two retypes per exercise
+  // (MAX_CREDITED_RETYPES), so a later one is practice.
   const lastAnswer = useRef<{ instance: LessonExerciseInstance; attempt: number } | null>(null);
-  const retypedKeys = useRef(new Set<string>());
+  const retypeCounts = useRef(new Map<string, number>());
   // The last answer's score while its submit waits for the review to close —
   // a wrong typed last answer may still be retyped, and that goes in the submit.
   const pendingFinish = useRef<number | null>(null);
@@ -490,7 +491,7 @@ export function useLessonEngine(
     setLessonCompleted(null);
     setSessionXp(null);
     lastAnswer.current = null;
-    retypedKeys.current = new Set();
+    retypeCounts.current = new Map();
     pendingFinish.current = null;
     setItems([]);
     setFirstTryCorrect(0);
@@ -577,14 +578,17 @@ export function useLessonEngine(
 
   /**
    * Records a retype that matched (domain/retype.ts) on the answer under
-   * review, as its items' `retypeText`. Returns the retype's verdict, or
-   * null when it doesn't count: the exercise was already retyped this run
-   * (the server credits one per exercise) or nothing is under review.
+   * review, as its items' `retypeText`. Returns the retype's verdict and
+   * which correct retype of the exercise this run it is, or null when it
+   * doesn't count: the exercise was already retyped twice this run (the
+   * server credits no more) or nothing is under review.
    */
-  function recordRetype(retypeText: string): { verdict: AnswerVerdict; attempt: number } | null {
+  function recordRetype(retypeText: string): { verdict: AnswerVerdict; attempt: number; retypeNumber: number } | null {
     const answer = lastAnswer.current;
-    if (!answer || retypedKeys.current.has(answer.instance.key)) return null;
-    retypedKeys.current.add(answer.instance.key);
+    if (!answer) return null;
+    const retypeNumber = (retypeCounts.current.get(answer.instance.key) ?? 0) + 1;
+    if (retypeNumber > MAX_CREDITED_RETYPES) return null;
+    retypeCounts.current.set(answer.instance.key, retypeNumber);
     const { instance, attempt } = answer;
     setItems((prev) =>
       prev.map((recorded) =>
@@ -596,7 +600,7 @@ export function useLessonEngine(
           : recorded,
       ),
     );
-    return { verdict: checkAnswer(course?.code, instance.exercise, retypeText).verdict, attempt };
+    return { verdict: checkAnswer(course?.code, instance.exercise, retypeText).verdict, attempt, retypeNumber };
   }
 
   /** Called once the review of an answer closes: submits the lesson if its last answer was waiting on a retype. */

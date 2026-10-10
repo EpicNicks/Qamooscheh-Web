@@ -6,6 +6,12 @@ import { checkAnswer } from "./answerFeedback";
 import type { ExerciseType } from "./enums";
 import type { ExerciseArtifact } from "../types/content";
 
+/**
+ * How many matching retypes of one exercise a run sends: the server credits
+ * the first two (2 XP, then 1) and nothing after, so a later one stays practice.
+ */
+export const MAX_CREDITED_RETYPES = 2;
+
 /** Whether the review of an answer offers a retype: only a typed (type_in) answer, and only a wrong one. */
 export function needsRetype(renderType: ExerciseType, correct: boolean): boolean {
   return renderType === "type_in" && !correct;

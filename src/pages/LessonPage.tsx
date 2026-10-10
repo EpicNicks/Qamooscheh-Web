@@ -441,7 +441,7 @@ function LessonPageContent() {
       feedbackXp={(feedback) => (engine.isPracticeMode ? 0 : xpForAnswer(feedback.verdict, feedback.attempt, lastUsedHint))}
       onRetype={(text) => {
         const retype = engine.recordRetype(text);
-        return retype && !engine.isPracticeMode ? xpForAnswer(retype.verdict, retype.attempt, lastUsedHint, true) : 0;
+        return retype && !engine.isPracticeMode ? xpForAnswer(retype.verdict, retype.attempt, lastUsedHint, true, retype.retypeNumber) : 0;
       }}
       overlay={({ item, topRowEl, exerciseEl }) => (
         <RealLessonOverlay
