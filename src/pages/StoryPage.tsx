@@ -6,7 +6,9 @@ import { StoryTranscript } from "../components/lesson/StoryTranscript";
 import { Spinner } from "../components/common/Spinner";
 import { ErrorBanner } from "../components/common/ErrorBanner";
 import { Button } from "../components/common/Button";
+import { LessonResults } from "../components/lesson/LessonResults";
 import styles from "./LessonPage.module.css";
+import storyStyles from "./StoryPage.module.css";
 
 /**
  * Reading one chapter of a story (or a conversation, or a song). Thin over
@@ -61,6 +63,14 @@ export function StoryPage() {
           {walkthrough.result && (
             <p>{walkthrough.result.outcome === "AlreadyProcessed" ? "Already recorded." : "Nicely read."}</p>
           )}
+          {/* Scored like a lesson, but a story has no pass mark to draw. */}
+          <div className={storyStyles.pageTurn}>
+            <LessonResults
+              correct={walkthrough.score.correct}
+              total={walkthrough.score.total}
+              score={walkthrough.score.score}
+            />
+          </div>
           <Button onClick={() => navigate("/path")}>Back to path</Button>
         </div>
       );
