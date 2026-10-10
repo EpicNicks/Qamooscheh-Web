@@ -176,7 +176,7 @@ function LessonPageContent() {
   // points at the lesson just finished, and the plan would replay it.
   const sessionPlanRefreshing = useIsFetching({ queryKey: ["sessionPlan"] }) > 0;
   const nextLesson =
-    !isDeepDive && engine.status === "done" && !sessionPlanRefreshing
+    !isDeepDive && engine.status === "done" && !sessionPlanRefreshing && engine.sessionSkillRefs.length > 0
       ? findLessonAfter(path, engine.sessionSkillRefs)
       : null;
 

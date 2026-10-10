@@ -345,21 +345,17 @@ export function useLessonEngine(deepDiveLessonKeys?: string[], selectedSkillKey?
     startingPositionRef.current = bootstrap.data?.position ?? null;
   }
 
-  // Seed local state once content resolves — a ref-guarded effect would be
-  // the "proper" way, but a plain lazy check keeps this hook dependency-free
-  // of useEffect entirely, which matters here because re-seeding on every
-  // background refetch of `plan`/`skillArtifacts` would blow away in-progress
-  // answers.
-  if (queue === null && skillsReady && plan.data) {
-    setQueue(initialQueue);
-    setTotalCount(initialQueue.length);
-    // Derived from the actual built (and possibly REMIX_MAX_EXERCISES-
-    // truncated) queue, not plan.data.skills directly — a remix's merged
-    // plan can list a lesson whose exercises got truncated away entirely,
-    // and that lesson was never actually played.
+  /**
+   * Records which lessons a queue actually plays, and their artifacts. Derived
+   * from the built (and possibly REMIX_MAX_EXERCISES-truncated) queue, not
+   * plan.data.skills directly — a remix's merged plan can list a lesson whose
+   * exercises got truncated away entirely, and that lesson was never actually
+   * played.
+   */
+  function snapshotSession(instances: readonly LessonExerciseInstance[], artifacts: ReadonlyMap<string, SkillArtifact>) {
     const playedRefs: SkillRef[] = [];
     const seenKeys = new Set<string>();
-    for (const instance of initialQueue) {
+    for (const instance of instances) {
       const key = refKey(instance);
       if (seenKeys.has(key)) continue;
       seenKeys.add(key);
@@ -369,13 +365,24 @@ export function useLessonEngine(deepDiveLessonKeys?: string[], selectedSkillKey?
     setSessionArtifacts(
       new Map(
         playedRefs.flatMap((ref) => {
-          const artifact = skillArtifacts.get(refKey(ref));
+          const artifact = artifacts.get(refKey(ref));
           return artifact ? [[refKey(ref), artifact] as const] : [];
         }),
       ),
     );
     const primaryRef = playedRefs[0];
-    setSessionSkillCategory(primaryRef ? (skillArtifacts.get(refKey(primaryRef))?.category ?? null) : null);
+    setSessionSkillCategory(primaryRef ? (artifacts.get(refKey(primaryRef))?.category ?? null) : null);
+  }
+
+  // Seed local state once content resolves — a ref-guarded effect would be
+  // the "proper" way, but a plain lazy check keeps this hook dependency-free
+  // of useEffect entirely, which matters here because re-seeding on every
+  // background refetch of `plan`/`skillArtifacts` would blow away in-progress
+  // answers.
+  if (queue === null && skillsReady && plan.data) {
+    setQueue(initialQueue);
+    setTotalCount(initialQueue.length);
+    snapshotSession(initialQueue, skillArtifacts);
     shownAt.current = performance.now();
   }
 
@@ -408,7 +415,12 @@ export function useLessonEngine(deepDiveLessonKeys?: string[], selectedSkillKey?
     const refs = plan.data.skills.length > 0 ? lessonSkills(plan.data.skills) : positionRef ? [positionRef] : [];
     if (refs.length === 0) return;
     const built = buildInstances(refs, null);
-    restart(isRemix ? built.slice(0, REMIX_MAX_EXERCISES) : built, true);
+    const instances = isRemix ? built.slice(0, REMIX_MAX_EXERCISES) : built;
+    if (instances.length === 0) return;
+    // The nothing-due screen seeded an empty session, so this round is what
+    // replay() and the recap's Next lesson have to go on.
+    snapshotSession(instances, skillArtifacts);
+    restart(instances, true);
   }
 
   /**
