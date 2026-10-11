@@ -1,4 +1,4 @@
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { availableTenses } from "../../domain/verbForms";
@@ -23,6 +23,11 @@ export function VerbFormsModal({ entry, onClose }: { entry: VerbIndexEntry; onCl
   const titleId = useId();
   useFocusTrap(dialogRef, { enabled: true, onEscape: onClose });
 
+  // Move focus into the dialog on open, so Tab doesn't walk the page behind it.
+  useEffect(() => {
+    dialogRef.current?.focus();
+  }, []);
+
   return createPortal(
     <div
       className={styles.overlay}
@@ -38,6 +43,7 @@ export function VerbFormsModal({ entry, onClose }: { entry: VerbIndexEntry; onCl
         className={styles.dialog}
         role="dialog"
         aria-modal="true"
+        tabIndex={-1}
         aria-labelledby={titleId}
         onClick={(event) => event.stopPropagation()}
       >
