@@ -8,6 +8,7 @@ import { PlayAudioButton } from "./PlayAudioButton";
 import type { PhraseAudio } from "../../hooks/usePhraseAudio";
 import { stripReadingAids } from "../../domain/persian/normalize";
 import { displayDirection } from "../../domain/annotation";
+import type { AnswerRegisterNote } from "../../domain/answerRegister";
 import { EMPTY_HINT_MAP, PLAIN_TEXT, type TextDisplaySettings, type WordHint } from "../../domain/romanization";
 import styles from "./AnswerFeedback.module.css";
 
@@ -36,6 +37,8 @@ export interface AnswerFeedbackProps {
   answerRomanization?: { text: string; romanization: string | null | undefined };
   /** The exercise's lexeme tags — how a revealed answer's word with endings attached splits (domain/attachedEndings.ts). */
   tags?: readonly string[];
+  /** The register of the answer given and of accepted answers in another one (domain/answerRegister.ts) — shown on a correct answer only, since a wrong one has no answer given. Omit or null to show none. */
+  registerNote?: AnswerRegisterNote | null;
   /** Cites which lesson part a report is about — omit to hide the Report control entirely. */
   reportContext?: ExerciseReportContext | null;
   /** Plays the correct answer (hooks/useAnswerAudio.ts) — omit or null to show no play button. */
@@ -60,6 +63,7 @@ export function AnswerFeedback({
   textSettings = PLAIN_TEXT,
   answerRomanization,
   tags,
+  registerNote,
   reportContext,
   answerAudio,
 }: AnswerFeedbackProps) {
@@ -87,6 +91,12 @@ export function AnswerFeedback({
         <div className={styles.correct} role="status">
           <span className={styles.verdict}>Correct!</span>
           {note && <span className={styles.note}>{note}</span>}
+          {registerNote?.label && <span className={styles.note}>({registerNote.label})</span>}
+          {registerNote?.alternatives.map(({ answer: alternative, label }) => (
+            <span key={alternative} className={styles.note} dir={displayDirection(alternative, textSettings.display)}>
+              Also: {alternative} ({label})
+            </span>
+          ))}
           <XpBurst amount={xp} />
           {answerAudio && (
             <span className={styles.play}>
