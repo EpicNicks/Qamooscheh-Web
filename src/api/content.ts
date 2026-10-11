@@ -5,7 +5,7 @@
 // by following the trusted manifest's own relative paths.
 import { CONTENT_BASE_URL } from "../config";
 import { fetchAndVerifyJson } from "../lib/sha256";
-import type { AudioIndexArtifact, CourseManifest, LexemeIndex, SkillArtifact, ThemeIndexArtifact, UnitArtifact } from "../types/content";
+import type { AudioIndexArtifact, CourseManifest, LexemeIndex, SkillArtifact, ThemeIndexArtifact, UnitArtifact, VerbIndex } from "../types/content";
 
 function courseRoot(courseCode: string, version: number): string {
   return `${CONTENT_BASE_URL}/course/${courseCode}/v${version}`;
@@ -35,6 +35,10 @@ export function getSkillArtifact(courseCode: string, version: number, skillRefPa
 
 export function getLexemeIndex(courseCode: string, version: number, lexemeIndexPath: string): Promise<LexemeIndex> {
   return fetchJson<LexemeIndex>(`${courseRoot(courseCode, version)}/${lexemeIndexPath}`);
+}
+
+export function getVerbIndex(courseCode: string, version: number, verbIndexPath: string): Promise<VerbIndex> {
+  return fetchJson<VerbIndex>(`${courseRoot(courseCode, version)}/${verbIndexPath}`);
 }
 
 export function getThemeIndex(

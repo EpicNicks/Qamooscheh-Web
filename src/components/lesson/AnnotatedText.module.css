@@ -66,8 +66,6 @@
   white-space: normal;
 }
 
-.wrap:hover .tooltip,
-.wrap:focus-visible .tooltip,
 .wrap[data-open] .tooltip,
 /* The word-bank case: the tile itself is the button, so the span inside it
    carries no tabIndex of its own (AnnotatedWord's `focusable={false}`) and the
@@ -78,13 +76,27 @@
   transform: translate(-50%, -100%);
 }
 
+/* Open, a hint can be hovered, so the pointer can reach what's in it. */
+.wrap[data-open] .tooltip {
+  pointer-events: auto;
+}
+
+.verbFormsButton {
+  margin-top: 2px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 /* Flipped under the word when there's no room above it on screen. */
 .tooltip[data-placement="below"] {
   transform: translate(-50%, -2px);
 }
 
-.wrap:hover .tooltip[data-placement="below"],
-.wrap:focus-visible .tooltip[data-placement="below"],
 .wrap[data-open] .tooltip[data-placement="below"],
 :focus-visible > .wrap .tooltip[data-placement="below"] {
   transform: translate(-50%, 0);

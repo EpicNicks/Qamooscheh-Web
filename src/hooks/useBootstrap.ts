@@ -7,9 +7,10 @@ import { getBootstrap } from "../api/bootstrap";
  * fetched after sign-in — SessionPlanController/SessionSubmitController both
  * answer 409 (NotProvisioned) if a call arrives before this one has run.
  */
-export function useBootstrap() {
+export function useBootstrap({ enabled = true }: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: ["bootstrap"],
     queryFn: getBootstrap,
+    enabled,
   });
 }

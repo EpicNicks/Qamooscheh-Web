@@ -8,7 +8,7 @@
 // language) gets its hint the moment its lexeme exists, regardless of which
 // exercise's own `tags` list happens to reference it. Built once per
 // lexemeIndex fetch and reused across every exercise on screen.
-import type { LexemeIndex } from "../types/content";
+import type { LexemeIndex, LexemeIndexEntry } from "../types/content";
 import type { ExerciseScriptMode, Register } from "./enums";
 import type { ScriptDisplay } from "./annotation";
 import type { Ezafe } from "./ezafe";
@@ -36,6 +36,8 @@ export interface WordHint {
   ezafe?: Ezafe;
   /** Every lexeme written this way, with its part of speech (the tag's "<n>", "<poss>", "<v><spoken>" …) — how domain/attachedEndings.ts tells an ending's senses apart (ـم "my" after a noun, "am" after an adjective). */
   senses?: WordSense[];
+  /** The infinitive to look up in the verb index, when a verb lexeme is written this way (domain/verbForms.ts). Shown as a "Verb forms" entry in the tooltip. */
+  verbLemma?: string;
 }
 
 export interface WordSense {
@@ -52,6 +54,11 @@ export function registerLabel(register: Register | null | undefined): string | n
   if (register === "spoken") return "informal";
   if (register === "written") return "formal";
   return null;
+}
+
+/** The infinitive whose forms a lexeme can show: its `lemma`, when it's a verb. */
+function verbLemmaOf(entry: LexemeIndexEntry): string | undefined {
+  return entry.pos === "verb" && entry.lemma ? entry.lemma : undefined;
 }
 
 export function buildLexemeHintMap(lexemeIndex: LexemeIndex | null | undefined): Map<string, WordHint> {
@@ -75,6 +82,7 @@ export function buildLexemeHintMap(lexemeIndex: LexemeIndex | null | undefined):
         // gets no label rather than whichever sibling happened to come first.
         register: existing && existing.register !== entry.register ? "both" : entry.register,
         senses: [...(existing?.senses ?? []), sense],
+        verbLemma: existing?.verbLemma ?? verbLemmaOf(entry),
       });
     }
   }
