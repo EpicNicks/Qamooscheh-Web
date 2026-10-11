@@ -7,7 +7,7 @@ import { getLanguageInfo, getKeyboardKind, isPersian } from "../../domain/langua
 import { detectArabicVariants, stripReadingAids, ZWNJ } from "../../domain/persian/normalize";
 import { useKeyboardInputMethod } from "../../hooks/useKeyboardInputMethod";
 import { useDeviceInputEnabled } from "../../hooks/useDeviceInputEnabled";
-import { markTypedAnswer, type MarkedWord } from "../../domain/typedAnswerMarks";
+import { markSeparatorGaps, markTypedAnswer, type MarkedWord } from "../../domain/typedAnswerMarks";
 import { mistakeKind } from "../../domain/mistakeHints";
 import { MistakeHintChip } from "./AnnotatedText";
 import { XpBurst } from "./XpBurst";
@@ -385,6 +385,24 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
             );
           })}
         </div>
+      )}
+      {reviewedAnswer?.separators && (
+        // Where the grader found the spacing off, in the accepted spelling:
+        // the answer was accepted, so this points rather than corrects.
+        <p className={styles.separatorNote}>
+          Spacing:{" "}
+          <bdi dir={isNativeScript ? languageInfo?.direction : "ltr"}>
+            {markSeparatorGaps(reviewedAnswer.separators.matchedAnswer, reviewedAnswer.separators.edits).map((span, i) =>
+              span.gap ? (
+                <span key={i} className={styles.separatorGap}>
+                  {span.text}
+                </span>
+              ) : (
+                <Fragment key={i}>{textSettings?.vowelMarks ? span.text : stripReadingAids(span.text)}</Fragment>
+              ),
+            )}
+          </bdi>
+        </p>
       )}
       {retyping && <p className={styles.note}>Type the correct answer once more to practice it.</p>}
       {retypedXp !== null && (

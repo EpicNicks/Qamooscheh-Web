@@ -217,6 +217,25 @@
   font-weight: 700;
 }
 
+/* Where a half-space or space belongs (or was added) in an accepted answer,
+   marked in the accepted spelling: a blue block as wide as the separator
+   would show, or a caret for an extra one. Blue like a missing word. */
+.separatorNote {
+  margin: var(--space-1) 0 0;
+  color: var(--color-info);
+  font-weight: 700;
+}
+
+.separatorGap {
+  display: inline-block;
+  min-width: 0.4em;
+  height: 1em;
+  vertical-align: text-bottom;
+  background: var(--color-info-bg);
+  border-bottom: 2px solid var(--color-info);
+  border-radius: 2px;
+}
+
 .wordWrong {
   color: var(--color-danger);
   background: var(--color-danger-bg);

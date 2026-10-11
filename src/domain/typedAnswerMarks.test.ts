@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { markTypedAnswer } from "./typedAnswerMarks";
+import { markSeparatorGaps, markTypedAnswer } from "./typedAnswerMarks";
 
 describe("markTypedAnswer", () => {
   it("marks every word green on a correct answer, typos included", () => {
@@ -69,5 +69,30 @@ describe("markTypedAnswer", () => {
       // One word of five: the blue would be most of the sentence.
       expect(show(["I am buying a bag"], "bag")).toEqual(["bag"]);
     });
+  });
+});
+
+describe("markSeparatorGaps", () => {
+  const matched = "من می‌خرم";
+
+  it("cuts the matched answer around the separators the grader flagged", () => {
+    expect(markSeparatorGaps(matched, [{ kind: "missingZwnj", index: 5, length: 1 }])).toEqual([
+      { text: "من می", gap: false },
+      { text: "‌", gap: true },
+      { text: "خرم", gap: false },
+    ]);
+  });
+
+  it("marks an extra separator as an empty caret, in index order", () => {
+    expect(
+      markSeparatorGaps(matched, [
+        { kind: "extraSpace", index: 1, length: 0 },
+        { kind: "missingZwnj", index: 5, length: 1 },
+      ]).map((span) => span.gap),
+    ).toEqual([false, true, false, true, false]);
+  });
+
+  it("skips an edit that doesn't fit the answer", () => {
+    expect(markSeparatorGaps("ab", [{ kind: "missingSpace", index: 5, length: 1 }])).toEqual([{ text: "ab", gap: false }]);
   });
 });

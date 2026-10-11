@@ -6,6 +6,7 @@
 import { isPersian } from "./language";
 import { foldCodepoints, normalizeStrict } from "./persian/normalize";
 import { alignTiles, closestTileOrder, type AlignmentStep, type TileMark } from "./wordBankOrders";
+import type { SeparatorEdit } from "../grader/types";
 
 export interface MarkedWord {
   /** The word exactly as the learner typed it — or, for a missing word, as the accepted answer writes it. */
@@ -83,4 +84,29 @@ function unmatchedRuns(steps: AlignmentStep[]): AlignmentStep[][] {
     else runs.push([step]);
   }
   return runs;
+}
+
+/** A stretch of the matched answer; `gap` is a separator the learner got wrong (an empty one is a caret, where an extra one sat). */
+export interface SeparatorSpan {
+  text: string;
+  gap: boolean;
+}
+
+/**
+ * The accepted answer the grader matched, cut at the grader's separator edits
+ * (issue #39) so the review can point at each half-space or space the learner
+ * missed, mistyped or added. Edits are offsets into `matchedAnswer` as
+ * published, in index order; one that doesn't fit is skipped.
+ */
+export function markSeparatorGaps(matchedAnswer: string, edits: readonly SeparatorEdit[]): SeparatorSpan[] {
+  const spans: SeparatorSpan[] = [];
+  let at = 0;
+  for (const { index, length } of edits) {
+    if (index < at || index + length > matchedAnswer.length) continue;
+    if (index > at) spans.push({ text: matchedAnswer.slice(at, index), gap: false });
+    spans.push({ text: matchedAnswer.slice(index, index + length), gap: true });
+    at = index + length;
+  }
+  if (at < matchedAnswer.length) spans.push({ text: matchedAnswer.slice(at), gap: false });
+  return spans;
 }

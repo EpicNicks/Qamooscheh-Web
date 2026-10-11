@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { checkAnswer, closestAnswerFirst } from "./answerFeedback";
 import { accepted, correct, fakeGrader } from "../grader/fakeGrader";
+import type { SeparatorEdit } from "../grader/types";
 import type { ExerciseArtifact } from "../types/content";
 
 const ZWNJ = "‌";
@@ -46,13 +47,13 @@ describe("checkAnswer's verdict and XP", () => {
   const typeIn = exercise("type_in", ["x"]);
 
   it("takes both from the grader's response", () => {
-    expect(checkAnswer(fakeGrader(() => correct("x", 10)), "fa", typeIn, "x")).toEqual({ verdict: "correct", note: null, xp: 10 });
+    expect(checkAnswer(fakeGrader(() => correct("x", 10)), "fa", typeIn, "x")).toEqual({ verdict: "correct", note: null, xp: 10, separators: null });
     expect(checkAnswer(fakeGrader(() => accepted("x", [])), "fa", typeIn, "x")).toMatchObject({ verdict: "accepted_with_correction", xp: 7 });
-    expect(checkAnswer(fakeGrader(() => ({})), "fa", typeIn, "y")).toEqual({ verdict: "incorrect", note: null, xp: 0 });
+    expect(checkAnswer(fakeGrader(() => ({})), "fa", typeIn, "y")).toEqual({ verdict: "incorrect", note: null, xp: 0, separators: null });
   });
 
   it("falls back to an exact match, with no XP, without a grader", () => {
-    expect(checkAnswer(null, "fa", typeIn, " X ")).toEqual({ verdict: "correct", note: null, xp: 0 });
+    expect(checkAnswer(null, "fa", typeIn, " X ")).toEqual({ verdict: "correct", note: null, xp: 0, separators: null });
     expect(checkAnswer(null, "fa", typeIn, "y").verdict).toBe("incorrect");
     const wordBank = { ...exercise("word_bank", ["من", "کتاب"]), alternativeAnswers: [["کتاب", "من"]] };
     expect(checkAnswer(null, "fa", wordBank, "کتاب من").verdict).toBe("correct");
@@ -61,41 +62,48 @@ describe("checkAnswer's verdict and XP", () => {
 
   it("falls back the same way when the grader can't interpret the request", () => {
     const grader = fakeGrader(() => ({ verdict: null, error: "unknown exerciseType 'Nope'." }));
-    expect(checkAnswer(grader, "fa", typeIn, "x")).toEqual({ verdict: "correct", note: null, xp: 0 });
+    expect(checkAnswer(grader, "fa", typeIn, "x")).toEqual({ verdict: "correct", note: null, xp: 0, separators: null });
   });
 });
 
-describe("checkAnswer's spacing note (issue #39)", () => {
-  const typeIn = exercise("type_in", [`من می${ZWNJ}خرم`]);
-  const wrong = fakeGrader(() => ({}));
+describe("checkAnswer's spacing hint (issue #39)", () => {
+  const matched = `من می${ZWNJ}خرم`;
+  const typeIn = exercise("type_in", [matched]);
+  const withEdits = (separatorEdits: SeparatorEdit[]) => fakeGrader(() => ({ ...accepted(matched, ["ZwnjOrSpacing"]), separatorEdits }));
+  const missingZwnj: SeparatorEdit = { kind: "missingZwnj", index: 5, length: 1 };
 
-  it("says exactly where a half-space goes when the grader marks the answer wrong", () => {
-    const feedback = checkAnswer(wrong, "fa", typeIn, "من میخرم");
-    expect(feedback.verdict).toBe("incorrect");
-    expect(plain(feedback.note)).toBe("Needs a half-space after می.");
+  it("accepts a missing half-space with a hint naming where it goes, and keeps the grader's edits", () => {
+    const feedback = checkAnswer(withEdits([missingZwnj]), "fa", typeIn, "من میخرم");
+    expect(feedback.verdict).toBe("accepted_with_correction");
+    expect(feedback.xp).toBe(7);
+    expect(plain(feedback.note)).toBe("Close — the half-space (ZWNJ) was off: needs a half-space after می.");
+    expect(feedback.separators).toEqual({ matchedAnswer: matched, edits: [missingZwnj] });
   });
 
-  it("names a space typed in a half-space's place, and every place that's off", () => {
-    expect(plain(checkAnswer(wrong, "fa", typeIn, "من می خرم").note)).toBe("Needs a half-space, not a space, after می.");
-    expect(plain(checkAnswer(wrong, "fa", typeIn, "منمیخرم").note)).toBe("Needs a space after من; a half-space after می.");
+  it("words each kind of edit from the grader's offsets", () => {
+    const note = (edits: SeparatorEdit[]) => plain(checkAnswer(withEdits(edits), "fa", typeIn, "x").note);
+    expect(note([{ kind: "spaceForZwnj", index: 5, length: 1 }])).toBe("Close — the half-space (ZWNJ) was off: needs a half-space, not a space, after می.");
+    expect(note([{ kind: "missingSpace", index: 2, length: 1 }])).toBe("Close — the half-space (ZWNJ) was off: needs a space after من.");
+    expect(note([{ kind: "extraZwnj", index: 2, length: 0 }])).toBe("Close — the half-space (ZWNJ) was off: needs no half-space after من.");
+    expect(note([{ kind: "missingSpace", index: 2, length: 1 }, missingZwnj])).toBe(
+      "Close — the half-space (ZWNJ) was off: needs a space after من; a half-space after می.",
+    );
   });
 
-  it("gives no spacing note when a letter is wrong too", () => {
-    expect(checkAnswer(wrong, "fa", typeIn, "تو میخرم").note).toBeNull();
+  it("names the word after an edit at a word's start", () => {
+    expect(plain(checkAnswer(withEdits([{ kind: "extraSpace", index: 0, length: 0 }]), "fa", typeIn, "x").note)).toBe(
+      "Close — the half-space (ZWNJ) was off: needs no space before من.",
+    );
   });
 
-  it("notes a speak exercise's spacing too, while its answer is typed", () => {
-    expect(plain(checkAnswer(wrong, "fa", exercise("speak", typeIn.answer), "من میخرم").note)).toBe("Needs a half-space after می.");
+  it("falls back to the reason alone without edits, and has no separators then", () => {
+    const feedback = checkAnswer(withEdits([]), "fa", typeIn, "من میخرم");
+    expect(feedback.note).toBe("Close — the half-space (ZWNJ) was off.");
+    expect(feedback.separators).toBeNull();
   });
 
-  it("gives none for another language or a romanized answer", () => {
-    expect(checkAnswer(wrong, "ja", typeIn, "من میخرم").note).toBeNull();
-    expect(checkAnswer(wrong, "fa", { ...typeIn, scriptMode: "romanized" }, "من میخرم").note).toBeNull();
-  });
-
-  it("adds where the half-space goes to a forgiven one", () => {
-    const grader = fakeGrader(() => accepted(typeIn.answer[0], ["ZwnjOrSpacing"]));
-    expect(plain(checkAnswer(grader, "fa", typeIn, "من میخرم").note)).toBe("Close — the half-space (ZWNJ) was off: needs a half-space after می.");
+  it("gives a wrong answer no spacing note", () => {
+    expect(checkAnswer(fakeGrader(() => ({})), "fa", typeIn, "من میخرم")).toMatchObject({ verdict: "incorrect", note: null, separators: null });
   });
 });
 

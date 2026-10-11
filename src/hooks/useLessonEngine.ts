@@ -29,7 +29,7 @@ import { ApiError } from "../api/httpClient";
 import { useAuth } from "../auth/useAuth";
 import { loadCardStates, mergeCardStates } from "../lib/cardStateStore";
 import { enqueue as enqueueOffline } from "../lib/offlineQueue";
-import { checkAnswer, type AnswerVerdict } from "../domain/answerFeedback";
+import { checkAnswer, type AnswerVerdict, type SeparatorMarks } from "../domain/answerFeedback";
 import { useGrader } from "../grader/useGrader";
 import { resolveExerciseType } from "../domain/exerciseResolution";
 import { LESSON_PASS_THRESHOLD, verdictWeight } from "../domain/lessonScore";
@@ -104,6 +104,8 @@ export interface SubmitAnswerResult {
   xp: number;
   /** What was actually graded — surfaced on the revealed-answer feedback so a learner can see exactly what the grader received (e.g. a word-bank submission whose tile order wasn't what they intended). */
   submittedText: string;
+  /** The grader's separator edits when a half-space or space was off but the answer was accepted — the review marks where (domain/typedAnswerMarks.ts). */
+  separators?: SeparatorMarks | null;
 }
 
 /**
@@ -577,7 +579,7 @@ export function useLessonEngine(
       }
     }
 
-    return { correct, requeued, note: feedback.note, verdict: feedback.verdict, attempt, xp: feedback.xp, submittedText };
+    return { correct, requeued, note: feedback.note, verdict: feedback.verdict, attempt, xp: feedback.xp, submittedText, separators: feedback.separators };
   }
 
   /**

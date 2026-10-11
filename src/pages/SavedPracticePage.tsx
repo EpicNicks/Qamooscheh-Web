@@ -287,7 +287,7 @@ export function SavedPracticePage() {
       ),
     ];
     setAnswers(nextAnswers);
-    confirmation.record(item, { correct, note: feedback.note, submittedText, verdict: feedback.verdict, usedHint, xp: feedback.xp });
+    confirmation.record(item, { correct, note: feedback.note, submittedText, verdict: feedback.verdict, usedHint, xp: feedback.xp, separators: feedback.separators });
     advance(nextAnswers, cards, needsRetype(item.renderType, correct));
   }
 
