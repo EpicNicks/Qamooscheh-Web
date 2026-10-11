@@ -189,6 +189,18 @@ export function AnnotatedWord({ word, hint, settings, focusable = true, onReveal
     };
   }, [wasOpen, place]);
 
+  // Esc dismisses a hover-only hint too, wherever focus is (WCAG 1.4.13).
+  useEffect(() => {
+    if (!open) return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      setPinned(false);
+      setDismissed(true);
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open]);
+
   const register = registerLabel(hint?.register);
   // The ezafe (domain/ezafe.ts) is shown as its own piece after the word —
   // [book](-e) in the tooltip, ketāb(-e) in a romanized line — never folded
@@ -267,9 +279,9 @@ export function AnnotatedWord({ word, hint, settings, focusable = true, onReveal
         data-open={open ? "" : undefined}
         data-dismissed={dismissed ? "" : undefined}
         tabIndex={focusable ? 0 : undefined}
-        role={toggle ? "button" : undefined}
-        aria-label={toggle ? word : undefined}
-        aria-expanded={toggle ? pinned : undefined}
+        role={toggle && !verbEntry ? "button" : undefined}
+        aria-label={toggle && !verbEntry ? word : undefined}
+        aria-expanded={toggle && !verbEntry ? pinned : undefined}
         aria-controls={toggle ? tooltipId : undefined}
         aria-describedby={toggle ? tooltipId : undefined}
         onPointerDown={(event) => {
@@ -279,7 +291,11 @@ export function AnnotatedWord({ word, hint, settings, focusable = true, onReveal
           if (toggle || lastPointer.current === "touch") flipPinned();
         }}
         onKeyDown={(event) => {
-          if (toggle && (event.key === "Enter" || event.key === " ")) {
+          if (event.target !== event.currentTarget) {
+            // From the hint's own "Verb forms" button: it activates itself, and
+            // Enter must not reach useAnswerConfirmation's window listener.
+            if (event.key === "Enter") event.stopPropagation();
+          } else if (toggle && (event.key === "Enter" || event.key === " ")) {
             // Not on to useAnswerConfirmation's window listener, where
             // Enter would also move on past the review.
             event.preventDefault();

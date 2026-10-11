@@ -24,7 +24,15 @@ export function VerbFormsModal({ entry, onClose }: { entry: VerbIndexEntry; onCl
   useFocusTrap(dialogRef, { enabled: true, onEscape: onClose });
 
   return createPortal(
-    <div className={styles.overlay} onClick={onClose}>
+    <div
+      className={styles.overlay}
+      onClick={onClose}
+      // Enter on a control here must not reach useAnswerConfirmation's window
+      // listener, which would move the lesson on. Escape is left to the trap.
+      onKeyDown={(event) => {
+        if (event.key === "Enter") event.stopPropagation();
+      }}
+    >
       <div
         ref={dialogRef}
         className={styles.dialog}
