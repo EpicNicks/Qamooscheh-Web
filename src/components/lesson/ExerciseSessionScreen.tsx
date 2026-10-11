@@ -17,6 +17,7 @@ import { useState, type ReactNode } from "react";
 import { ExerciseRenderer } from "./ExerciseRenderer";
 import { SessionProgressBar } from "./SessionProgressBar";
 import { AnswerFeedback } from "./AnswerFeedback";
+import { describeAnswerRegister } from "../../domain/answerRegister";
 import { ReportIssue } from "./ReportIssue";
 import { closestAnswerFirst } from "../../domain/answerFeedback";
 import { needsRetype, retypeMatches } from "../../domain/retype";
@@ -168,6 +169,7 @@ export function ExerciseSessionScreen<TItem extends ExerciseSessionItem, TFeedba
               romanization: answeredItem.exercise.answerRomanization,
             }}
             tags={answeredItem.exercise.tags}
+            registerNote={feedback.correct ? describeAnswerRegister(answeredItem.exercise, feedback.submittedText, courseHintMap) : null}
             reportContext={reportContext}
           />
         </ExerciseVoiceScope.Provider>
