@@ -3,7 +3,7 @@
 // essentially forever within a session.
 import { useMemo } from "react";
 import { useQueries, useQuery } from "@tanstack/react-query";
-import { getAudioIndex, getCourseManifest, getLexemeIndex, getSkillArtifact, getThemeIndex, getUnitArtifact } from "../api/content";
+import { getAudioIndex, getCourseManifest, getLexemeIndex, getSkillArtifact, getThemeIndex, getUnitArtifact, getVerbIndex } from "../api/content";
 import { computePathProgress, type PathSkillInput, type PathUnit, type PositionKey } from "../domain/pathProgress";
 import type { UnitVocab } from "../domain/courseVocabulary";
 import { refKey } from "../domain/skillRefKey";
@@ -32,6 +32,22 @@ export function useLexemeIndex(course: CourseRef | null | undefined) {
     queryKey: ["content", "lexemes", course?.code, course?.version],
     queryFn: () => getLexemeIndex(course!.code, course!.version, manifestQuery.data!.lexemeIndexPath),
     enabled: course != null && manifestQuery.data != null,
+    staleTime: Infinity,
+  });
+}
+
+/**
+ * The verb index (verbs.json: infinitive -> conjugation tables), fetched once
+ * per course version and only when `enabled` — most screens never show a verb.
+ * A manifest published before verb forms has no path, and reads as no verbs.
+ */
+export function useVerbIndex(course: CourseRef | null | undefined, enabled = true) {
+  const manifestQuery = useCourseManifest(course);
+  const verbIndexPath = manifestQuery.data?.verbIndexPath;
+  return useQuery({
+    queryKey: ["content", "verbs", course?.code, course?.version],
+    queryFn: () => getVerbIndex(course!.code, course!.version, verbIndexPath!),
+    enabled: enabled && course != null && verbIndexPath != null,
     staleTime: Infinity,
   });
 }

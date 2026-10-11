@@ -4,6 +4,9 @@ import { PLAIN_TEXT, registerLabel, type TextDisplaySettings, type WordHint } fr
 import { MISTAKE_HINTS, type MistakeKind } from "../../domain/mistakeHints";
 import { stripReadingAids } from "../../domain/persian/normalize";
 import { englishCandidates, segmentEnglish } from "../../domain/englishHints";
+import { createHoverCloser } from "../../domain/hintHover";
+import { useVerbEntry } from "../../hooks/useVerbEntry";
+import { VerbFormsModal } from "./VerbFormsModal";
 import { cancelHoverSpeech, useHoverSpeech, type WordSpeech } from "../../hooks/useHoverSpeech";
 import styles from "./AnnotatedText.module.css";
 
@@ -101,7 +104,11 @@ export function AnnotatedWord({ word, hint, settings, focusable = true, onReveal
   // it's shown. `visibility: hidden` (not `display: none`) keeps the hidden
   // tooltip laid out, so it can be measured before the fade-in starts.
   const [position, setPosition] = useState<TooltipPosition | null>(null);
-  const [shown, setShown] = useState(false);
+  // Open because the pointer is over the word or its hint (closing is delayed
+  // so the pointer can cross the gap between them — domain/hintHover.ts), or
+  // because the word has keyboard focus.
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
 
   const place = useCallback(() => {
     const wrap = wrapRef.current;
@@ -119,16 +126,27 @@ export function AnnotatedWord({ word, hint, settings, focusable = true, onReveal
 
   const show = useCallback(() => {
     place();
-    setShown(true);
+    setFocused(true);
     onReveal?.();
   }, [place, onReveal]);
-  const hide = useCallback(() => setShown(false), []);
+  const hide = useCallback(() => setFocused(false), []);
   // Opened by a press (`toggle`), not hover/focus: no CSS state to show it
   // with on a tap or a click, so it's shown by data-open instead.
   const [pinned, setPinned] = useState(false);
   // Closed by a press or Escape while hover/focus would still show it; holds
   // until the pointer leaves or focus moves on.
   const [dismissed, setDismissed] = useState(false);
+  const [hoverCloser] = useState(() =>
+    createHoverCloser((value) => {
+      setHovered(value);
+      if (!value) setDismissed(false);
+    }),
+  );
+  useEffect(() => () => hoverCloser.close(), [hoverCloser]);
+  // A touch tap pins the hint like a press does; a mouse's hover is handled above.
+  const lastPointer = useRef("mouse");
+  const verbEntry = useVerbEntry(focusable ? hint?.verbLemma : undefined);
+  const [verbFormsOpen, setVerbFormsOpen] = useState(false);
   const flipPinned = () => {
     if (!pinned) show();
     setPinned(!pinned);
@@ -159,16 +177,29 @@ export function AnnotatedWord({ word, hint, settings, focusable = true, onReveal
 
   // Fixed coordinates go stale when anything scrolls, so follow the word while
   // the tooltip is up. Capture phase catches inner scrollers like the transcript.
-  const open = shown || pinned;
+  const wasOpen = hovered || focused || pinned;
+  const open = wasOpen && !dismissed;
   useEffect(() => {
-    if (!open) return;
+    if (!wasOpen) return;
     window.addEventListener("scroll", place, { capture: true, passive: true });
     window.addEventListener("resize", place);
     return () => {
       window.removeEventListener("scroll", place, { capture: true });
       window.removeEventListener("resize", place);
     };
-  }, [open, place]);
+  }, [wasOpen, place]);
+
+  // Esc dismisses a hover-only hint too, wherever focus is (WCAG 1.4.13).
+  useEffect(() => {
+    if (!open) return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      setPinned(false);
+      setDismissed(true);
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open]);
 
   const register = registerLabel(hint?.register);
   // The ezafe (domain/ezafe.ts) is shown as its own piece after the word —
@@ -229,7 +260,7 @@ export function AnnotatedWord({ word, hint, settings, focusable = true, onReveal
       base
     );
 
-  if (!tooltip || tooltipLines.length === 0) {
+  if (!tooltip || (tooltipLines.length === 0 && !verbEntry)) {
     return speech ? (
       <span onMouseEnter={speak} onMouseLeave={unspeak}>
         {content}
@@ -240,73 +271,107 @@ export function AnnotatedWord({ word, hint, settings, focusable = true, onReveal
   }
 
   return (
-    <span
-      ref={wrapRef}
-      className={styles.wrap}
-      data-ezafe={ezafe ? "" : undefined}
-      data-open={pinned ? "" : undefined}
-      data-dismissed={dismissed ? "" : undefined}
-      tabIndex={focusable ? 0 : undefined}
-      role={toggle ? "button" : undefined}
-      aria-label={toggle ? word : undefined}
-      aria-expanded={toggle ? pinned : undefined}
-      aria-controls={toggle ? tooltipId : undefined}
-      aria-describedby={toggle ? tooltipId : undefined}
-      onClick={toggle ? flipPinned : undefined}
-      onKeyDown={
-        toggle
-          ? (event) => {
-              if (event.key === "Enter" || event.key === " ") {
-                // Not on to useAnswerConfirmation's window listener, where
-                // Enter would also move on past the review.
-                event.preventDefault();
-                event.stopPropagation();
-                flipPinned();
-              } else if (event.key === "Escape") {
-                setPinned(false);
-                setDismissed(true);
-              }
-            }
-          : undefined
-      }
-      onMouseEnter={() => {
-        show();
-        speak();
-      }}
-      onMouseLeave={() => {
-        hide();
-        setDismissed(false);
-        unspeak();
-      }}
-      onFocus={() => {
-        show();
-        speak();
-      }}
-      onBlur={() => {
-        hide();
-        setPinned(false);
-        setDismissed(false);
-        unspeak();
-      }}
-    >
-      {content}
+    <>
       <span
-        ref={tooltipRef}
-        id={toggle ? tooltipId : undefined}
-        className={styles.tooltip}
-        role="tooltip"
-        data-placement={position?.below ? "below" : "above"}
-        style={
-          position ? ({ "--tooltip-x": `${position.x}px`, "--tooltip-y": `${position.y}px` } as CSSProperties) : undefined
-        }
+        ref={wrapRef}
+        className={styles.wrap}
+        data-ezafe={ezafe ? "" : undefined}
+        data-open={open ? "" : undefined}
+        data-dismissed={dismissed ? "" : undefined}
+        tabIndex={focusable ? 0 : undefined}
+        role={toggle && !verbEntry ? "button" : undefined}
+        aria-label={toggle && !verbEntry ? word : undefined}
+        aria-expanded={toggle && !verbEntry ? pinned : undefined}
+        aria-controls={toggle ? tooltipId : undefined}
+        aria-describedby={toggle ? tooltipId : undefined}
+        onPointerDown={(event) => {
+          lastPointer.current = event.pointerType;
+        }}
+        onClick={() => {
+          if (toggle || lastPointer.current === "touch") flipPinned();
+        }}
+        onKeyDown={(event) => {
+          if (event.target !== event.currentTarget) {
+            // From the hint's own "Verb forms" button: it activates itself, and
+            // Enter must not reach useAnswerConfirmation's window listener.
+            if (event.key === "Enter") event.stopPropagation();
+          } else if (toggle && (event.key === "Enter" || event.key === " ")) {
+            // Not on to useAnswerConfirmation's window listener, where
+            // Enter would also move on past the review.
+            event.preventDefault();
+            event.stopPropagation();
+            flipPinned();
+          } else if (event.key === "Escape" && open) {
+            event.stopPropagation();
+            setPinned(false);
+            setDismissed(true);
+          }
+        }}
+        onPointerEnter={(event) => {
+          // A touch's pointer "enters" for the length of the tap; the tap itself pins.
+          if (event.pointerType === "touch") return;
+          if (!open) show();
+          hoverCloser.enter();
+        }}
+        onPointerLeave={(event) => {
+          if (event.pointerType !== "touch") hoverCloser.leave();
+        }}
+        onMouseEnter={speak}
+        onMouseLeave={unspeak}
+        onFocus={(event) => {
+          // Only keyboard focus opens it: a click or tap focuses the word too.
+          if (!focused && event.target.matches(":focus-visible")) show();
+          speak();
+        }}
+        onBlur={(event) => {
+          // Moving on to the hint's own "Verb forms" button is still inside.
+          if (event.relatedTarget instanceof Node && event.currentTarget.contains(event.relatedTarget)) return;
+          hide();
+          setPinned(false);
+          setDismissed(false);
+          unspeak();
+        }}
       >
-        {tooltipLines.map((line, i) => (
-          <span key={i} className={styles.tooltipLine}>
-            {line}
-          </span>
-        ))}
+        {content}
+        <span
+          ref={tooltipRef}
+          id={toggle ? tooltipId : undefined}
+          className={styles.tooltip}
+          role="tooltip"
+          data-placement={position?.below ? "below" : "above"}
+          style={
+            position ? ({ "--tooltip-x": `${position.x}px`, "--tooltip-y": `${position.y}px` } as CSSProperties) : undefined
+          }
+        >
+          {tooltipLines.map((line, i) => (
+            <span key={i} className={styles.tooltipLine}>
+              {line}
+            </span>
+          ))}
+          {verbEntry && (
+            <button
+              type="button"
+              className={styles.verbFormsButton}
+              onClick={(event) => {
+                event.stopPropagation();
+                setVerbFormsOpen(true);
+              }}
+            >
+              Verb forms
+            </button>
+          )}
+        </span>
       </span>
-    </span>
+      {verbEntry && verbFormsOpen && (
+        <VerbFormsModal
+          entry={verbEntry}
+          onClose={() => {
+            setVerbFormsOpen(false);
+            wrapRef.current?.focus();
+          }}
+        />
+      )}
+    </>
   );
 }
 
