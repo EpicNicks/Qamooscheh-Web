@@ -34,6 +34,9 @@ jobs:
 
       - run: node scripts/verify-grader.mjs
 
+      # From here on every step builds the files just verified (the marker
+      # verify-grader.mjs leaves makes npm run build keep them).
+
       - run: npm run lint
 
       # `npm run build` runs `tsc -b` itself, but running it separately first

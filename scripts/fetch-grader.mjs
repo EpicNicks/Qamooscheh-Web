@@ -15,7 +15,12 @@
 // Env: VITE_CONTENT_BASE_URL (or GRADER_CDN_BASE_URL) the CDN origin,
 //      default https://cdn.parsling.com; GRADER_LANGUAGES, default "fa,ja".
 //
-// Usage: node scripts/fetch-grader.mjs
+// A fetch removes public/grader/.verified; scripts/verify-grader.mjs writes it
+// once the vectors pass. `--reuse-verified` (npm run build) keeps a verified
+// set as is instead of fetching again, so CI and Deploy build exactly the
+// files they verified even if a newer grader was published in between.
+//
+// Usage: node scripts/fetch-grader.mjs [--reuse-verified]
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -107,6 +112,13 @@ async function fetchLanguage(language) {
     vectors: paths.filter(isVectors),
   };
 }
+
+const verifiedMarker = join(outDir, ".verified");
+if (process.argv.includes("--reuse-verified") && existsSync(verifiedMarker) && existsSync(join(outDir, "index.json"))) {
+  console.log("Keeping the verified grader already in public/grader/ (no fetch)");
+  process.exit(0);
+}
+rmSync(verifiedMarker, { force: true });
 
 console.log(`Fetching the published browser graders for ${languages.join(", ")} from ${base}`);
 mkdirSync(outDir, { recursive: true });

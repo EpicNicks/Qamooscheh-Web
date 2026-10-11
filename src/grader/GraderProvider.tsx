@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { getLanguageInfo } from "../domain/language";
 import { useBootstrap } from "../hooks/useBootstrap";
 import { GraderContext, type GraderState } from "./GraderContext";
 import { loadGrader } from "./loadGrader";
@@ -17,8 +18,8 @@ function whenIdle(callback: () => void): () => void {
 }
 
 /**
- * Loads the published grader for the active course's language (the language of
- * bootstrap's `graders`, API_SPEC.md §2.1). The build is the one shipped with
+ * Loads the published grader for the active course's language (that of
+ * bootstrap's browser `graders` entry, else the course's own, API_SPEC.md §2.1). The build is the one shipped with
  * this app (loadGrader.ts), not the one bootstrap names: a newer grader
  * reaches users by a rebuild of the app. Loading starts at idle once bootstrap
  * is known, so the build is cached for offline use before a lesson needs it,
@@ -27,7 +28,9 @@ function whenIdle(callback: () => void): () => void {
  */
 export function GraderProvider({ children }: { children: ReactNode }) {
   const bootstrap = useBootstrap();
-  const language = bootstrap.data?.graders.find((g) => g.variant === GRADER_VARIANT)?.language ?? null;
+  // `graders` is often empty (API_SPEC.md §2.1), which says nothing about the course: its own language decides then.
+  const language =
+    bootstrap.data?.graders.find((g) => g.variant === GRADER_VARIANT)?.language ?? getLanguageInfo(bootstrap.data?.course?.code)?.language ?? null;
 
   // The state belongs to the language it was loaded for; a stale one reads as loading.
   const [loaded, setLoaded] = useState<{ language: string; state: GraderState } | null>(null);

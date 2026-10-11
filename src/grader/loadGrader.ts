@@ -4,7 +4,8 @@
 // the app was built, and public/grader/index.json says which version that is.
 // This loads it lazily (never in the main bundle) from there and keeps a copy
 // of its files in Cache Storage, keyed by version, so grading keeps working
-// offline. Starting it is runtime.ts, which scripts/verify-grader.mjs drives
+// offline (with public/grader-sw.js answering the script imports from it, and
+// the index kept alongside). Starting it is runtime.ts, which scripts/verify-grader.mjs drives
 // in Node too.
 import { resourceResponse, startGrader } from "./runtime";
 import type { Grader, GraderIndex, ShippedGrader } from "./types";
@@ -16,13 +17,35 @@ const url = (path: string) => new URL(path, base).href;
 
 let index: Promise<GraderIndex> | null = null;
 
-/** The graders this build shipped. Read once per page load; a failed read is forgotten. */
+const INDEX_CACHE = `${CACHE_PREFIX}index`;
+
+/**
+ * The graders this build shipped. Read once per page load; a failed read is
+ * forgotten. The index is never cached by the browser (it names the versions),
+ * so the last one read is kept in Cache Storage and used when the network fails.
+ */
 function shippedIndex(): Promise<GraderIndex> {
   if (!index) {
-    index = fetch(url("grader/index.json"), { cache: "no-cache" }).then((response) => {
-      if (!response.ok) throw new Error(`Failed to fetch grader/index.json: ${response.status}`);
-      return response.json() as Promise<GraderIndex>;
-    });
+    const indexUrl = url("grader/index.json");
+    index = (async () => {
+      try {
+        const response = await fetch(indexUrl, { cache: "no-cache" });
+        if (!response.ok) throw new Error(`Failed to fetch grader/index.json: ${response.status}`);
+        const copy = response.clone();
+        const json = (await response.json()) as GraderIndex;
+        if (typeof caches !== "undefined") {
+          await caches
+            .open(INDEX_CACHE)
+            .then((cache) => cache.put(indexUrl, copy))
+            .catch(() => {});
+        }
+        return json;
+      } catch (error) {
+        const kept = typeof caches === "undefined" ? undefined : await caches.match(indexUrl, { cacheName: INDEX_CACHE }).catch(() => undefined);
+        if (!kept) throw error;
+        return (await kept.json()) as GraderIndex;
+      }
+    })();
     index.catch(() => (index = null));
   }
   return index;
@@ -60,6 +83,12 @@ async function cacheBuild(shipped: ShippedGrader): Promise<Cache | null> {
   }
 }
 
+/** Lets the cached files answer the grader's script imports offline (public/grader-sw.js). Best effort. */
+function registerOfflineWorker() {
+  if (!("serviceWorker" in navigator)) return;
+  navigator.serviceWorker.register(url("grader-sw.js"), { scope: base.pathname }).catch((error) => console.warn("Couldn't register the grader's offline worker", error));
+}
+
 const loads = new Map<string, Promise<Grader | null>>();
 
 /**
@@ -73,9 +102,13 @@ export function loadGrader(language: string): Promise<Grader | null> {
 
   const load = (async () => {
     const shipped = (await shippedIndex()).graders.find((g) => g.language === language);
-    if (!shipped) return null;
+    if (!shipped) {
+      console.warn(`This build shipped no grader for ${language}; answers get a plain exact-match check`);
+      return null;
+    }
     const root = rootOf(shipped);
     const cache = await cacheBuild(shipped);
+    if (cache) registerOfflineWorker();
     return startGrader(root, async (path) => {
       const hit = await cache?.match(`${root}/${path}`);
       if (hit) return resourceResponse(path, new Uint8Array(await hit.arrayBuffer()));

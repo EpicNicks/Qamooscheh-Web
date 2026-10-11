@@ -147,6 +147,7 @@ export function checkAnswer(
   const response = grader?.gradeEnvelope(graderRequest(exercise, submittedText, context));
 
   if (!response || response.error) {
+    if (grader) console.warn("The grader couldn't interpret an answer; falling back to an exact match", response?.error);
     // Selection-based `answer`s are tiles (see graderRequest), so the plain check needs them joined.
     const accepted = selection ? acceptedTileOrders(exercise).map((order) => order.join(" ")) : exercise.answer;
     return { verdict: looksCorrect(submittedText, accepted) ? "correct" : "incorrect", note: null, xp: 0 };

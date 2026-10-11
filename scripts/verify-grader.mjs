@@ -11,10 +11,13 @@
 // interpreted (a verdict, no error), bar the ones the vectors expect to be refused. XP is checked against the vectors' own
 // expected numbers, through the standalone export and the grading call.
 //
+// Writes public/grader/.verified when everything passes, which is what lets
+// `npm run build` (fetch-grader.mjs --reuse-verified) build these same files.
+//
 // Usage: node scripts/verify-grader.mjs   (after node scripts/fetch-grader.mjs)
 //
 // Needs Node 24+, which runs the .ts it imports natively.
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { resourceResponse, startGrader } from "../src/grader/runtime.ts";
@@ -78,6 +81,7 @@ if (failures > 0) {
   console.log(`\n${failures} failure(s).`);
   process.exit(1);
 }
+writeFileSync(join(shippedDir, ".verified"), "");
 console.log("\nAll vectors pass.");
 // The .NET runtime keeps handles open; this is a one-shot check.
 process.exit(0);
