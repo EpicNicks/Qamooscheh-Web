@@ -5,12 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "node scripts/fetch-grader.mjs && tsc -b && vite build",
     "lint": "oxlint",
     "test": "vitest run",
     "test:watch": "vitest",
     "preview": "vite preview",
     "serve:artifacts": "node scripts/serve-artifacts.mjs",
+    "fetch:grader": "node scripts/fetch-grader.mjs",
     "verify:grader": "node scripts/verify-grader.mjs"
   },
   "dependencies": {

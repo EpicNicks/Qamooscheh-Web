@@ -36,24 +36,19 @@ export interface Grader {
   xp(verdict: string, attempt: number, usedHint: boolean, retype?: boolean, retypeNumber?: number): number;
 }
 
-/** `GraderRef` from bootstrap (types/api.ts), narrowed to what loading a build needs. */
-export interface GraderPointer {
+/** One language's grader as scripts/fetch-grader.mjs shipped it: public/grader/{language}/v{version}/. */
+export interface ShippedGrader {
   language: string;
-  variant: string;
   version: number;
+  /** sha256 of the build's manifest.json, as hashed when it was fetched. */
   manifestSha256: string;
+  /** Paths under the version directory the app needs, manifest.json aside. */
+  files: string[];
+  /** The backend's verify vectors, for CI only. */
+  vectors: string[];
 }
 
-export interface GraderManifestFile {
-  path: string;
-  sha256: string;
-  size: number;
-}
-
-/** grader/{language}/{variant}/v{version}/manifest.json. */
-export interface GraderManifest {
-  language: string;
-  variant: string;
-  version: number;
-  files: GraderManifestFile[];
+/** public/grader/index.json. */
+export interface GraderIndex {
+  graders: ShippedGrader[];
 }

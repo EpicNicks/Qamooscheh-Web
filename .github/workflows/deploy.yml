@@ -1,6 +1,7 @@
 name: Deploy
 
-# Fires after CI finishes on master -- mirrors Qamooscheh's own deploy.yml.
+# Fires after CI finishes on master (a push, or the grader-published dispatch
+# CI also runs on, which rebuilds master with the new grader) -- mirrors Qamooscheh's own deploy.yml.
 # Runs on this repo's OWN self-hosted runner (docker/runner/), separate from
 # Qamooscheh's -- a self-hosted runner registers against exactly one repo,
 # so its runner can't pick up this repo's jobs.
@@ -30,7 +31,10 @@ jobs:
       - name: Build image
         env:
           VITE_APP_VERSION: ${{ github.event.workflow_run.head_sha }}
-        run: docker compose --env-file "$ENV_FILE" build
+        # --no-cache: the build fetches the latest published grader
+        # (scripts/fetch-grader.mjs), which a cached layer of an unchanged
+        # source tree would hide when CI ran for a grader-published dispatch.
+        run: docker compose --env-file "$ENV_FILE" build --no-cache
 
       - name: Apply
         run: docker compose --env-file "$ENV_FILE" up -d

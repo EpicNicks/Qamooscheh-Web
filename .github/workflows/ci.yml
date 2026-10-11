@@ -5,6 +5,10 @@ on:
     branches: [master]
   pull_request:
     branches: [master]
+  # The backend sends this when it publishes a new grader build, so web rebuilds
+  # with it and Deploy (which follows CI on master) ships it.
+  repository_dispatch:
+    types: [grader-published]
 
 jobs:
   build:
@@ -22,6 +26,14 @@ jobs:
 
       - run: npm ci
 
+      # The latest published grader, shipped with the build (scripts/fetch-grader.mjs,
+      # which npm run build runs too). The backend's verify vectors and
+      # xp-vectors must pass against exactly these files, through the loader
+      # glue the app uses (src/grader/runtime.ts), before the build is accepted.
+      - run: node scripts/fetch-grader.mjs
+
+      - run: node scripts/verify-grader.mjs
+
       - run: npm run lint
 
       # `npm run build` runs `tsc -b` itself, but running it separately first
@@ -31,20 +43,3 @@ jobs:
       - run: npm run build
 
       - run: npm run test
-
-  # The published grader (API_SPEC.md §7) the app grades and prices XP with:
-  # downloads the build pinned in grader.lock.json and runs the backend's own
-  # verify vectors and xp-vectors through the same glue code the browser
-  # loads it with (src/grader/bundle.ts, runtime.ts). Needs no npm install:
-  # the script only uses Node, which runs the .ts it imports natively.
-  grader:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v5
-
-      - uses: actions/setup-node@v5
-        with:
-          node-version: '24'
-
-      - run: node scripts/verify-grader.mjs

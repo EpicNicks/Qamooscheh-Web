@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useBootstrap } from "../hooks/useBootstrap";
 import { GraderContext, type GraderState } from "./GraderContext";
-import { GRADER_VARIANT, loadGrader } from "./loadGrader";
-import type { GraderPointer } from "./types";
+import { loadGrader } from "./loadGrader";
+
+/** The variant this client runs: the build Android runs too, so both share an artifact and a version stream. */
+const GRADER_VARIANT = "browser";
 
 /** Runs `callback` when the browser is idle, or soon after where it has no idle callbacks (Safari). */
 function whenIdle(callback: () => void): () => void {
@@ -15,22 +17,20 @@ function whenIdle(callback: () => void): () => void {
 }
 
 /**
- * Loads the published grader for the active course's language (bootstrap's
- * `graders`, API_SPEC.md §2.1). Loading starts at idle once bootstrap is
- * known, so the build is cached for offline use before a lesson needs it, and
- * starts at once when a lesson screen asks (RequireGrader). Mounted under
+ * Loads the published grader for the active course's language (the language of
+ * bootstrap's `graders`, API_SPEC.md §2.1). The build is the one shipped with
+ * this app (loadGrader.ts), not the one bootstrap names: a newer grader
+ * reaches users by a rebuild of the app. Loading starts at idle once bootstrap
+ * is known, so the build is cached for offline use before a lesson needs it,
+ * and starts at once when a lesson screen asks (RequireGrader). Mounted under
  * RequireOnboarded, where bootstrap has settled.
  */
 export function GraderProvider({ children }: { children: ReactNode }) {
   const bootstrap = useBootstrap();
-  const pointer: GraderPointer | null = bootstrap.data?.graders.find((g) => g.variant === GRADER_VARIANT) ?? null;
-  const language = pointer?.language;
-  const version = pointer?.version;
-  const manifestSha256 = pointer?.manifestSha256;
+  const language = bootstrap.data?.graders.find((g) => g.variant === GRADER_VARIANT)?.language ?? null;
 
-  // The state belongs to the build it was loaded for; a stale one reads as loading.
-  const buildId = pointer ? `${language}/${version}/${manifestSha256}` : null;
-  const [loaded, setLoaded] = useState<{ buildId: string; state: GraderState } | null>(null);
+  // The state belongs to the language it was loaded for; a stale one reads as loading.
+  const [loaded, setLoaded] = useState<{ language: string; state: GraderState } | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [started, setStarted] = useState(false);
 
@@ -38,26 +38,26 @@ export function GraderProvider({ children }: { children: ReactNode }) {
 
   // Idle start, once there is something to load.
   useEffect(() => {
-    if (!buildId) return;
+    if (!language) return;
     return whenIdle(start);
-  }, [buildId, start]);
+  }, [language, start]);
 
   useEffect(() => {
-    if (!buildId || !started || !language || version === undefined || !manifestSha256) return;
+    if (!language || !started) return;
     let cancelled = false;
-    loadGrader({ language, variant: GRADER_VARIANT, version, manifestSha256 }).then(
+    loadGrader(language).then(
       (grader) => {
-        if (!cancelled) setLoaded({ buildId, state: { status: "ready", grader } });
+        if (!cancelled) setLoaded({ language, state: grader ? { status: "ready", grader } : { status: "none" } });
       },
       (error: unknown) => {
         console.error("Couldn't load the grader", error);
-        if (!cancelled) setLoaded({ buildId, state: { status: "unavailable", offline: !navigator.onLine } });
+        if (!cancelled) setLoaded({ language, state: { status: "unavailable", offline: !navigator.onLine } });
       },
     );
     return () => {
       cancelled = true;
     };
-  }, [buildId, started, attempt, language, version, manifestSha256]);
+  }, [language, started, attempt]);
 
   const retry = useCallback(() => {
     setLoaded(null);
@@ -65,8 +65,8 @@ export function GraderProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const state = useMemo<GraderState>(
-    () => (!buildId ? { status: "none" } : loaded?.buildId === buildId ? loaded.state : { status: "loading" }),
-    [buildId, loaded],
+    () => (!language ? { status: "none" } : loaded?.language === language ? loaded.state : { status: "loading" }),
+    [language, loaded],
   );
 
   // Back online after a failure: try again.

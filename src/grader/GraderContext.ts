@@ -4,10 +4,10 @@ import { createContext } from "react";
 import type { Grader } from "./types";
 
 /**
- * - `none`: the course has no published browser grader, so there is nothing to wait for (answers get the plain exact-match check, lib/textMatch.ts).
- * - `loading`: not started yet, or downloading / starting.
+ * - `none`: the course has no published browser grader (or this build shipped none for its language), so there is nothing to wait for (answers get the plain exact-match check, lib/textMatch.ts).
+ * - `loading`: not started yet, or starting.
  * - `ready`: grading and XP come from `grader`.
- * - `unavailable`: no grader could be loaded and none is cached (offline on a first visit).
+ * - `unavailable`: the shipped grader could not be loaded or cached (offline before its first load).
  */
 export type GraderState =
   | { status: "none" }
