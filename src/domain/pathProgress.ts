@@ -45,6 +45,8 @@ export interface PathUnitInput {
 export interface PathSkill extends PathSkillInput {
   unitKey: string;
   status: SkillStatus;
+  /** Whether the learner has a completion event for this skill (GET /v1/lessons/completed). Independent of the cursor: a skipped-over fork alternate was never completed. */
+  completed: boolean;
   /** Index within the unit's standard sequence; undefined for non-standard skills, which have no position in it. */
   positionIndex?: number;
 }
@@ -68,7 +70,39 @@ export interface PositionKey {
   skillKey: string;
 }
 
-export function computePathProgress(units: PathUnitInput[], position: PositionKey | null): PathUnit[] {
+/**
+ * The alternates a learner can choose between at one position, with how many
+ * are finished. `kind` leaves room for a story side path (issue #60) to be
+ * another kind of branch; only forks exist today.
+ */
+export interface PositionBranches {
+  kind: "fork";
+  skills: PathSkill[];
+  done: number;
+  total: number;
+}
+
+/** The branches of a position, or null when it is a single lesson with nothing to choose between. */
+export function positionBranches(position: PathPosition): PositionBranches | null {
+  if (position.skills.length < 2) return null;
+  return {
+    kind: "fork",
+    skills: position.skills,
+    done: position.skills.filter((s) => s.completed).length,
+    total: position.skills.length,
+  };
+}
+
+/**
+ * `completedSkillKeys` is the skill keys from GET /v1/lessons/completed. The
+ * backend reports no per-branch completion of its own, so it is joined onto
+ * the manifest's skills here.
+ */
+export function computePathProgress(
+  units: PathUnitInput[],
+  position: PositionKey | null,
+  completedSkillKeys: ReadonlySet<string> = new Set(),
+): PathUnit[] {
   const currentUnitIndex = position ? units.findIndex((u) => u.unitKey === position.unitKey) : -1;
 
   return units.map((unit, unitIndex) => {
@@ -100,14 +134,20 @@ export function computePathProgress(units: PathUnitInput[], position: PositionKe
       return {
         positionIndex: posIndex,
         status,
-        skills: pos.skills.map((s) => ({ ...s, unitKey: unit.unitKey, status, positionIndex: posIndex })),
+        skills: pos.skills.map((s) => ({
+          ...s,
+          unitKey: unit.unitKey,
+          status,
+          completed: completedSkillKeys.has(s.skillKey),
+          positionIndex: posIndex,
+        })),
       };
     });
 
     const otherSkills = unit.otherSkills.map((skill): PathSkill => {
       // story/conversation/song: gated only by unit position.
       const status: SkillStatus = unitIndex <= currentUnitIndex ? "unlocked" : "locked";
-      return { ...skill, unitKey: unit.unitKey, status };
+      return { ...skill, unitKey: unit.unitKey, status, completed: completedSkillKeys.has(skill.skillKey) };
     });
 
     return { unitKey: unit.unitKey, title: unit.title, standardPositions, otherSkills };
@@ -152,7 +192,8 @@ export function findNextStandardTarget(path: PathUnit[]): PositionKey | null {
  * them (the path hasn't caught up with the pass yet, a practice round that
  * completed nothing, or the very last lesson of the course, which has no
  * position after it) and when there's no current position at all. For a fork
- * the first alternate is used, as findNextStandardTarget does.
+ * the first unfinished alternate is used (the first when all are finished).
+ * Only the current position is offered: later ones are locked.
  */
 export function findLessonAfter(
   path: PathUnit[],
@@ -164,7 +205,9 @@ export function findLessonAfter(
     const stillCurrent = current.skills.some((s) =>
       finished.some((ref) => ref.unitKey === unit.unitKey && ref.skillKey === s.skillKey),
     );
-    return stillCurrent ? null : { unitKey: unit.unitKey, skillKey: current.skills[0].skillKey };
+    if (stillCurrent) return null;
+    const branch = current.skills.find((s) => !s.completed) ?? current.skills[0];
+    return { unitKey: unit.unitKey, skillKey: branch.skillKey };
   }
   return null;
 }

@@ -7,7 +7,7 @@ import { useListNavigation } from "../../hooks/useListNavigation";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { flipFromOrigin } from "../../lib/flipFromOrigin";
 import { Button } from "../common/Button";
-import { CloseIcon } from "../common/icons";
+import { CheckIcon, CloseIcon } from "../common/icons";
 import { useSkillActions } from "./useSkillActions";
 import styles from "./SkillGroupModal.module.css";
 
@@ -142,6 +142,11 @@ export function SkillGroupModal({ skills, nextSkipTarget, originRef, onClose, on
                   </span>
                 )}
                 <span className={styles.rowTitle}>{s.title}</span>
+                {s.completed && (
+                  <span className={styles.rowDone} role="img" aria-label="Completed">
+                    <CheckIcon />
+                  </span>
+                )}
               </li>
             ))}
           </ul>

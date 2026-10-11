@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computePathProgress, findLessonAfter, findNextStandardTarget, findNextUnitEntryTarget, groupByArc, isFirstStandardPosition } from "./pathProgress";
+import { computePathProgress, findLessonAfter, positionBranches, findNextStandardTarget, findNextUnitEntryTarget, groupByArc, isFirstStandardPosition } from "./pathProgress";
 import type { PathUnitInput, SkillStatus } from "./pathProgress";
 
 function standard(skillKey: string) {
@@ -263,5 +263,41 @@ describe("findLessonAfter", () => {
 
   it("returns null with no cursor", () => {
     expect(findLessonAfter(computePathProgress(courseFixture(), null), [{ unitKey: "u1", skillKey: "a1" }])).toBeNull();
+  });
+});
+
+describe("per-branch completion", () => {
+  const done = (...keys: string[]) => new Set(keys);
+
+  it("joins completed skill keys onto each alternate", () => {
+    const path = computePathProgress(courseFixture(), { unitKey: "u1", skillKey: "b1" }, done("a1", "b2"));
+    const fork = path[0].standardPositions[1];
+    expect(fork.skills.map((s) => s.completed)).toEqual([false, true]);
+    expect(path[1].otherSkills[0].completed).toBe(false);
+  });
+
+  it("marks nothing without a completed set", () => {
+    const path = computePathProgress(courseFixture(), { unitKey: "u1", skillKey: "b1" });
+    expect(path[0].standardPositions.flatMap((p) => p.skills).some((s) => s.completed)).toBe(false);
+  });
+
+  it("describes a fork's branches and their progress", () => {
+    const path = computePathProgress(courseFixture(), { unitKey: "u1", skillKey: "b1" }, done("b2"));
+    expect(positionBranches(path[0].standardPositions[1])).toMatchObject({ kind: "fork", done: 1, total: 2 });
+  });
+
+  it("has no branches at a single-lesson position", () => {
+    const path = computePathProgress(courseFixture(), { unitKey: "u1", skillKey: "a1" });
+    expect(positionBranches(path[0].standardPositions[0])).toBeNull();
+  });
+
+  it("offers the first unfinished alternate as the next lesson", () => {
+    const path = computePathProgress(courseFixture(), { unitKey: "u1", skillKey: "b1" }, done("b1"));
+    expect(findLessonAfter(path, [{ unitKey: "u1", skillKey: "a1" }])).toEqual({ unitKey: "u1", skillKey: "b2" });
+  });
+
+  it("falls back to the first alternate when every branch is finished", () => {
+    const path = computePathProgress(courseFixture(), { unitKey: "u1", skillKey: "b1" }, done("b1", "b2"));
+    expect(findLessonAfter(path, [{ unitKey: "u1", skillKey: "a1" }])).toEqual({ unitKey: "u1", skillKey: "b1" });
   });
 });

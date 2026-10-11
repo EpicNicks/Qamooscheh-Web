@@ -7,6 +7,7 @@ import { getAudioIndex, getCourseManifest, getLexemeIndex, getSkillArtifact, get
 import { computePathProgress, type PathSkillInput, type PathUnit, type PositionKey } from "../domain/pathProgress";
 import type { UnitVocab } from "../domain/courseVocabulary";
 import { refKey } from "../domain/skillRefKey";
+import { useCompletedLessons } from "./useCompletedLessons";
 import type { CourseRef, SkillRef } from "../types/api";
 import type { CourseManifest, ManifestRef, SkillArtifact, ThemeIndexArtifact, UnitArtifact } from "../types/content";
 
@@ -239,6 +240,11 @@ export function useCoursePath(
 ): { path: PathUnit[]; isLoading: boolean; isError: boolean } {
   const { manifestOrderedUnits, skillsByUnitAndKey, skillKeys, skillsReady, isLoading, isError } =
     useAllSkillArtifacts(course);
+  // Finished skills, joined onto the manifest's branches for the path's
+  // per-branch marks (the backend reports only the cursor). A failed or
+  // pending fetch just means nothing is marked yet.
+  const completedKeys = useCompletedLessons(course?.code).data?.completedLessonKeys;
+  const completedSignature = completedKeys ? [...completedKeys].sort().join("|") : "";
 
   // Content artifacts are immutable per course version (staleTime: Infinity),
   // so the course, the loaded unit/skill ids and the cursor fully determine
@@ -254,6 +260,7 @@ export function useCoursePath(
         position ?? null,
         manifestOrderedUnits.map((unit) => unit.id),
         skillKeys,
+        completedSignature,
       ])
     : "";
 
@@ -287,6 +294,7 @@ export function useCoursePath(
         };
       }),
       position ?? null,
+      new Set(completedKeys),
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps -- pathSignature stands in for the render-unstable inputs above.
   }, [pathSignature]);
