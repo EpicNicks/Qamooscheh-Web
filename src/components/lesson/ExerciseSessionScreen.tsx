@@ -11,7 +11,7 @@
 // between them is which engine feeds it and what surrounds it (the
 // nothing-due/complete screens each page keeps to itself), not the screen. The
 // genuinely per-mode pieces inside it are props: an optional chapter title,
-// the per-answer XP burst (domain/xp.ts), what a retype is recorded as, and
+// the per-answer XP burst, what a retype is recorded as, and
 // the first-lesson tutorial spotlight (lessons only).
 import { useState, type ReactNode } from "react";
 import { ExerciseRenderer } from "./ExerciseRenderer";
@@ -21,6 +21,7 @@ import { describeAnswerRegister } from "../../domain/answerRegister";
 import { ReportIssue } from "./ReportIssue";
 import { closestAnswerFirst } from "../../domain/answerFeedback";
 import { needsRetype, retypeMatches } from "../../domain/retype";
+import { useGrader } from "../../grader/useGrader";
 import { SaveWordsRow } from "../vocabulary/SaveWordsRow";
 import { SkipLessonModal } from "./SkipLessonModal";
 import { CloseLessonButton } from "./CloseLessonButton";
@@ -68,7 +69,7 @@ interface ExerciseSessionScreenProps<TItem extends ExerciseSessionItem, TFeedbac
   onSubmit: (submittedText: string, opts?: { usedHint?: boolean }) => void;
   /** Shown under the top row in both states — the chapter/lesson title Story and Practice have. A lesson is planned across skills and has no single title, so it passes none. */
   title?: string | null;
-  /** Per-answer XP for the review screen's burst (domain/xp.ts). Omitted — by Practice — renders no burst at all. */
+  /** Per-answer XP for the review screen's burst (the grader prices it: AnswerFeedback.xp). Omitted — by Practice — renders no burst at all. */
   feedbackXp?: (feedback: TFeedback) => number;
   /**
    * Records a retype that matched, for the answer under review (sent as its
@@ -102,6 +103,7 @@ export function ExerciseSessionScreen<TItem extends ExerciseSessionItem, TFeedba
   onReplayTutorial,
 }: ExerciseSessionScreenProps<TItem, TFeedback>) {
   const { skip, confirmation, textSettings, courseHintMap, keyboardMode, autoplayAudio } = session;
+  const grader = useGrader();
   const [topRowEl, setTopRowEl] = useState<HTMLDivElement | null>(null);
   const [exerciseEl, setExerciseEl] = useState<HTMLDivElement | null>(null);
   // Says the correct answer when its review comes up (localAppPrefs.speakAnswers).
@@ -191,7 +193,7 @@ export function ExerciseSessionScreen<TItem extends ExerciseSessionItem, TFeedba
           reviewedAnswer={{ text: feedback.submittedText, correct: feedback.correct }}
           retype={
             retyping
-              ? { matches: (text) => retypeMatches(courseCode, answeredItem.exercise, text), onMatched: (text) => onRetype?.(text) ?? 0 }
+              ? { matches: (text) => retypeMatches(grader, courseCode, answeredItem.exercise, text), onMatched: (text) => onRetype?.(text) ?? 0 }
               : undefined
           }
         />

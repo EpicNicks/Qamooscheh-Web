@@ -224,7 +224,7 @@ export interface SubmittedSessionResponse {
   score?: number | null;
   /** Whether this session completed its skill: every exercise answered and `score` at or above the pass mark. Null unless `outcome` is "Processed". */
   lessonCompleted?: boolean | null;
-  /** XP this session credited (API_SPEC.md §2.3 point 8, summed per answer as domain/xp.ts prices it). Null unless `outcome` is "Processed". */
+  /** XP this session credited (API_SPEC.md §2.3 point 8, summed per answer as the grader prices it). Null unless `outcome` is "Processed". */
   xp?: number | null;
 }
 

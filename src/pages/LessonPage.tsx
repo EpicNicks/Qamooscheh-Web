@@ -7,7 +7,6 @@ import { useBootstrap } from "../hooks/useBootstrap";
 import { useAuth } from "../auth/useAuth";
 import { useCoursePath, useAllThemeSkillArtifacts, useThemeIndex, refKey } from "../hooks/useCourseContent";
 import { findLessonAfter, isFirstStandardPosition } from "../domain/pathProgress";
-import { xpForAnswer } from "../domain/xp";
 import { rootThemesForLesson } from "../domain/themeTree";
 import { buildRemixPool, computeMasteryScore, selectRemixLessons, REMIX_MAX_LESSONS } from "../domain/deepDiveRemix";
 import { initialRemixContents, remixContentsOptions, type RemixContents } from "../domain/remixContents";
@@ -438,10 +437,10 @@ function LessonPageContent() {
       current={engine.current}
       onSubmit={handleSubmit}
       // A practice round is never submitted, so it earns nothing to pop.
-      feedbackXp={(feedback) => (engine.isPracticeMode ? 0 : xpForAnswer(feedback.verdict, feedback.attempt, lastUsedHint))}
+      feedbackXp={(feedback) => (engine.isPracticeMode ? 0 : feedback.xp)}
       onRetype={(text) => {
-        const retype = engine.recordRetype(text);
-        return retype && !engine.isPracticeMode ? xpForAnswer(retype.verdict, retype.attempt, lastUsedHint, true, retype.retypeNumber) : 0;
+        const xp = engine.recordRetype(text, lastUsedHint);
+        return xp !== null && !engine.isPracticeMode ? xp : 0;
       }}
       overlay={({ item, topRowEl, exerciseEl }) => (
         <RealLessonOverlay

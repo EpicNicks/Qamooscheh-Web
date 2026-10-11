@@ -1,0 +1,474 @@
+{
+  "fa": {
+    "typein exact": {
+      "verdict": "Correct",
+      "matchedAnswer": "می‌روم",
+      "correct": true,
+      "acceptedWithCorrection": false,
+      "reasons": [],
+      "error": null,
+      "xp": 10
+    },
+    "typein zwnj omitted": {
+      "verdict": "Incorrect",
+      "matchedAnswer": null,
+      "correct": false,
+      "acceptedWithCorrection": false,
+      "reasons": [],
+      "error": null,
+      "xp": 0
+    },
+    "typein zwnj as space": {
+      "verdict": "Incorrect",
+      "matchedAnswer": null,
+      "correct": false,
+      "acceptedWithCorrection": false,
+      "reasons": [],
+      "error": null,
+      "xp": 0
+    },
+    "typein arabic yeh": {
+      "verdict": "AcceptedWithCorrection",
+      "matchedAnswer": "می‌روم",
+      "correct": true,
+      "acceptedWithCorrection": true,
+      "reasons": [
+        "CodepointSubstitution"
+      ],
+      "error": null,
+      "xp": 7
+    },
+    "typein arabic kaf": {
+      "verdict": "AcceptedWithCorrection",
+      "matchedAnswer": "کتاب",
+      "correct": true,
+      "acceptedWithCorrection": true,
+      "reasons": [
+        "CodepointSubstitution"
+      ],
+      "error": null,
+      "xp": 7
+    },
+    "typein persian digits": {
+      "verdict": "Correct",
+      "matchedAnswer": "123",
+      "correct": true,
+      "acceptedWithCorrection": false,
+      "reasons": [],
+      "error": null,
+      "xp": 10
+    },
+    "typein edit distance typo": {
+      "verdict": "AcceptedWithCorrection",
+      "matchedAnswer": "می‌روم",
+      "correct": true,
+      "acceptedWithCorrection": true,
+      "reasons": [
+        "EditDistanceTypo"
+      ],
+      "error": null,
+      "xp": 7
+    },
+    "typein wrong": {
+      "verdict": "Incorrect",
+      "matchedAnswer": null,
+      "correct": false,
+      "acceptedWithCorrection": false,
+      "reasons": [],
+      "error": null,
+      "xp": 0
+    },
+    "typein nfc decomposed alef maddah": {
+      "verdict": "Correct",
+      "matchedAnswer": "آب",
+      "correct": true,
+      "acceptedWithCorrection": false,
+      "reasons": [],
+      "error": null,
+      "xp": 10
+    },
+    "typein best of several accepted": {
+      "verdict": "Correct",
+      "matchedAnswer": "کتاب",
+      "correct": true,
+      "acceptedWithCorrection": false,
+      "reasons": [],
+      "error": null,
+      "xp": 10
+    },
+    "typein romanized": {
+      "verdict": "Correct",
+      "matchedAnswer": "miravam",
+      "correct": true,
+      "acceptedWithCorrection": false,
+      "reasons": [],
+      "error": null,
+      "xp": 10
+    },
+    "wordbank exact": {
+      "verdict": "Correct",
+      "matchedAnswer": "من کتاب دارم",
+      "correct": true,
+      "acceptedWithCorrection": false,
+      "reasons": [],
+      "error": null,
+      "xp": 10
+    },
+    "wordbank wrong order": {
+      "verdict": "Incorrect",
+      "matchedAnswer": null,
+      "correct": false,
+      "acceptedWithCorrection": false,
+      "reasons": [],
+      "error": null,
+      "xp": 0
+    },
+    "match exact": {
+      "verdict": "Correct",
+      "matchedAnswer": "کتاب",
+      "correct": true,
+      "acceptedWithCorrection": false,
+      "reasons": [],
+      "error": null,
+      "xp": 10
+    },
+    "speak native": {
+      "verdict": "Correct",
+      "matchedAnswer": "سلام",
+      "correct": true,
+      "acceptedWithCorrection": false,
+      "reasons": [],
+      "error": null,
+      "xp": 10
+    },
+    "unknown exercise type": {
+      "verdict": null,
+      "matchedAnswer": null,
+      "correct": false,
+      "acceptedWithCorrection": false,
+      "reasons": [],
+      "error": "unknown exerciseType 'Nope'.",
+      "xp": null
+    },
+    "unknown script mode": {
+      "verdict": null,
+      "matchedAnswer": null,
+      "correct": false,
+      "acceptedWithCorrection": false,
+      "reasons": [],
+      "error": "unknown scriptMode 'Klingon'.",
+      "xp": null
+    },
+    "empty accepted answers": {
+      "verdict": "Incorrect",
+      "matchedAnswer": null,
+      "correct": false,
+      "acceptedWithCorrection": false,
+      "reasons": [],
+      "error": null,
+      "xp": 0
+    }
+  },
+  "ja": {
+    "typein exact": {
+      "verdict": "Correct",
+      "matchedAnswer": "ねこ",
+      "correct": true,
+      "acceptedWithCorrection": false,
+      "reasons": [],
+      "error": null,
+      "xp": 10
+    },
+    "typein half-width katakana": {
+      "verdict": "Correct",
+      "matchedAnswer": "ガ",
+      "correct": true,
+      "acceptedWithCorrection": false,
+      "reasons": [],
+      "error": null,
+      "xp": 10
+    },
+    "typein full-width digits": {
+      "verdict": "Correct",
+      "matchedAnswer": "123",
+      "correct": true,
+      "acceptedWithCorrection": false,
+      "reasons": [],
+      "error": null,
+      "xp": 10
+    },
+    "typein full-width latin": {
+      "verdict": "Correct",
+      "matchedAnswer": "NEKO",
+      "correct": true,
+      "acceptedWithCorrection": false,
+      "reasons": [],
+      "error": null,
+      "xp": 10
+    },
+    "typein ideographic space": {
+      "verdict": "Correct",
+      "matchedAnswer": "ねこ いぬ",
+      "correct": true,
+      "acceptedWithCorrection": false,
+      "reasons": [],
+      "error": null,
+      "xp": 10
+    },
+    "typein spacing variance": {
+      "verdict": "AcceptedWithCorrection",
+      "matchedAnswer": "わたしはがくせいです",
+      "correct": true,
+      "acceptedWithCorrection": true,
+      "reasons": [
+        "SpacingVariance"
+      ],
+      "error": null,
+      "xp": 7
+    },
+    "typein compat ideograph": {
+      "verdict": "Correct",
+      "matchedAnswer": "塚",
+      "correct": true,
+      "acceptedWithCorrection": false,
+      "reasons": [],
+      "error": null,
+      "xp": 10
+    },
+    "typein edit distance typo": {
+      "verdict": "AcceptedWithCorrection",
+      "matchedAnswer": "ありがとうございます",
+      "correct": true,
+      "acceptedWithCorrection": true,
+      "reasons": [
+        "EditDistanceTypo"
+      ],
+      "error": null,
+      "xp": 7
+    },
+    "typein typo below length floor": {
+      "verdict": "Incorrect",
+      "matchedAnswer": null,
+      "correct": false,
+      "acceptedWithCorrection": false,
+      "reasons": [],
+      "error": null,
+      "xp": 0
+    },
+    "typein EXCL hiragana vs katakana": {
+      "verdict": "Incorrect",
+      "matchedAnswer": null,
+      "correct": false,
+      "acceptedWithCorrection": false,
+      "reasons": [],
+      "error": null,
+      "xp": 0
+    },
+    "typein EXCL kana long vowel": {
+      "verdict": "Incorrect",
+      "matchedAnswer": null,
+      "correct": false,
+      "acceptedWithCorrection": false,
+      "reasons": [],
+      "error": null,
+      "xp": 0
+    },
+    "typein EXCL chouonpu": {
+      "verdict": "Incorrect",
+      "matchedAnswer": null,
+      "correct": false,
+      "acceptedWithCorrection": false,
+      "reasons": [],
+      "error": null,
+      "xp": 0
+    },
+    "typein EXCL kyuujitai": {
+      "verdict": "Incorrect",
+      "matchedAnswer": null,
+      "correct": false,
+      "acceptedWithCorrection": false,
+      "reasons": [],
+      "error": null,
+      "xp": 0
+    },
+    "typein wrong": {
+      "verdict": "Incorrect",
+      "matchedAnswer": null,
+      "correct": false,
+      "acceptedWithCorrection": false,
+      "reasons": [],
+      "error": null,
+      "xp": 0
+    },
+    "typein best of several accepted": {
+      "verdict": "Correct",
+      "matchedAnswer": "ねこ",
+      "correct": true,
+      "acceptedWithCorrection": false,
+      "reasons": [],
+      "error": null,
+      "xp": 10
+    },
+    "romanized exact": {
+      "verdict": "Correct",
+      "matchedAnswer": "shinbun",
+      "correct": true,
+      "acceptedWithCorrection": false,
+      "reasons": [],
+      "error": null,
+      "xp": 10
+    },
+    "romanized case variance": {
+      "verdict": "Correct",
+      "matchedAnswer": "shinbun",
+      "correct": true,
+      "acceptedWithCorrection": false,
+      "reasons": [],
+      "error": null,
+      "xp": 10
+    },
+    "romanized digraph shi/si": {
+      "verdict": "AcceptedWithCorrection",
+      "matchedAnswer": "shinbun",
+      "correct": true,
+      "acceptedWithCorrection": true,
+      "reasons": [
+        "RomanizationVariance"
+      ],
+      "error": null,
+      "xp": 7
+    },
+    "romanized digraph tsu/tu": {
+      "verdict": "AcceptedWithCorrection",
+      "matchedAnswer": "tsukue",
+      "correct": true,
+      "acceptedWithCorrection": true,
+      "reasons": [
+        "RomanizationVariance"
+      ],
+      "error": null,
+      "xp": 7
+    },
+    "romanized moraic nasal n/m": {
+      "verdict": "AcceptedWithCorrection",
+      "matchedAnswer": "shinbun",
+      "correct": true,
+      "acceptedWithCorrection": true,
+      "reasons": [
+        "RomanizationVariance"
+      ],
+      "error": null,
+      "xp": 7
+    },
+    "romanized full-width latin": {
+      "verdict": "Correct",
+      "matchedAnswer": "neko",
+      "correct": true,
+      "acceptedWithCorrection": false,
+      "reasons": [],
+      "error": null,
+      "xp": 10
+    },
+    "romanized EXCL long vowel": {
+      "verdict": "Incorrect",
+      "matchedAnswer": null,
+      "correct": false,
+      "acceptedWithCorrection": false,
+      "reasons": [],
+      "error": null,
+      "xp": 0
+    },
+    "romanized EXCL syllabic n apostrophe": {
+      "verdict": "Incorrect",
+      "matchedAnswer": null,
+      "correct": false,
+      "acceptedWithCorrection": false,
+      "reasons": [],
+      "error": null,
+      "xp": 0
+    },
+    "wordbank exact": {
+      "verdict": "Correct",
+      "matchedAnswer": "わたしはがくせいです",
+      "correct": true,
+      "acceptedWithCorrection": false,
+      "reasons": [],
+      "error": null,
+      "xp": 10
+    },
+    "wordbank no typo tolerance": {
+      "verdict": "Incorrect",
+      "matchedAnswer": null,
+      "correct": false,
+      "acceptedWithCorrection": false,
+      "reasons": [],
+      "error": null,
+      "xp": 0
+    },
+    "match exact": {
+      "verdict": "Correct",
+      "matchedAnswer": "学校",
+      "correct": true,
+      "acceptedWithCorrection": false,
+      "reasons": [],
+      "error": null,
+      "xp": 10
+    },
+    "match one edit apart is wrong": {
+      "verdict": "Incorrect",
+      "matchedAnswer": null,
+      "correct": false,
+      "acceptedWithCorrection": false,
+      "reasons": [],
+      "error": null,
+      "xp": 0
+    },
+    "speak native wider budget": {
+      "verdict": "AcceptedWithCorrection",
+      "matchedAnswer": "わたしはがくせいです",
+      "correct": true,
+      "acceptedWithCorrection": true,
+      "reasons": [
+        "EditDistanceTypo"
+      ],
+      "error": null,
+      "xp": 7
+    },
+    "speak native two real words": {
+      "verdict": "Incorrect",
+      "matchedAnswer": null,
+      "correct": false,
+      "acceptedWithCorrection": false,
+      "reasons": [],
+      "error": null,
+      "xp": 0
+    },
+    "unknown exercise type": {
+      "verdict": null,
+      "matchedAnswer": null,
+      "correct": false,
+      "acceptedWithCorrection": false,
+      "reasons": [],
+      "error": "unknown exerciseType 'Nope'.",
+      "xp": null
+    },
+    "unknown script mode": {
+      "verdict": null,
+      "matchedAnswer": null,
+      "correct": false,
+      "acceptedWithCorrection": false,
+      "reasons": [],
+      "error": "unknown scriptMode 'Klingon'.",
+      "xp": null
+    },
+    "empty accepted answers": {
+      "verdict": "Incorrect",
+      "matchedAnswer": null,
+      "correct": false,
+      "acceptedWithCorrection": false,
+      "reasons": [],
+      "error": null,
+      "xp": 0
+    }
+  }
+}

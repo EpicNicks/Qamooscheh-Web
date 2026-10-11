@@ -1,27 +1,23 @@
 // Top-level "was this answer right" dispatcher for instant in-lesson
 // feedback (never authoritative — the server re-grades every submission,
-// API_SPEC.md §1). Mirrors AnswerComparatorCatalog.For's dispatch on
-// (ExerciseType, ScriptMode), scoped further by course language: Persian
-// exercises go through domain/persian's faithful comparator port; every
-// other course (including one this client doesn't recognize) falls back to
-// lib/textMatch.ts's plain exact-match check.
+// API_SPEC.md §1). The verdict and the answer's XP come from the published
+// offline grader (src/grader, API_SPEC.md §7), the same function the server
+// grades with; this file builds the request, maps the response, and words the
+// note that says where an accepted-but-imperfect or near-miss answer went
+// wrong. A course with no published grader falls back to lib/textMatch.ts's
+// plain exact-match check.
 import { isPersian } from "./language";
 import { looksCorrect } from "../lib/textMatch";
 import { acceptedTileOrders } from "./wordBankOrders";
 import {
-  compareExact,
-  compareNative,
-  compareRomanized,
-  compareSpeak,
   foldLatinVariance,
   levenshteinDistance,
   normalizeCase,
   separatorMistakes,
-  type CorrectionReason,
-  type PersianComparisonResult,
   type SeparatorMistake,
-} from "./persian/comparators";
+} from "./persian/answerDiff";
 import { foldCodepoints, normalizeStrict } from "./persian/normalize";
+import type { Grader, GraderRequest, GraderResponse } from "../grader/types";
 import type { ExerciseArtifact } from "../types/content";
 
 export type AnswerVerdict = "correct" | "accepted_with_correction" | "incorrect";
@@ -30,14 +26,29 @@ export interface AnswerFeedback {
   verdict: AnswerVerdict;
   /** A short, human-readable explanation when the answer was accepted but imperfect — null otherwise (including plain "incorrect", which needs no reason). */
   note: string | null;
+  /** The XP this answer earns, as the grader prices it for the attempt/hint/retype in the AnswerContext. 0 without a grader. */
+  xp: number;
 }
 
-const REASON_LABEL: Record<CorrectionReason, string> = {
-  codepoint_substitution: "used the Arabic form of a letter instead of the Persian one",
-  edit_distance_typo: "a small typo",
-  latinization_variance: "romanization spelling",
-};
+/** What the answer's XP depends on besides its verdict (API_SPEC.md §2.3 point 8). Omitted: a first attempt without a hint. */
+export interface AnswerContext {
+  /** 1-indexed. */
+  attempt?: number;
+  usedHint?: boolean;
+  /** Grades the optional retype after a wrong typed answer (domain/retype.ts); `retypeNumber` is which correct retype of the exercise this is. */
+  retype?: boolean;
+  retypeNumber?: number;
+}
 
+type GradedExercise = Pick<ExerciseArtifact, "type" | "scriptMode" | "answer" | "alternativeAnswers">;
+
+/** The grader's names for the reasons it forgave an answer. The Japanese grader's own reasons have no wording here and add no note. */
+const REASON_LABEL: Record<string, string> = {
+  CodepointSubstitution: "used the Arabic form of a letter instead of the Persian one",
+  ZwnjOrSpacing: "the half-space (ZWNJ) was off",
+  LatinizationVariance: "romanization spelling",
+  EditDistanceTypo: "a small typo",
+};
 
 /** A word in an English sentence, isolated so a Persian one keeps its place in the line. */
 function isolate(word: string): string {
@@ -47,7 +58,7 @@ function isolate(word: string): string {
 /**
  * Which words a forgiven typo was in (issue #42) — "خانه, not خانا" — by
  * lining `submitted` up word for word with the answer it was matched to,
- * each word compared the way the comparator compared the whole. When the
+ * each word compared the way the grader compared the whole. When the
  * words don't line up (a romanized typo that added or dropped a space), the
  * whole answer stands in for them.
  */
@@ -64,15 +75,20 @@ function describeTypo(submitted: string, matchedAnswer: string, romanized: boole
     .join("; ");
 }
 
-function describeReasons(result: PersianComparisonResult, submitted: string, romanized: boolean): string | null {
-  if (result.reasons.length === 0) return null;
-  const labels = result.reasons.map((r) => REASON_LABEL[r]);
-  const typoAt = result.reasons.indexOf("edit_distance_typo");
-  if (typoAt >= 0 && result.matchedAnswer !== null) {
-    const typo = describeTypo(submitted, result.matchedAnswer, romanized);
-    if (typo) labels[typoAt] += `: ${typo}`;
-  }
-  return `Close — ${labels.join(", ")}.`;
+function describeReasons(response: GraderResponse, submitted: string, accepted: readonly string[], romanized: boolean, spacingMatters: boolean): string | null {
+  const labels = Object.keys(REASON_LABEL)
+    .filter((reason) => response.reasons.includes(reason))
+    .map((reason) => {
+      let detail = "";
+      if (reason === "EditDistanceTypo" && response.matchedAnswer) {
+        detail = describeTypo(submitted, response.matchedAnswer, romanized);
+      } else if (reason === "ZwnjOrSpacing" && spacingMatters) {
+        const mistakes = separatorMistakes(submitted, response.matchedAnswer ? [response.matchedAnswer, ...accepted] : accepted);
+        if (mistakes && mistakes.length > 0) detail = `needs ${mistakes.map(describeSeparator).join("; ")}`;
+      }
+      return detail ? `${REASON_LABEL[reason]}: ${detail}` : REASON_LABEL[reason];
+    });
+  return labels.length === 0 ? null : `Close — ${labels.join(", ")}.`;
 }
 
 function describeSeparator({ after, expected, typed }: SeparatorMistake): string {
@@ -96,52 +112,67 @@ function describeSeparatorMistakes(submitted: string, acceptedAnswers: readonly 
   return `Needs ${mistakes.map(describeSeparator).join("; ")}.`;
 }
 
+function verdictOf(response: GraderResponse): AnswerVerdict {
+  return response.verdict === "Correct" ? "correct" : response.verdict === "AcceptedWithCorrection" ? "accepted_with_correction" : "incorrect";
+}
+
+/** The grader's spelling of an exercise's type and script (GraderCore.TryParseExerciseType / TryParseScriptMode; both are case-insensitive). */
+function graderRequest(exercise: GradedExercise, submittedText: string, context: AnswerContext): GraderRequest {
+  const selection = exercise.type === "word_bank" || exercise.type === "match";
+  return {
+    exerciseType: { word_bank: "WordBank", type_in: "TypeIn", match: "Match", speak: "Speak" }[exercise.type],
+    scriptMode: exercise.scriptMode === "romanized" ? "Romanized" : "Native",
+    submitted: submittedText,
+    // A selection's `answer` is the ordered tiles of ONE correct selection, which the grader joins itself; the other correct orders go alongside.
+    acceptedAnswers: exercise.answer,
+    alternativeAnswers: selection ? exercise.alternativeAnswers : undefined,
+    ...context,
+  };
+}
+
+/**
+ * The feedback for `submittedText` against `exercise`: the verdict and XP
+ * from `grader`, plus the note. Without a grader (a course none is published
+ * for), or when it can't interpret the request, a plain exact-match check
+ * stands in and earns no XP.
+ */
 export function checkAnswer(
+  grader: Grader | null,
   courseCode: string | null | undefined,
-  exercise: Pick<ExerciseArtifact, "type" | "scriptMode" | "answer" | "alternativeAnswers">,
+  exercise: GradedExercise,
   submittedText: string,
+  context: AnswerContext = {},
 ): AnswerFeedback {
-  if (exercise.type === "word_bank" || exercise.type === "match") {
-    // Selection-based: a typo is structurally impossible either way. Unlike
-    // every other exercise type, `answer` here is the ordered tokens of ONE
-    // correct selection (matching `tiles`' granularity), not a list of
-    // alternative whole-answer strings — WordBankExercise submits them
-    // space-joined, so join here too before comparing. Any listed
-    // alternative order is just as correct (domain/wordBankOrders.ts).
-    const acceptedAnswer = acceptedTileOrders(exercise).map((order) => order.join(" "));
-    const result = isPersian(courseCode) ? compareExact(submittedText, acceptedAnswer) : null;
-    const correct = result ? result.verdict === "correct" : looksCorrect(submittedText, acceptedAnswer);
-    return { verdict: correct ? "correct" : "incorrect", note: null };
+  const selection = exercise.type === "word_bank" || exercise.type === "match";
+  const response = grader?.gradeEnvelope(graderRequest(exercise, submittedText, context));
+
+  if (!response || response.error) {
+    // Selection-based `answer`s are tiles (see graderRequest), so the plain check needs them joined.
+    const accepted = selection ? acceptedTileOrders(exercise).map((order) => order.join(" ")) : exercise.answer;
+    return { verdict: looksCorrect(submittedText, accepted) ? "correct" : "incorrect", note: null, xp: 0 };
   }
 
-  if (!isPersian(courseCode)) {
-    // No language-specific comparator built for this course yet — fall
-    // back to the generic exact-match check every exercise type used
-    // before this pass.
-    return { verdict: looksCorrect(submittedText, exercise.answer) ? "correct" : "incorrect", note: null };
-  }
+  const verdict = verdictOf(response);
+  const xp = response.xp ?? 0;
+  // Selection-based: a typo is structurally impossible either way, and there is nothing typed to describe.
+  if (selection) return { verdict, note: null, xp };
 
-  const result =
-    exercise.type === "speak"
-      ? compareSpeak(submittedText, exercise.answer, exercise.scriptMode)
-      : exercise.scriptMode === "romanized"
-        ? compareRomanized(submittedText, exercise.answer)
-        : compareNative(submittedText, exercise.answer);
-
-  // A speak exercise's answer is typed too until speech capture is wired up
-  // (SpeakExercise.tsx); once speech recognition decides its spacing, the
-  // learner shouldn't hear about it.
-  if (result.verdict === "incorrect" && exercise.scriptMode !== "romanized") {
-    return { verdict: "incorrect", note: describeSeparatorMistakes(submittedText, exercise.answer) };
+  const romanized = exercise.scriptMode === "romanized";
+  if (verdict === "incorrect") {
+    // A speak exercise's answer is typed too until speech capture is wired up
+    // (SpeakExercise.tsx); once speech recognition decides its spacing, the
+    // learner shouldn't hear about it.
+    const spacing = isPersian(courseCode) && !romanized ? describeSeparatorMistakes(submittedText, exercise.answer) : null;
+    return { verdict, note: spacing, xp };
   }
-  return { verdict: result.verdict, note: describeReasons(result, submittedText, exercise.scriptMode === "romanized") };
+  return { verdict, note: describeReasons(response, submittedText, exercise.answer, romanized, isPersian(courseCode) && !romanized), xp };
 }
 
 /**
  * `answers` with whichever is closest to what the learner submitted first
  * (issue #42), so a revealed answer is the one they were nearest to rather
  * than whichever was authored first. Ties, and an empty submission, keep the
- * authored order. Folds the way the Persian comparators do; for any other
+ * authored order. Folds the way the Persian grader does; for any other
  * language that folding only touches case and spacing.
  */
 export function closestAnswerFirst(submitted: string, answers: readonly string[]): string[] {

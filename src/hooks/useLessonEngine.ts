@@ -30,6 +30,7 @@ import { useAuth } from "../auth/useAuth";
 import { loadCardStates, mergeCardStates } from "../lib/cardStateStore";
 import { enqueue as enqueueOffline } from "../lib/offlineQueue";
 import { checkAnswer, type AnswerVerdict } from "../domain/answerFeedback";
+import { useGrader } from "../grader/useGrader";
 import { resolveExerciseType } from "../domain/exerciseResolution";
 import { LESSON_PASS_THRESHOLD, verdictWeight } from "../domain/lessonScore";
 import { filterRemixExercises, type RemixContents } from "../domain/remixContents";
@@ -96,9 +97,11 @@ export interface SubmitAnswerResult {
   requeued: boolean;
   /** A short correction hint (e.g. "Close — a small typo.") when the answer was accepted imperfectly or rejected close — see domain/answerFeedback.ts. */
   note: string | null;
-  /** The underlying verdict and 1-indexed attempt number, for domain/xp.ts's per-answer XP. */
+  /** The underlying verdict and 1-indexed attempt number. */
   verdict: AnswerVerdict;
   attempt: number;
+  /** What the grader prices this answer at (hint included): the "+N XP" pop. Not what the server credits when a session rule applies, which the pages honor themselves. */
+  xp: number;
   /** What was actually graded — surfaced on the revealed-answer feedback so a learner can see exactly what the grader received (e.g. a word-bank submission whose tile order wasn't what they intended). */
   submittedText: string;
 }
@@ -150,6 +153,7 @@ export function useLessonEngine(
   const isDeepDive = deepDiveLessonKeys != null;
 
   const bootstrap = useBootstrap();
+  const grader = useGrader();
   const course = bootstrap.data?.course ?? null;
 
   // Cursor-driven mode's own query — enabled only when NOT deep-diving.
@@ -512,12 +516,12 @@ export function useLessonEngine(
    * end-of-lesson submit runs on its own (finishLesson owns its errors).
    */
   function submitAnswer(submittedText: string, opts?: { usedHint?: boolean }): SubmitAnswerResult {
-    if (!current || !queue) return { correct: false, requeued: false, note: null, verdict: "incorrect", attempt: 1, submittedText };
+    if (!current || !queue) return { correct: false, requeued: false, note: null, verdict: "incorrect", attempt: 1, xp: 0, submittedText };
 
-    const feedback = checkAnswer(course?.code, current.exercise, submittedText);
+    const attempt = current.attempt + 1;
+    const feedback = checkAnswer(grader, course?.code, current.exercise, submittedText, { attempt, usedHint: opts?.usedHint });
     const correct = feedback.verdict !== "incorrect";
     const latencyMs = Math.round(performance.now() - shownAt.current);
-    const attempt = current.attempt + 1;
 
     // Computed here rather than read back from state, which won't have
     // updated yet if this is the answer that finishes the lesson.
@@ -573,17 +577,17 @@ export function useLessonEngine(
       }
     }
 
-    return { correct, requeued, note: feedback.note, verdict: feedback.verdict, attempt, submittedText };
+    return { correct, requeued, note: feedback.note, verdict: feedback.verdict, attempt, xp: feedback.xp, submittedText };
   }
 
   /**
    * Records a retype that matched (domain/retype.ts) on the answer under
-   * review, as its items' `retypeText`. Returns the retype's verdict and
-   * which correct retype of the exercise this run it is, or null when it
-   * doesn't count: the exercise was already retyped twice this run (the
-   * server credits no more) or nothing is under review.
+   * review, as its items' `retypeText`. Returns the XP the grader prices it at
+   * (`usedHint`: the wrong attempt's), or null when it doesn't count: the
+   * exercise was already retyped twice this run (the server credits no more)
+   * or nothing is under review.
    */
-  function recordRetype(retypeText: string): { verdict: AnswerVerdict; attempt: number; retypeNumber: number } | null {
+  function recordRetype(retypeText: string, usedHint: boolean): number | null {
     const answer = lastAnswer.current;
     if (!answer) return null;
     const retypeNumber = (retypeCounts.current.get(answer.instance.key) ?? 0) + 1;
@@ -600,7 +604,7 @@ export function useLessonEngine(
           : recorded,
       ),
     );
-    return { verdict: checkAnswer(course?.code, instance.exercise, retypeText).verdict, attempt, retypeNumber };
+    return checkAnswer(grader, course?.code, instance.exercise, retypeText, { attempt, usedHint, retype: true, retypeNumber }).xp;
   }
 
   /** Called once the review of an answer closes: submits the lesson if its last answer was waiting on a retype. */

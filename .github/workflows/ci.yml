@@ -31,3 +31,20 @@ jobs:
       - run: npm run build
 
       - run: npm run test
+
+  # The published grader (API_SPEC.md §7) the app grades and prices XP with:
+  # downloads the build pinned in grader.lock.json and runs the backend's own
+  # verify vectors and xp-vectors through the same glue code the browser
+  # loads it with (src/grader/bundle.ts, runtime.ts). Needs no npm install:
+  # the script only uses Node, which runs the .ts it imports natively.
+  grader:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+
+      - run: node scripts/verify-grader.mjs

@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "preview": "vite preview",
-    "serve:artifacts": "node scripts/serve-artifacts.mjs"
+    "serve:artifacts": "node scripts/serve-artifacts.mjs",
+    "verify:grader": "node scripts/verify-grader.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
