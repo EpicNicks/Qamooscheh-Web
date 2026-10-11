@@ -5,6 +5,9 @@ name: Deploy
 # Runs on this repo's OWN self-hosted runner (docker/runner/), separate from
 # Qamooscheh's -- a self-hosted runner registers against exactly one repo,
 # so its runner can't pick up this repo's jobs.
+# scripts/deploy-local.sh runs these same steps by hand on the box, for when
+# Actions is down or blocked. A step added here belongs there too.
+
 on:
   workflow_run:
     workflows: ["CI"]
