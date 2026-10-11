@@ -13,7 +13,13 @@ on:
 
 jobs:
   deploy:
-    if: github.event.workflow_run.conclusion == 'success'
+    # Only this repo's own pushes and dispatches: the branches filter matches the
+    # head branch NAME, so a fork PR from a fork's master would otherwise get its
+    # code built and run on the self-hosted runner.
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event != 'pull_request' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
     runs-on: [self-hosted, parsling-web]
     # This repo's real .env.docker (VITE_* build args) -- lives outside this
     # job's own disposable checkout, at a fixed path also bind-mounted into
