@@ -42,3 +42,9 @@
   font-size: 0.65rem;
   font-weight: 700;
 }
+
+.doneCount {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--color-text-muted, inherit);
+}

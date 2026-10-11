@@ -82,6 +82,15 @@ export function CloseIcon({ size = "1em", className }: IconProps) {
   );
 }
 
+/** Material Symbols "Check" — a finished lesson's badge. */
+export function CheckIcon({ size = "1em", className }: IconProps) {
+  return (
+    <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="currentColor" focusable="false" aria-hidden="true">
+      <path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+    </svg>
+  );
+}
+
 /** Material Symbols "Arrow Back" — a stacked modal's step-back-one-level control. */
 export function ArrowBackIcon({ size = "1em", className }: IconProps) {
   return (

@@ -95,3 +95,9 @@
   padding: var(--space-2);
   font-size: 0.85rem;
 }
+
+.rowDone {
+  margin-left: auto;
+  display: inline-flex;
+  color: var(--color-success, var(--color-primary));
+}

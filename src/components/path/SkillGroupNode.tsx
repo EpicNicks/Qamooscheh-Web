@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import type { PathPosition, PositionKey } from "../../domain/pathProgress";
+import { positionBranches, type PathPosition, type PositionKey } from "../../domain/pathProgress";
 import { usePathTheme } from "../../theme/PathThemeContext";
 import { useBootstrap } from "../../hooks/useBootstrap";
 import { useThemeIndex } from "../../hooks/useCourseContent";
@@ -28,6 +28,7 @@ export function SkillGroupNode({ position, nextSkipTarget }: { position: PathPos
   const [deepDiveLessonKey, setDeepDiveLessonKey] = useState<string | null>(null);
   const bootstrap = useBootstrap();
   const themeIndex = useThemeIndex(bootstrap.data?.course ?? null);
+  const branches = positionBranches(position);
   const titles = position.skills.map((s) => s.title);
 
   return (
@@ -39,13 +40,18 @@ export function SkillGroupNode({ position, nextSkipTarget }: { position: PathPos
         disabled={locked}
         onClick={() => setModalOpen(true)}
         aria-haspopup="dialog"
-        aria-label={`${position.skills.length} lesson choices: ${titles.join(", ")}`}
+        aria-label={`${position.skills.length} lesson choices${branches ? `, ${branches.done} of ${branches.total} done` : ""}: ${titles.join(", ")}`}
         title={titles.join(" · ")}
       >
         <span className={nodeStyles.fold} aria-hidden="true" />
         {theme.icons.standard != null && <span className={nodeStyles.icon}>{theme.icons.standard}</span>}
         <span className={nodeStyles.title}>{position.skills.length} lessons</span>
         <span className={styles.countPill}>{position.skills.length}</span>
+        {branches && branches.done > 0 && (
+          <span className={styles.doneCount} aria-hidden="true">
+            {branches.done}/{branches.total} done
+          </span>
+        )}
       </button>
       {modalOpen && (
         <SkillGroupModal
