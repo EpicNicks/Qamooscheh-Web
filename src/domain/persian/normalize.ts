@@ -112,17 +112,6 @@ export function foldCodepoints(strictlyNormalized: string): string {
   return out;
 }
 
-/** Removes ZWNJ and plain spaces entirely, to compare an answer's letters apart from its spacing. */
-export function stripSeparators(input: string): string {
-  if (!input.includes(ZWNJ) && !input.includes(" ")) return input;
-  let out = "";
-  for (const ch of input) {
-    if (ch === ZWNJ || ch === " ") continue;
-    out += ch;
-  }
-  return out;
-}
-
 export interface ArabicVariantHit {
   index: number;
   found: string;

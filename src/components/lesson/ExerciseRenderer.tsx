@@ -1,3 +1,4 @@
+import type { SeparatorMarks } from "../../domain/answerFeedback";
 import type { ExerciseType, KeyboardMode } from "../../domain/enums";
 import type { TextDisplaySettings, WordHint } from "../../domain/romanization";
 import type { ExerciseArtifact } from "../../types/content";
@@ -11,6 +12,8 @@ export interface ReviewedAnswer {
   /** Exactly what was handed to the grader. */
   text: string;
   correct: boolean;
+  /** Where the grader found the separators off in an accepted answer; TypeInExercise marks each place. */
+  separators?: SeparatorMarks | null;
 }
 
 export interface ExerciseProps {

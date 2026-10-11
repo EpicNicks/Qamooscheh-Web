@@ -1,3 +1,4 @@
+import type { SeparatorMarks } from "../../domain/answerFeedback";
 // The screen a learner is actually looking at while working through a queue
 // of exercises, in both of its states:
 //
@@ -53,6 +54,8 @@ export interface ExerciseSessionFeedback {
   note: string | null;
   /** What was actually graded — shown on the revealed-answer feedback as "Your answer" so a learner can see exactly what the grader received. */
   submittedText: string;
+  /** The grader's separator edits when a half-space or space was off but the answer was accepted — the review marks where (domain/typedAnswerMarks.ts). */
+  separators?: SeparatorMarks | null;
 }
 
 interface ExerciseSessionScreenProps<TItem extends ExerciseSessionItem, TFeedback extends ExerciseSessionFeedback> {
@@ -190,7 +193,7 @@ export function ExerciseSessionScreen<TItem extends ExerciseSessionItem, TFeedba
           hintMap={hintMap}
           textSettings={textSettings}
           advance={{ label: "Continue", onAdvance: confirmation.confirm }}
-          reviewedAnswer={{ text: feedback.submittedText, correct: feedback.correct }}
+          reviewedAnswer={{ text: feedback.submittedText, correct: feedback.correct, separators: feedback.separators }}
           retype={
             retyping
               ? { matches: (text) => retypeMatches(grader, courseCode, answeredItem.exercise, text), onMatched: (text) => onRetype?.(text) ?? 0 }

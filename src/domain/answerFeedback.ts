@@ -6,21 +6,21 @@
 // note that says where an accepted-but-imperfect or near-miss answer went
 // wrong. A course with no published grader falls back to lib/textMatch.ts's
 // plain exact-match check.
-import { isPersian } from "./language";
 import { looksCorrect } from "../lib/textMatch";
 import { acceptedTileOrders } from "./wordBankOrders";
-import {
-  foldLatinVariance,
-  levenshteinDistance,
-  normalizeCase,
-  separatorMistakes,
-  type SeparatorMistake,
-} from "./persian/answerDiff";
-import { foldCodepoints, normalizeStrict } from "./persian/normalize";
-import type { Grader, GraderRequest, GraderResponse } from "../grader/types";
+import { isPersian } from "./language";
+import { foldLatinVariance, levenshteinDistance, normalizeCase } from "./persian/answerDiff";
+import { foldCodepoints, normalizeStrict, stripReadingAids, ZWNJ } from "./persian/normalize";
+import type { Grader, GraderRequest, GraderResponse, SeparatorEdit } from "../grader/types";
 import type { ExerciseArtifact } from "../types/content";
 
 export type AnswerVerdict = "correct" | "accepted_with_correction" | "incorrect";
+
+/** Where an accepted answer's separators differ from `matchedAnswer`, the accepted answer the grader matched — what the review marks (typedAnswerMarks.ts's markSeparatorGaps). */
+export interface SeparatorMarks {
+  matchedAnswer: string;
+  edits: SeparatorEdit[];
+}
 
 export interface AnswerFeedback {
   verdict: AnswerVerdict;
@@ -28,6 +28,8 @@ export interface AnswerFeedback {
   note: string | null;
   /** The XP this answer earns, as the grader prices it for the attempt/hint/retype in the AnswerContext. 0 without a grader. */
   xp: number;
+  /** The grader's separator edits for an accepted answer whose half-spaces or spaces were off; null otherwise. */
+  separators: SeparatorMarks | null;
 }
 
 /** What the answer's XP depends on besides its verdict (API_SPEC.md §2.3 point 8). Omitted: a first attempt without a hint. */
@@ -75,41 +77,43 @@ function describeTypo(submitted: string, matchedAnswer: string, romanized: boole
     .join("; ");
 }
 
-function describeReasons(response: GraderResponse, submitted: string, accepted: readonly string[], romanized: boolean, spacingMatters: boolean): string | null {
+function describeReasons(response: GraderResponse, submitted: string, romanized: boolean, spacingMatters: boolean): string | null {
   const labels = Object.keys(REASON_LABEL)
     .filter((reason) => response.reasons.includes(reason))
     .map((reason) => {
       let detail = "";
       if (reason === "EditDistanceTypo" && response.matchedAnswer) {
         detail = describeTypo(submitted, response.matchedAnswer, romanized);
-      } else if (reason === "ZwnjOrSpacing" && spacingMatters) {
-        const mistakes = separatorMistakes(submitted, response.matchedAnswer ? [response.matchedAnswer, ...accepted] : accepted);
-        if (mistakes && mistakes.length > 0) detail = `needs ${mistakes.map(describeSeparator).join("; ")}`;
+      } else if (reason === "ZwnjOrSpacing" && spacingMatters && response.matchedAnswer && response.separatorEdits?.length) {
+        detail = `needs ${response.separatorEdits.map((edit) => describeSeparatorEdit(response.matchedAnswer!, edit)).join("; ")}`;
       }
       return detail ? `${REASON_LABEL[reason]}: ${detail}` : REASON_LABEL[reason];
     });
   return labels.length === 0 ? null : `Close — ${labels.join(", ")}.`;
 }
 
-function describeSeparator({ after, expected, typed }: SeparatorMistake): string {
-  const what =
-    expected === "none"
-      ? `no ${typed} after`
-      : typed === "none"
-        ? `a ${expected} after`
-        : `a ${expected}, not a ${typed}, after`;
-  return `${what} ${isolate(after)}`;
-}
+const SEPARATOR_PHRASE: Record<SeparatorEdit["kind"], string> = {
+  missingZwnj: "a half-space",
+  missingSpace: "a space",
+  extraZwnj: "no half-space",
+  extraSpace: "no space",
+  spaceForZwnj: "a half-space, not a space,",
+  zwnjForSpace: "a space, not a half-space,",
+};
+
+const LAST_WORD = new RegExp(`[^\\s${ZWNJ}]+$`, "u");
+const FIRST_WORD = new RegExp(`^[^\\s${ZWNJ}]+`, "u");
 
 /**
- * Where a typed answer's spacing went wrong when its letters are all right
- * (issue #39) — "Needs a half-space after می." Null when some letter is off
- * too, since then the spacing isn't the whole story.
+ * One of the grader's separator edits in words (issue #39) — "a half-space
+ * after می" — naming the letters before it in `matchedAnswer`, or the ones
+ * after when it sits at the start of a word.
  */
-function describeSeparatorMistakes(submitted: string, acceptedAnswers: readonly string[]): string | null {
-  const mistakes = separatorMistakes(submitted, acceptedAnswers);
-  if (!mistakes || mistakes.length === 0) return null;
-  return `Needs ${mistakes.map(describeSeparator).join("; ")}.`;
+function describeSeparatorEdit(matchedAnswer: string, { kind, index, length }: SeparatorEdit): string {
+  const before = LAST_WORD.exec(stripReadingAids(matchedAnswer.slice(0, index)))?.[0];
+  if (before) return `${SEPARATOR_PHRASE[kind]} after ${isolate(before)}`;
+  const next = FIRST_WORD.exec(stripReadingAids(matchedAnswer.slice(index + length)))?.[0];
+  return next ? `${SEPARATOR_PHRASE[kind]} before ${isolate(next)}` : SEPARATOR_PHRASE[kind];
 }
 
 function verdictOf(response: GraderResponse): AnswerVerdict {
@@ -150,23 +154,23 @@ export function checkAnswer(
     if (grader) console.warn("The grader couldn't interpret an answer; falling back to an exact match", response?.error);
     // Selection-based `answer`s are tiles (see graderRequest), so the plain check needs them joined.
     const accepted = selection ? acceptedTileOrders(exercise).map((order) => order.join(" ")) : exercise.answer;
-    return { verdict: looksCorrect(submittedText, accepted) ? "correct" : "incorrect", note: null, xp: 0 };
+    return { verdict: looksCorrect(submittedText, accepted) ? "correct" : "incorrect", note: null, xp: 0, separators: null };
   }
 
   const verdict = verdictOf(response);
   const xp = response.xp ?? 0;
   // Selection-based: a typo is structurally impossible either way, and there is nothing typed to describe.
-  if (selection) return { verdict, note: null, xp };
+  if (selection) return { verdict, note: null, xp, separators: null };
 
+  // An incorrect typed answer gets no note: a separator difference alone is
+  // accepted with correction by the grader, so a wrong answer is wrong for
+  // more than its spacing.
+  if (verdict === "incorrect") return { verdict, note: null, xp, separators: null };
   const romanized = exercise.scriptMode === "romanized";
-  if (verdict === "incorrect") {
-    // A speak exercise's answer is typed too until speech capture is wired up
-    // (SpeakExercise.tsx); once speech recognition decides its spacing, the
-    // learner shouldn't hear about it.
-    const spacing = isPersian(courseCode) && !romanized ? describeSeparatorMistakes(submittedText, exercise.answer) : null;
-    return { verdict, note: spacing, xp };
-  }
-  return { verdict, note: describeReasons(response, submittedText, exercise.answer, romanized, isPersian(courseCode) && !romanized), xp };
+  const spacingMatters = isPersian(courseCode) && !romanized;
+  const edits = response.separatorEdits ?? [];
+  const separators = spacingMatters && response.matchedAnswer && edits.length > 0 ? { matchedAnswer: response.matchedAnswer, edits } : null;
+  return { verdict, note: describeReasons(response, submittedText, romanized, spacingMatters), xp, separators };
 }
 
 /**

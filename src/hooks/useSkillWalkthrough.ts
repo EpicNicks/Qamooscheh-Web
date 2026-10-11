@@ -28,7 +28,7 @@ import { useAuth } from "../auth/useAuth";
 import { useGrader } from "../grader/useGrader";
 import { mergeCardStates } from "../lib/cardStateStore";
 import { enqueue as enqueueOffline } from "../lib/offlineQueue";
-import { checkAnswer } from "../domain/answerFeedback";
+import { checkAnswer, type SeparatorMarks } from "../domain/answerFeedback";
 import { resolveExerciseType } from "../domain/exerciseResolution";
 import { verdictWeight } from "../domain/lessonScore";
 import type { SubmittedItem, SubmittedSession, SubmittedSessionResponse } from "../types/api";
@@ -51,6 +51,8 @@ export interface WalkthroughAnswerResult {
   note: string | null;
   /** What was actually graded — surfaced on the revealed-answer feedback so a learner can see exactly what the grader received. */
   submittedText: string;
+  /** The grader's separator edits when a half-space or space was off but the answer was accepted — the review marks where (domain/typedAnswerMarks.ts). */
+  separators?: SeparatorMarks | null;
 }
 
 export interface SkillWalkthroughOptions {
@@ -139,7 +141,7 @@ export function useSkillWalkthrough(unitKey: string, skillKey: string, options: 
 
     if (rest.length === 0) void finish([...items, ...newItems]);
 
-    return { correct: feedback.verdict !== "incorrect", note: feedback.note, submittedText };
+    return { correct: feedback.verdict !== "incorrect", note: feedback.note, submittedText, separators: feedback.separators };
   }
 
   async function finish(finalItems: SubmittedItem[]) {

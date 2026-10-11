@@ -206,7 +206,7 @@ export function StoryTranscript({
                   hintMap={hintMap}
                   textSettings={textSettings}
                   advance={{ label: "Continue", onAdvance: confirmation.confirm }}
-                  reviewedAnswer={{ text: feedback.submittedText, correct: feedback.correct }}
+                  reviewedAnswer={{ text: feedback.submittedText, correct: feedback.correct, separators: feedback.separators }}
                 />
               </div>
             );

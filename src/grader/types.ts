@@ -18,6 +18,16 @@ export interface GraderRequest {
   retypeNumber?: number;
 }
 
+/** The ways the grader says the learner's separators differ from `matchedAnswer` (API_SPEC.md §7, "Spaces and half-spaces"); "missing" and "extra" are from the learner's side. */
+export type SeparatorEditKind = "missingZwnj" | "extraZwnj" | "spaceForZwnj" | "zwnjForSpace" | "missingSpace" | "extraSpace";
+
+/** One place the learner's separators differ. `index` and `length` are UTF-16 code units of `matchedAnswer` as published; an extra separator is a caret (`length` 0, `index` where it would sit). */
+export interface SeparatorEdit {
+  kind: SeparatorEditKind;
+  index: number;
+  length: number;
+}
+
 /** A wrong answer is a successful call with verdict "Incorrect". `error` means the grader could not interpret the request at all. */
 export interface GraderResponse {
   verdict: string | null;
@@ -26,6 +36,8 @@ export interface GraderResponse {
   acceptedWithCorrection: boolean;
   /** The language's own correction taxonomy ("ZwnjOrSpacing", "CodepointSubstitution", ...): display detail, not a cross-language contract. */
   reasons: string[];
+  /** Persian only: where the separators differ from `matchedAnswer`, in index order. Empty unless the verdict rests on separators; absent alongside `error` and from older builds. */
+  separatorEdits?: SeparatorEdit[] | null;
   error?: string | null;
   xp?: number | null;
 }
