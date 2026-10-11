@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { checkAnswer } from "./answerFeedback";
 import { closestTileOrder, gradeTiles, missingBankTiles, revealedTileOrder } from "./wordBankOrders";
 import type { ExerciseArtifact } from "../types/content";
 
@@ -59,15 +58,6 @@ describe("revealedTileOrder", () => {
     expect(revealedTileOrder({ ...exercise, alternativeAnswers: null }, "فردا من مدرسه به می‌روم")).toEqual(exercise.answer);
     expect(revealedTileOrder(exercise, "nonsense")).toEqual(exercise.answer);
     expect(revealedTileOrder(exercise, undefined)).toEqual(exercise.answer);
-  });
-});
-
-describe("checkAnswer with alternative orders", () => {
-  it.each(["fa", "en"])("accepts every listed order (%s)", (course) => {
-    for (const order of [exercise.answer, ...exercise.alternativeAnswers!]) {
-      expect(checkAnswer(course, exercise, order.join(" ")).verdict).toBe("correct");
-    }
-    expect(checkAnswer(course, exercise, "به فردا مدرسه می‌روم").verdict).toBe("incorrect");
   });
 });
 

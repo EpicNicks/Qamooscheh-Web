@@ -5,6 +5,10 @@ on:
     branches: [master]
   pull_request:
     branches: [master]
+  # The backend sends this when it publishes a new grader build, so web rebuilds
+  # with it and Deploy (which follows CI on master) ships it.
+  repository_dispatch:
+    types: [grader-published]
 
 jobs:
   build:
@@ -21,6 +25,17 @@ jobs:
           cache: npm
 
       - run: npm ci
+
+      # The latest published grader, shipped with the build (scripts/fetch-grader.mjs,
+      # which npm run build runs too). The backend's verify vectors and
+      # xp-vectors must pass against exactly these files, through the loader
+      # glue the app uses (src/grader/runtime.ts), before the build is accepted.
+      - run: node scripts/fetch-grader.mjs
+
+      - run: node scripts/verify-grader.mjs
+
+      # From here on every step builds the files just verified (the marker
+      # verify-grader.mjs leaves makes npm run build keep them).
 
       - run: npm run lint
 

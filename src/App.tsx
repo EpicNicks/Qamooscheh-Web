@@ -2,6 +2,8 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { RequireAuth } from "./auth/RequireAuth";
 import { RequireOnboarded } from "./auth/RequireOnboarded";
 import { AppShell } from "./components/layout/AppShell";
+import { GraderProvider } from "./grader/GraderProvider";
+import { RequireGrader } from "./grader/RequireGrader";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { AboutPage } from "./pages/AboutPage";
@@ -58,7 +60,10 @@ export default function App() {
         element={
           <RequireAuth>
             <RequireOnboarded>
-              <AppShell />
+              {/* Under RequireOnboarded: the grader is the active course's, from bootstrap. */}
+              <GraderProvider>
+                <AppShell />
+              </GraderProvider>
             </RequireOnboarded>
           </RequireAuth>
         }
@@ -77,19 +82,22 @@ export default function App() {
         <Route path="/vocabulary/:unitKey" element={<VocabularyReviewPage />} />
         <Route path="/vocabulary/:unitKey/:skillKey" element={<VocabularyReviewPage />} />
         <Route path="/flashcards" element={<FlashcardsPage />} />
-        <Route path="/saved-practice" element={<SavedPracticePage />} />
         <Route path="/themes" element={<ThemesPage />} />
         <Route path="/themes/:themeId" element={<ThemeBrowsePage />} />
         {/* Its own top-level path, not /themes/remix — that would be shadowed
             by /themes/:themeId (and make a theme named "remix" unreachable). */}
         <Route path="/theme-remix" element={<ThemeRemixPage />} />
-        <Route path="/lesson" element={<LessonPage />} />
-        <Route path="/lesson/deep-dive/:lessonKey" element={<LessonPage />} />
-        <Route path="/lesson/deep-dive-remix/:lessonKey" element={<LessonPage />} />
-        {/* Lesson-less sibling: ?themeIds=a,b from ThemeRemixPage. */}
-        <Route path="/lesson/deep-dive-remix" element={<LessonPage />} />
-        <Route path="/story/:unitKey/:skillKey" element={<StoryPage />} />
-        <Route path="/practice/:unitKey/:skillKey" element={<PracticePage />} />
+        {/* The screens that grade answers wait for the published grader (RequireGrader). */}
+        <Route element={<RequireGrader />}>
+          <Route path="/saved-practice" element={<SavedPracticePage />} />
+          <Route path="/lesson" element={<LessonPage />} />
+          <Route path="/lesson/deep-dive/:lessonKey" element={<LessonPage />} />
+          <Route path="/lesson/deep-dive-remix/:lessonKey" element={<LessonPage />} />
+          {/* Lesson-less sibling: ?themeIds=a,b from ThemeRemixPage. */}
+          <Route path="/lesson/deep-dive-remix" element={<LessonPage />} />
+          <Route path="/story/:unitKey/:skillKey" element={<StoryPage />} />
+          <Route path="/practice/:unitKey/:skillKey" element={<PracticePage />} />
+        </Route>
         <Route path="/checkpoint/:unitKey/:skillKey" element={<CheckpointPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/settings" element={<SettingsPage />} />

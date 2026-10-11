@@ -12,7 +12,7 @@ export interface DailyGoalPreset {
 
 /**
  * Named tiers, ascending. A lesson answered perfectly (first-try correct
- * throughout, no hints — see domain/xp.ts's 10-XP-per-answer scale) is worth
+ * throughout, no hints — the grader's 10-XP first-try award, API_SPEC.md §2.3 point 8) is worth
  * roughly 100 XP, so these are sized as a 5-to-15-lesson-a-day range rather
  * than a fraction of one lesson.
  */

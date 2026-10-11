@@ -2,8 +2,8 @@
 // (PersianKeyboard.tsx, scriptEngines.tsx's layout engine) writes a ZWNJ
 // after every letter so each one shows in its isolated form — a way of
 // seeing the letters, not a spelling. Now that a misplaced half-space is
-// wrong (comparators.ts), those have to come out before grading, or every
-// answer typed that way would fail.
+// wrong (the grader's ZWNJ rule), those have to come out before grading, or
+// every answer typed that way would fail.
 import { ZWNJ } from "./normalize";
 
 /** Each letter's own isolating ZWNJ; one typed on purpose after it (isolated mode's ZWNJ key adds a second) stays. */

@@ -1,7 +1,8 @@
 // Client-side mirror of Qamooscheh.Persian.Normalization.PersianNormalizer,
-// used ONLY for instant in-lesson feedback (lib/textMatch.ts's own caveat
-// applies here too) — the server re-grades every submission with the real
-// PersianNormalizer and is the sole source of truth for FSRS state.
+// for DISPLAY only: the note that says what was off about a typed answer
+// (domain/answerFeedback.ts), reading aids and half-spaces in the text, the
+// keyboards. Whether an answer is right is the published grader's call
+// (src/grader) and the server re-grades every submission.
 //
 // Every codepoint below is a \u escape with the same identifying comment the
 // backend source carries, verified against that source directly (not
@@ -111,7 +112,7 @@ export function foldCodepoints(strictlyNormalized: string): string {
   return out;
 }
 
-/** Removes ZWNJ and plain spaces entirely — fallback tier after strict and codepoint-folded comparison have both failed. */
+/** Removes ZWNJ and plain spaces entirely, to compare an answer's letters apart from its spacing. */
 export function stripSeparators(input: string): string {
   if (!input.includes(ZWNJ) && !input.includes(" ")) return input;
   let out = "";
@@ -120,11 +121,6 @@ export function stripSeparators(input: string): string {
     out += ch;
   }
   return out;
-}
-
-/** Full pipeline: strict, then codepoint folding, then separator stripping. */
-export function normalizeLoose(input: string): string {
-  return stripSeparators(foldCodepoints(normalizeStrict(input)));
 }
 
 export interface ArabicVariantHit {

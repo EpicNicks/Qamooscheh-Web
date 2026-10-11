@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../auth/useAuth";
 import { useBootstrap } from "../hooks/useBootstrap";
+import { useGrader } from "../grader/useGrader";
 import { useLexemeIndex, useSkillArtifactsForRefs, refKey } from "../hooks/useCourseContent";
 import { useExerciseSession } from "../hooks/useExerciseSession";
 import { getStarredPractice } from "../api/vocab";
@@ -10,7 +11,6 @@ import { submitFlashcards } from "../api/flashcards";
 import { checkAnswer, type AnswerVerdict } from "../domain/answerFeedback";
 import { resolveExerciseType } from "../domain/exerciseResolution";
 import { flashcardWords, type FlashcardWord } from "../domain/flashcards";
-import { xpForAnswer } from "../domain/xp";
 import { needsRetype } from "../domain/retype";
 import {
   includesExercise,
@@ -54,6 +54,8 @@ type RemixItem = RemixExercise | RemixCard;
 interface RemixFeedback extends ExerciseSessionFeedback {
   verdict: AnswerVerdict;
   usedHint: boolean;
+  /** What the grader prices the answer at (a first attempt, hint included). */
+  xp: number;
 }
 
 interface Outcome {
@@ -75,6 +77,7 @@ export function SavedPracticePage() {
   const queryClient = useQueryClient();
   const { userId } = useAuth();
   const bootstrap = useBootstrap();
+  const grader = useGrader();
   const course = bootstrap.data?.course ?? null;
   const lexemeIndex = useLexemeIndex(course);
   const practice = useQuery({
@@ -259,10 +262,10 @@ export function SavedPracticePage() {
   }
 
   function answerExercise(item: RemixExercise, submittedText: string, opts?: { usedHint?: boolean }) {
-    const feedback = checkAnswer(course?.code, item.exercise, submittedText);
+    const usedHint = opts?.usedHint ?? false;
+    const feedback = checkAnswer(grader, course?.code, item.exercise, submittedText, { usedHint });
     const correct = feedback.verdict !== "incorrect";
     if (correct) setFirstTryCorrect((n) => n + 1);
-    const usedHint = opts?.usedHint ?? false;
     const latencyMs = Math.round(performance.now() - shownAt.current);
     const nextAnswers = [
       ...answers,
@@ -284,7 +287,7 @@ export function SavedPracticePage() {
       ),
     ];
     setAnswers(nextAnswers);
-    confirmation.record(item, { correct, note: feedback.note, submittedText, verdict: feedback.verdict, usedHint });
+    confirmation.record(item, { correct, note: feedback.note, submittedText, verdict: feedback.verdict, usedHint, xp: feedback.xp });
     advance(nextAnswers, cards, needsRetype(item.renderType, correct));
   }
 
@@ -299,7 +302,7 @@ export function SavedPracticePage() {
           : answer,
       ),
     );
-    return xpForAnswer(checkAnswer(course?.code, item.exercise, retypeText).verdict, 1, feedback.usedHint, true);
+    return checkAnswer(grader, course?.code, item.exercise, retypeText, { usedHint: feedback.usedHint, retype: true }).xp;
   }
 
   const progress = { completed: position, total: queue?.length ?? 0 };
@@ -313,7 +316,7 @@ export function SavedPracticePage() {
         progress={progress}
         current={null}
         onSubmit={() => {}}
-        feedbackXp={(feedback) => xpForAnswer(feedback.verdict, 1, feedback.usedHint)}
+        feedbackXp={(feedback) => feedback.xp}
         onRetype={recordRetype}
       />
     );
@@ -402,7 +405,7 @@ export function SavedPracticePage() {
       progress={progress}
       current={current}
       onSubmit={(text, opts) => current && answerExercise(current, text, opts)}
-      feedbackXp={(feedback) => xpForAnswer(feedback.verdict, 1, feedback.usedHint)}
+      feedbackXp={(feedback) => feedback.xp}
     />
   );
 }

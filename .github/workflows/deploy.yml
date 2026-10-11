@@ -1,6 +1,7 @@
 name: Deploy
 
-# Fires after CI finishes on master -- mirrors Qamooscheh's own deploy.yml.
+# Fires after CI finishes on master (a push, or the grader-published dispatch
+# CI also runs on, which rebuilds master with the new grader) -- mirrors Qamooscheh's own deploy.yml.
 # Runs on this repo's OWN self-hosted runner (docker/runner/), separate from
 # Qamooscheh's -- a self-hosted runner registers against exactly one repo,
 # so its runner can't pick up this repo's jobs.
@@ -25,12 +26,25 @@ jobs:
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
 
+      # The grader this deploy ships is verified here and the image build keeps
+      # exactly those files (fetch-grader.mjs --reuse-verified), so it is never
+      # one the vectors haven't run against. public/grader/ is in the build context.
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+
+      - name: Fetch and verify the published grader
+        run: node scripts/fetch-grader.mjs && node scripts/verify-grader.mjs
+
       # The commit becomes the build's version, sent to the API as X-Client.
       # A shell variable outranks --env-file in compose's interpolation.
       - name: Build image
         env:
           VITE_APP_VERSION: ${{ github.event.workflow_run.head_sha }}
-        run: docker compose --env-file "$ENV_FILE" build
+        # --no-cache: the layers copy public/grader/ (fetched above), which a
+        # cached layer of an unchanged source tree would hide when CI ran for
+        # a grader-published dispatch.
+        run: docker compose --env-file "$ENV_FILE" build --no-cache
 
       - name: Apply
         run: docker compose --env-file "$ENV_FILE" up -d

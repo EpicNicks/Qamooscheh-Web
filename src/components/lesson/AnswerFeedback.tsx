@@ -15,7 +15,7 @@ import styles from "./AnswerFeedback.module.css";
 export interface AnswerFeedbackProps {
   correct: boolean;
   note: string | null;
-  /** Cosmetic per-answer XP (domain/xp.ts) — 0/omitted renders no burst. */
+  /** Cosmetic per-answer XP (the grader's, domain/answerFeedback.ts) — 0/omitted renders no burst. */
   xp?: number;
   /** The accepted answer(s) — only ever read when `!correct`, to back "Reveal Answer?". The first is shown and the rest sit behind "Also accepted", so order them closest to the submission first (domain/answerFeedback.ts's closestAnswerFirst). Omit to hide that control (e.g. no exercise context available). */
   answer?: string[];

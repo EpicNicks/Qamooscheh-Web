@@ -25,6 +25,7 @@ import { useBootstrap } from "./useBootstrap";
 import { useSkillArtifactsForRefs } from "./useCourseContent";
 import { submitSessions } from "../api/sessionSubmit";
 import { useAuth } from "../auth/useAuth";
+import { useGrader } from "../grader/useGrader";
 import { mergeCardStates } from "../lib/cardStateStore";
 import { enqueue as enqueueOffline } from "../lib/offlineQueue";
 import { checkAnswer } from "../domain/answerFeedback";
@@ -69,6 +70,7 @@ export function useSkillWalkthrough(unitKey: string, skillKey: string, options: 
   const queryClient = useQueryClient();
 
   const bootstrap = useBootstrap();
+  const grader = useGrader();
   const course = bootstrap.data?.course ?? null;
 
   const refs = [{ unitKey, skillKey }];
@@ -112,7 +114,7 @@ export function useSkillWalkthrough(unitKey: string, skillKey: string, options: 
   function submitAnswer(submittedText: string, opts?: { usedHint?: boolean }): WalkthroughAnswerResult {
     if (!current || !queue) return { correct: false, note: null, submittedText };
 
-    const feedback = checkAnswer(course?.code, current.exercise, submittedText);
+    const feedback = checkAnswer(grader, course?.code, current.exercise, submittedText, { usedHint: opts?.usedHint });
 
     const newItems = current.exercise.tags.map(
       (lexemeTag): SubmittedItem => ({
