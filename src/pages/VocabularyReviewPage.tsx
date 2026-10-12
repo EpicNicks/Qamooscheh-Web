@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useBootstrap } from "../hooks/useBootstrap";
 import { useLexemeIndex, useCourseVocabulary } from "../hooks/useCourseContent";
 import { useStarredLexemes } from "../hooks/useStarredLexemes";
+import { matchesVocabQuery } from "../domain/vocabSearch";
 import { lessonVocab, unitVocabTags, courseVocabTags } from "../domain/courseVocabulary";
 import { SegmentedToggle } from "../components/common/SegmentedToggle";
 import { VocabTermCard } from "../components/vocabulary/VocabTermCard";
@@ -40,6 +41,7 @@ export function VocabularyReviewPage() {
   const routeScope: Scope = skillKey ? "lesson" : unitKey ? "unit" : "course";
   const routeKey = `${unitKey ?? ""}/${skillKey ?? ""}`;
   const [scope, setScope] = useState<Scope>(routeScope);
+  const [query, setQuery] = useState("");
   // A plain state adjustment during render (this render's output is
   // discarded; React immediately re-renders with the new scope) rather than a
   // useEffect — the same pattern ProfilePage/SettingsPage use for their own
@@ -71,6 +73,8 @@ export function VocabularyReviewPage() {
   const entries = tags
     .map((tag) => ({ tag, entry: lexemeIndex.data?.[tag] }))
     .filter((e): e is { tag: string; entry: NonNullable<typeof e.entry> } => e.entry != null);
+  const searching = query.trim() !== "";
+  const shown = searching ? entries.filter((e) => matchesVocabQuery(e.tag, e.entry, query)) : entries;
 
   const unitTitle = vocabulary.units.find((u) => u.unitKey === unitKey)?.title;
 
@@ -94,6 +98,26 @@ export function VocabularyReviewPage() {
         onChange={setScope}
       />
 
+      <div className={styles.search}>
+        <input
+          type="search"
+          className={styles.searchInput}
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Search words, meanings, romanization…"
+          aria-label="Search vocabulary"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
+        />
+        {searching && (
+          <span className={styles.savedCount} role="status">
+            {shown.length} of {entries.length}
+          </span>
+        )}
+      </div>
+
       <div className={styles.savedBar}>
         <span className={styles.savedCount}>
           {savedHere} saved here
@@ -110,11 +134,17 @@ export function VocabularyReviewPage() {
       </div>
       {starred.limitMessage && <ErrorBanner message={starred.limitMessage} />}
 
-      {entries.length === 0 ? (
-        <p>{scope === "saved" ? "No saved words yet. Tap ★ on a word to save it." : "Nothing here yet."}</p>
+      {shown.length === 0 ? (
+        <p>
+          {searching
+            ? `No words match “${query.trim()}”.`
+            : scope === "saved"
+              ? "No saved words yet. Tap ★ on a word to save it."
+              : "Nothing here yet."}
+        </p>
       ) : (
         <div className={styles.list}>
-          {entries.map(({ tag, entry }) => (
+          {shown.map(({ tag, entry }) => (
             <VocabTermCard
               key={tag}
               tag={tag}

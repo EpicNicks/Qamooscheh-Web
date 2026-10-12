@@ -1,0 +1,22 @@
+{
+  "name": "answer-register",
+  "repo": "web",
+  "branch": "answer-register",
+  "title": "Show the register of the given answer and alternatives in other registers",
+  "closes": 54,
+  "issue": "Issue #54 (depends on backend lexeme-pos-register). PLAN: In answer feedback (src/components/lesson/AnswerFeedback.tsx, src/domain/answerFeedback.ts) show the register of the answer the user gave, derived from the registers of the lexemes in the matched accepted answer (spoken if any is spoken, otherwise the most marked register present), labelled with registerLabel from src/domain/romanization.ts. Where other accepted answers of the exercise are in a different register, show them as 'Also: <answer> (<register>)', at most two. If accepted answers can't be mapped to lexemes from the published data, stop with needsUser. Per-answer register marking stays out of scope (the backend did not add it). Do not change submission or deferred-submit behaviour (PR #65's path is unconfirmed). Unit tests for the derivation.",
+  "allowedPaths": [
+    "^src/",
+    "^public/",
+    "^package(-lock)?\\.json$"
+  ],
+  "acceptance": [
+    "Feedback shows the given answer's register",
+    "Alternatives in other registers shown where data allows",
+    "lint, tsc -b, build, test green locally and in CI"
+  ],
+  "gate": "plan approved by the user 2026-10-10",
+  "approved": true,
+  "reviewer": "sonnet",
+  "reviewers": 1
+}

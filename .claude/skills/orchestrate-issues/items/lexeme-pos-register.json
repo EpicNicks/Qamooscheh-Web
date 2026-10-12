@@ -1,0 +1,31 @@
+{
+  "name": "lexeme-pos-register",
+  "repo": "backend",
+  "branch": "lexeme-pos-register",
+  "title": "Lexemes carry a part of speech and a register",
+  "closes": null,
+  "issue": "Backend issue #28 (enabler, does not close it). PLAN: (1) Add an explicit `pos` field to lexemes: src/Qamooscheh.Content/Source/LexemeSource.cs, the enum mirrored in src/Qamooscheh.Content/ContentSchema.cs, and LexemeIndexEntry (src/Qamooscheh.Content/Artifacts/LexemeIndexEntry.cs) built in tools/Qamooscheh.Publisher.Core/ArtifactBuilder.cs. POS set: noun, proper_noun, pronoun, verb, adjective, adverb, preposition, postposition, conjunction, numeral, determiner, interjection, particle, phrase (multi-word expressions / greetings). Conjugated verb forms are `verb`. Lexeme keys/tags (word<pos><register>) do NOT change; a validator fails if a tag's <n>/<v>/<adj>/<adv> marker disagrees with `pos`. (2) Register: every lexeme carries an explicit `register` from the existing register enum; add a neutral value (e.g. `standard`) if the enum lacks one for unmarked words; keep `spoken` etc. (3) An authoring rule (tools/Qamooscheh.Publisher.Core/AuthoringRules.cs + src/Qamooscheh.Content/Source/AuthoringRulesSource.cs, declared per course in course.yaml, enabled for fa) requires pos and register on every lexeme, so lesson generation classifies each new lexeme when it is created; document it in AGENTS.md and content/fa/CLAUDE.md (and content/CLAUDE.md if general authoring guidance lives there). Japanese: rule not enabled; leave ja content unchanged. Tests in tests/Qamooscheh.Publisher.Tests/AuthoringRulesTests.cs. (4) Apply the classification in E:/Code/Projects/Qamooscheh-Web/orchestrator-ledger/lexeme-pos-register/classification.json (made before you start by a Sonnet pass and reviewed/corrected by an Opus pass) to every entry of content/fa/lexemes.yaml exactly; do not reclassify. Entries in its `needsUser` array: do not guess; if any remain, finish everything else, then reply needsUser listing them. (5) API_SPEC.md documents pos and register on lexeme index entries; features.yaml gets an entry (backend implemented, web not_yet, android not_yet).",
+  "allowedPaths": [
+    "^src/",
+    "^tests/",
+    "^tools/",
+    "^content/",
+    "^features\\.yaml$",
+    "^AGENTS\\.md$",
+    "^CLAUDE\\.md$",
+    "^\\.github/workflows/",
+    "^docs/",
+    "^docker-compose[^/]*\\.ya?ml$",
+    "^deploy/"
+  ],
+  "acceptance": [
+    "Every fa lexeme has pos and register; LexemeIndexEntry exposes Pos and Register",
+    "Authoring rule enforces both for fa, with tests; AGENTS.md and fa authoring docs updated",
+    "Classification applied exactly from classification.json",
+    "API_SPEC.md and features.yaml updated; dotnet build and test green locally and in CI"
+  ],
+  "gate": "plan approved by the user 2026-10-10",
+  "approved": true,
+  "reviewer": "opus",
+  "reviewers": 2
+}

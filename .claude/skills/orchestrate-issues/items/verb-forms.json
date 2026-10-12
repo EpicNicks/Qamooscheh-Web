@@ -1,0 +1,31 @@
+{
+  "name": "verb-forms",
+  "repo": "backend",
+  "branch": "verb-forms",
+  "title": "Publish verb forms (stems, principal parts, conjugation) for verb lexemes",
+  "closes": 28,
+  "issue": "Backend issue #28 (builds on lexeme-pos-register, merged first). PLAN: Persian verbs are regular given two stems. Source (content/fa/lexemes.yaml): an infinitive lexeme with pos verb gets `verb: {presentStem, pastStem, prefix? (preverb / light-verb part of a compound verb, e.g. کار in کار کردن), spokenPresentStem?, spokenPastStem?, overrides?: {'<tense>.<person>[.negative]': form}}`. A conjugated-form lexeme (e.g. دارم) gets `lemma: <infinitive lexeme key>`. The publisher generates the table (a Persian conjugator in tools/Qamooscheh.Publisher.Core, unit-tested against hand-checked forms incl. داشتن, بودن, رفتن, آمدن and a compound verb): tenses present, simple past, past continuous, present perfect, subjunctive, imperative, future; persons 1s 2s 3s 1p 2p 3p; affirmative and negative; written form plus spoken form where spoken stems are authored. Artifact: LexemeIndexEntry gains `Lemma?` and `Verb? {infinitive, presentStem, pastStem, principalParts:[infinitive, pastStem, presentStem], table:{<tense>:{<person>:{written, spoken?, negative, negativeSpoken?}}}}`. Author stems for every existing fa infinitive verb lexeme and `lemma` for existing conjugated forms; any verb whose stems you are unsure of goes into needsUser rather than a guess. Authoring rule: a fa infinitive verb must carry `verb`, a conjugated form must carry `lemma`; document in AGENTS.md and content/fa/CLAUDE.md. Japanese: n/a for now. API_SPEC.md documents the shape; features.yaml entry (backend implemented, web not_yet, android not_yet).",
+  "allowedPaths": [
+    "^src/",
+    "^tests/",
+    "^tools/",
+    "^content/",
+    "^features\\.yaml$",
+    "^AGENTS\\.md$",
+    "^CLAUDE\\.md$",
+    "^\\.github/workflows/",
+    "^docs/",
+    "^docker-compose[^/]*\\.ya?ml$",
+    "^deploy/"
+  ],
+  "acceptance": [
+    "Infinitive verb lexemes publish stems, principal parts and a generated conjugation table; conjugated forms link via lemma",
+    "Conjugator unit-tested incl. irregular-looking and compound verbs",
+    "Authoring rule and docs; API_SPEC.md and features.yaml updated; dotnet build and test green locally and in CI"
+  ],
+  "gate": "plan approved by the user 2026-10-10",
+  "approved": true,
+  "reviewer": "sonnet",
+  "reviewers": 1,
+  "notes": "USER REVISION 2026-10-10 (supersedes the plan where they differ): (1) Every pos:verb lexeme carries an explicit verbForm: infinitive | conjugated | modal | copula | aux | idiom. Classify all existing fa verb lexemes yourself (e.g. خریدن<v><spoken> meaning they bought is conjugated, not infinitive); any you are unsure of go into needsUser instead of a guess. Lint: infinitive must carry verb (stems); conjugated must carry lemma; modal/copula/aux/idiom are exempt from both. (2) lemma names an infinitive (the infinitive written form, e.g. خریدن) that need NOT exist as a lexeme. Do not add new lesson lexemes. Author stems for every distinct lemma in a separate verb-stems source (e.g. content/fa/verbs.yaml keyed by infinitive: presentStem, pastStem, prefix?, spoken stems?, overrides?), and the publisher builds a verb entry (infinitive, stems, principal parts, generated table) for every lemma and every infinitive lexeme; publish them in the lexeme index or a sibling verbs artifact (your call, documented in API_SPEC.md) so a conjugated form resolves its lemma to the table. Unsure stems go to needsUser. Update the authoring rule and docs accordingly."
+}

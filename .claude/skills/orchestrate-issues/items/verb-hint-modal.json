@@ -1,0 +1,22 @@
+{
+  "name": "verb-hint-modal",
+  "repo": "web",
+  "branch": "verb-hint-modal",
+  "title": "Verb hover hint that stays open, with a verb-forms modal",
+  "closes": 53,
+  "issue": "Issue #53 (depends on backend verb-forms). PLAN: In src/components/lesson/AnnotatedText.tsx (WordHint) the hint stays open while the pointer is over the word or the hint (close delay about 150 ms so the pointer can cross the gap); keyboard focus opens it and Esc closes it; on touch a tap toggles it. For a lexeme with pos verb that has `verb` data, or whose `lemma` points to one, the hint shows a clickable 'Verb forms' entry that opens a modal (reuse the app's existing modal/dialog component and focus handling) with the infinitive, principal parts / stems and the conjugation table (tenses as tabs or sections, persons as rows, written and spoken columns where present, negative toggle), Persian text RTL. Types in src/types/ from API_SPEC.md. Tests for the hover-persistence logic and table rendering.",
+  "allowedPaths": [
+    "^src/",
+    "^public/",
+    "^package(-lock)?\\.json$"
+  ],
+  "acceptance": [
+    "Hint stays open while hovered; works with keyboard and touch",
+    "Verb lexemes open a verb-forms modal from the hint",
+    "lint, tsc -b, build, test green locally and in CI"
+  ],
+  "gate": "plan approved by the user 2026-10-10",
+  "approved": true,
+  "reviewer": "sonnet",
+  "reviewers": 1
+}

@@ -1,0 +1,22 @@
+{
+  "name": "grader-web-dispatch",
+  "repo": "backend",
+  "branch": "grader-web-dispatch",
+  "title": "Tell the web repo to rebuild when a new grader is published",
+  "closes": null,
+  "issue": "User request 2026-10-10. The web app now pulls the published browser grader at build time (web item published-grader #71) and must be rebuilt whenever a NEW grader version is published. PLAN: In .github/workflows/publish-content.yml, after the grader publish step and only when a grader version was actually bumped (the byte-change gate from PR #33; a content-only publish sends nothing), send a repository_dispatch to EpicNicks/Qamooscheh-Web with event_type grader-published and client_payload {language, variant: browser, version, manifestSha256}. Use the gh CLI or the REST API with a token read from a repository secret named WEB_REPO_DISPATCH_TOKEN (fine-grained token, contents/actions write on the web repo only); never print it, never put it on a command line in logs; if the secret is missing the step must warn and skip, not fail the publish. Document the secret and the event in tools/README.md and the workflow header. Do not change anything else. The user must create the secret; say so in the PR body.",
+  "allowedPaths": [
+    "^.github/workflows/",
+    "^tools/README.md$",
+    "^features.yaml$"
+  ],
+  "acceptance": [
+    "Dispatch sent only when a grader version bumped, payload carries language/variant/version/sha",
+    "Missing secret warns and skips without failing the publish",
+    "Documented; workflow lint/CI green"
+  ],
+  "gate": "plan approved by the user 2026-10-10 (explicit request)",
+  "approved": true,
+  "reviewer": "sonnet",
+  "reviewers": 1
+}

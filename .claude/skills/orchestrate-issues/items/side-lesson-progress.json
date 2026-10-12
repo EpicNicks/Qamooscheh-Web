@@ -1,0 +1,23 @@
+{
+  "name": "side-lesson-progress",
+  "repo": "web",
+  "branch": "side-lesson-progress",
+  "title": "Mark completed side lessons and skip them in Next lesson",
+  "closes": 69,
+  "issue": "Issue #69 (depends on backend side-lesson-completion). PLAN: Read per-branch completion from the path/bootstrap response. Model it generically in src/domain/pathProgress.ts as 'branches of a position' (kind 'fork' now, leaving room for a 'story' side path later, issue #60; do not build #60). Path: src/components/path/SkillRoad.tsx and the phone fork group (SkillGroupNode.tsx / SkillGroupModal.tsx) mark each finished branch (check badge plus accessible label) and the group shows n/m done. 'Next lesson' (src/pages/LessonPage.tsx, PR #61) picks the first unfinished branch of the next position and skips positions whose branches are all finished. Unit tests in pathProgress for the selection.",
+  "allowedPaths": [
+    "^src/",
+    "^public/",
+    "^package(-lock)?\\.json$"
+  ],
+  "acceptance": [
+    "Finished side lessons are marked on the path (desktop and phone group)",
+    "Next lesson skips finished branches",
+    "lint, tsc -b, build, test green locally and in CI"
+  ],
+  "gate": "plan approved by the user 2026-10-10",
+  "approved": true,
+  "reviewer": "sonnet",
+  "reviewers": 1,
+  "notes": "USER DECISION 2026-10-10 (supersedes the plan where it differs): backend side-lesson-completion was dropped, there is NO new backend field. Bootstrap returns only pointers; the path (positions and fork branches) comes from the CDN course manifest. Derive per-branch completion on the client by joining the already-fetched completed skill keys (GET /v1/lessons/completed?courseCode=, API_SPEC.md 2.11; reuse whatever the app already fetches) with the manifest branches. Keep the join in src/domain/pathProgress.ts and unit-test it."
+}

@@ -1,0 +1,25 @@
+{
+  "name": "half-space-hint-web",
+  "repo": "web",
+  "branch": "half-space-hint-web",
+  "title": "Hint a missing half-space instead of marking the answer wrong",
+  "closes": null,
+  "issue": "User request 2026-10-10 (depends on backend half-space-hint AND web published-grader #71 merged and a grader version published; bump grader.lock.json to that version). PLAN: Typed answers that differ only by a missing/misplaced half-space are now accepted with correction by the grader (7 XP, Hard). In src/domain/answerFeedback.ts the existing separator note (describeSeparatorMistakes, issue #39, Needs a half-space after X) is shown on this CORRECT result as a hint (the same Close note style as other accepted-with-correction answers), not as a wrong-answer note; the word marks in typedAnswerMarks.ts keep showing where the half-space belongs but do not mark the answer wrong. XP and correctness come from the grader only; no client rule. Update tests and the lock file; the CI vectors job covers the new grader vectors. AboutPage.tsx copy says a misplaced half-space is pointed out and the server re-grades; adjust only if it now says wrong. POSITIONS (user): show where the half-space was missing using the grader's separator edits (kind, index, length into the matched accepted answer) rather than the local separatorMistakes/describeSeparatorMistakes derivation; render the hint text from the edit (Needs a half-space after X, Extra space before Y, ...) and mark the position in the answer display (reuse the existing mark/ghost styling in AnswerFeedback/typedAnswerMarks). Remove the now-redundant local separator-position code once the grader supplies it; keep word-level marks.",
+  "allowedPaths": [
+    "^src/",
+    "^public/",
+    "^package(-lock)?\\.json$",
+    "^grader.lock.json$",
+    "^.github/workflows/"
+  ],
+  "acceptance": [
+    "Half-space-only difference shows as correct with a hint, 7 XP",
+    "Hint still names the position",
+    "lint, tsc -b, build, test green locally and in CI",
+    "Position of each separator difference comes from the grader response and is indicated in the UI"
+  ],
+  "gate": "plan approved by the user 2026-10-10",
+  "approved": true,
+  "reviewer": "sonnet",
+  "reviewers": 1
+}

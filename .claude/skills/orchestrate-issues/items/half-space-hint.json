@@ -1,0 +1,31 @@
+{
+  "name": "half-space-hint",
+  "repo": "backend",
+  "branch": "half-space-hint",
+  "title": "A missing half-space is accepted with a correction (7 XP), not wrong",
+  "closes": null,
+  "issue": "User request 2026-10-10, reverses commit 7522232d. PLAN: In src/Qamooscheh.Persian/Comparators/TypeInComparator.cs restore a separator tier: when the submitted answer equals an accepted answer after folding AND removing the separator characters in scope (see notes for scope), the verdict is AcceptedWithCorrection with CorrectionReason.ZwnjOrSpacing (OR CodepointSubstitution if folding was needed), exactly as before 7522232d. Everything downstream already handles AcceptedWithCorrection: AnswerXp gives 7 XP on a first try (AcceptedWithCorrectionXp), 3 on a retry, hint halves it; FSRS maps it to Hard. The typo tier stays as 7522232d left it (it must not additionally forgive separator-only edits beyond this tier; a separator edit PLUS a letter typo stays Incorrect). Update the tests that 7522232d changed (TypeInComparatorTests, PersianAnswerGraderTests.A_missing_half_space_is_wrong becomes accepted-with-correction, Correct=true), add vectors to tools/Qamooscheh.GraderBuilder/verify/vectors.json (kaaab-ha without ZWNJ, می روم with space, separator edit plus letter typo) and an xp vector (7 on first try), fix the stale docs (README ZWNJ tier line now true again; tools/README.md reason table; API_SPEC.md grading/offline section: ZwnjOrSpacing is emitted by TypeIn again). Words that are right both ways may still be listed as separate accepted answers. features.yaml: new entry (backend implemented, web not_yet, android not_yet). The grader publishes a new version through the normal publish-content flow after merge. SCOPE (user): ZWNJ and spaces, i.e. the pre-7522232d tier (missing half-space, half-space where a space belongs, space where a half-space belongs, extra separator). POSITIONS (user, 2026-10-10): the grader must say WHERE the separators differ so the UI can indicate it. Add to ComparisonResult a list SeparatorEdits, each {kind: missingZwnj|extraZwnj|spaceForZwnj|zwnjForSpace|missingSpace|extraSpace, index: offset into the MatchedAnswer string (the accepted answer, UTF-16 code units of the exact string published in the content, so a client can highlight the gap), length}. Fill it when the separator tier fires (empty otherwise; compute from an alignment of the two separator-stripped-equal strings). Expose it in the grading response of the WASM/browser graders (tools/Qamooscheh.Persian.Grader.Core, whatever JSON field names its response already uses for reasons/matchedAnswer, camelCase) and, if the server IAnswerGrader/GradeOutcome or the submit response can carry it without a breaking change, there too; document in API_SPEC.md (offline grading section 7 and the grading-response section) and test it incl. a vector in verify/vectors.json that asserts the edit kinds and indexes for كتابها, می روم, a leading/trailing separator, and two edits in one answer. XP stays 7 first try.",
+  "allowedPaths": [
+    "^src/",
+    "^tests/",
+    "^tools/",
+    "^content/",
+    "^features\\.yaml$",
+    "^AGENTS\\.md$",
+    "^CLAUDE\\.md$",
+    "^\\.github/workflows/",
+    "^docs/",
+    "^docker-compose[^/]*\\.ya?ml$",
+    "^deploy/"
+  ],
+  "acceptance": [
+    "Missing/misplaced half-space (in scope) gives AcceptedWithCorrection, reason ZwnjOrSpacing, 7 XP first try",
+    "Separator edit plus a letter typo stays Incorrect",
+    "Tests, verify vectors and docs updated; dotnet build and test green locally and in CI",
+    "Grading response lists separator edits (kind, index into the matched accepted answer, length), covered by vectors and API_SPEC.md"
+  ],
+  "gate": "plan approved by the user 2026-10-10",
+  "approved": true,
+  "reviewer": "opus",
+  "reviewers": 1
+}

@@ -1,0 +1,30 @@
+{
+  "name": "grader-publish",
+  "repo": "backend",
+  "branch": "grader-publish",
+  "title": "Publish browser and WASI grader builds with the content",
+  "closes": null,
+  "issue": "For web issue #71. PLAN: publish-content.yml builds the graders with tools/Qamooscheh.GraderBuilder (`build artifacts --language <lang>`, as ci.yml does since PR #30), verifies them (verify/verify-graders.mjs + wasmtime, as CI does) and writes them to the published artifacts at grader/{lang}/{variant}/v{ver}/ (variant browser|wasi) with a manifest.json listing files and sha256, beside course/{code}/v{version}/. Also publish the verify vectors and xp-vectors (tools/Qamooscheh.GraderBuilder/verify/) in that directory so client CI can run them. Versioning: a grader version is bumped only when the build's bytes change (compare manifest sha256 with the latest published), so clients' per-version caches survive content-only publishes; record it the way course_version is recorded if bootstrap needs it. GET /v1/bootstrap `graders[]` {language, variant, version, manifestSha256} (API_SPEC.md 2.1, 7) returns real entries for the published versions. Extend the nginx edge smoke test to fetch a grader manifest. State in API_SPEC.md that the WASI module has no standalone xp export; XP comes back in its grading response. features.yaml: entry for published graders (backend implemented, web not_yet, android not_yet).",
+  "allowedPaths": [
+    "^src/",
+    "^tests/",
+    "^tools/",
+    "^content/",
+    "^features\\.yaml$",
+    "^AGENTS\\.md$",
+    "^CLAUDE\\.md$",
+    "^\\.github/workflows/",
+    "^docs/",
+    "^docker-compose[^/]*\\.ya?ml$",
+    "^deploy/"
+  ],
+  "acceptance": [
+    "publish-content.yml publishes verified browser and WASI graders plus their vectors under grader/{lang}/{variant}/v{ver}/",
+    "Grader version bumps only on byte change; bootstrap graders[] returns them",
+    "Smoke test fetches a grader manifest; API_SPEC.md and features.yaml updated; dotnet build and test green locally and in CI"
+  ],
+  "gate": "plan approved by the user 2026-10-10",
+  "approved": true,
+  "reviewer": "opus",
+  "reviewers": 2
+}

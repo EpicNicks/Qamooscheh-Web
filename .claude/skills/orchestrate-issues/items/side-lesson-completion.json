@@ -1,0 +1,30 @@
+{
+  "name": "side-lesson-completion",
+  "repo": "backend",
+  "branch": "side-lesson-completion",
+  "title": "Expose completion of each side lesson on the path",
+  "closes": 27,
+  "issue": "Backend issue #27. PLAN: completion is already stored per skill in skill_completion (src/Qamooscheh.Domain/SkillCompletion.cs, UserProgressRepository.RecordSkillCompletionAsync), and side lessons (fork branches 1a/1b) are separate skills sharing (unitKey, position) in course_version_skill, so per-branch completion is derivable: NO migration. Expose it where the client builds the path: in the bootstrap/path response each skill at a position carries `completed: bool` (from the user's completed skill keys joined to the position's skills, one query, no N+1). Keep GET /v1/lessons/completed unchanged. If the path response already carries this, stop with needsUser saying what the client can use. API_SPEC.md documents it; an integration test covers a fork with one finished branch; features.yaml entry (backend implemented, web not_yet, android not_yet).",
+  "allowedPaths": [
+    "^src/",
+    "^tests/",
+    "^tools/",
+    "^content/",
+    "^features\\.yaml$",
+    "^AGENTS\\.md$",
+    "^CLAUDE\\.md$",
+    "^\\.github/workflows/",
+    "^docs/",
+    "^docker-compose[^/]*\\.ya?ml$",
+    "^deploy/"
+  ],
+  "acceptance": [
+    "Path/bootstrap marks each side lesson completed or not, no migration",
+    "Integration test: fork with one finished branch",
+    "API_SPEC.md and features.yaml updated; dotnet build and test green locally and in CI"
+  ],
+  "gate": "plan approved by the user 2026-10-10",
+  "approved": true,
+  "reviewer": "sonnet",
+  "reviewers": 1
+}
