@@ -8,6 +8,7 @@ import { ExerciseSessionScreen } from "../components/lesson/ExerciseSessionScree
 import { Spinner } from "../components/common/Spinner";
 import { ErrorBanner } from "../components/common/ErrorBanner";
 import { Button } from "../components/common/Button";
+import { LessonResults } from "../components/lesson/LessonResults";
 import { LESSON_PASS_THRESHOLD } from "../domain/lessonScore";
 import styles from "./LessonPage.module.css";
 
@@ -102,6 +103,13 @@ function PracticeRun({ onTryAgain }: { onTryAgain: () => void }) {
             You need {Math.round(LESSON_PASS_THRESHOLD * 100)}% on your first tries to pass this lesson. Your answers
             still count toward your reviews — take it again to pass.
           </p>
+          <LessonResults
+            correct={walkthrough.score.correct}
+            total={walkthrough.score.total}
+            score={walkthrough.score.score}
+            passMark={LESSON_PASS_THRESHOLD}
+            sound="lessonFailed"
+          />
           <div className={styles.doneActions}>
             <Button variant="secondary" onClick={() => navigate("/path")}>
               Back to path
@@ -122,6 +130,13 @@ function PracticeRun({ onTryAgain }: { onTryAgain: () => void }) {
           {!walkthrough.isPracticeMode && walkthrough.result == null && (
             <p className={styles.practiceNote}>Saved on this device — it will sync when you're back online.</p>
           )}
+          <LessonResults
+            correct={walkthrough.score.correct}
+            total={walkthrough.score.total}
+            score={walkthrough.score.score}
+            passMark={walkthrough.result?.lessonCompleted != null ? LESSON_PASS_THRESHOLD : undefined}
+            sound="lessonPassed"
+          />
           <Button onClick={() => navigate("/path")}>Back to path</Button>
         </div>
       );
