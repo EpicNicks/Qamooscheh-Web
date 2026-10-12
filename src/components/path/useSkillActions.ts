@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { isPassedOverAlternate, skillStartRoute } from "../../domain/skillRoute";
 import type { PathSkill, PositionKey } from "../../domain/pathProgress";
 import { themesForLesson } from "../../domain/themeLookup";
 import type { ThemeIndexArtifact } from "../../types/content";
@@ -33,31 +34,21 @@ export function useSkillActions(
   skill: PathSkill | null,
   nextSkipTarget: PositionKey | null,
   themeIndex?: ThemeIndexArtifact | null,
+  /** Every alternate at the skill's position (including itself); omit for a lone lesson. */
+  siblings: readonly PathSkill[] = [],
 ): SkillActions {
   const navigate = useNavigate();
 
   function primaryAction() {
     if (!skill) return;
-    if (skill.status === "current") {
-      // Names the lesson tapped, since a fork's alternates are all "current"
-      // and the session runs just one of them (useLessonEngine's selectedSkillKey).
-      navigate(`/lesson?skill=${encodeURIComponent(skill.skillKey)}`);
-    } else {
-      // An unlocked-but-not-current standard skill is BEHIND the learner's
-      // cursor (see pathProgress.ts) — already passed, being revisited. The
-      // server only ever plans a lesson for the learner's own cursor
-      // (API_SPEC.md §2.2), so /lesson can't serve it; checkpoint is the
-      // wrong direction too, since GET /v1/checkpoint only accepts targets
-      // strictly ahead of the cursor and 400s on anything at or behind it.
-      // useSkillWalkthrough already loads one named skill from the CDN and
-      // submits it outside the cursor sequence, so route there instead.
-      navigate(`/practice/${skill.unitKey}/${skill.skillKey}`);
-    }
+    // See skillStartRoute for why /lesson, /practice and a graded /practice
+    // are chosen the way they are.
+    navigate(skillStartRoute(skill, siblings));
   }
 
   return {
     // A passed-over fork alternate was never completed, so it's a first attempt, not practice.
-    primaryLabel: skill?.status === "current" || skill?.completed === false ? "Start lesson" : "Practice",
+    primaryLabel: skill?.status === "current" || (skill != null && isPassedOverAlternate(skill, siblings)) ? "Start lesson" : "Practice",
     onPrimary: primaryAction,
     onSkip:
       skill?.status === "current" && nextSkipTarget

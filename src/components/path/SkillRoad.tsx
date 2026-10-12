@@ -143,7 +143,7 @@ export function SkillRoad({
             {isGroup ? (
               <SkillGroupNode position={position} nextSkipTarget={nextSkipTarget} />
             ) : (
-              <SkillNode skill={skill} nextSkipTarget={nextSkipTarget} markCompleted={position.skills.length > 1} />
+              <SkillNode skill={skill} nextSkipTarget={nextSkipTarget} markCompleted={position.skills.length > 1} siblings={position.skills} />
             )}
           </div>
         );

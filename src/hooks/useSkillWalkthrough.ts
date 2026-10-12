@@ -175,6 +175,10 @@ export function useSkillWalkthrough(unitKey: string, skillKey: string, options: 
       setResult(sessionResult ?? null);
       if (userId && sessionResult) mergeCardStates(userId, sessionResult.cards);
       queryClient.invalidateQueries({ queryKey: ["bootstrap"] });
+      // A pass here can complete a lesson (a fork alternate's first attempt),
+      // so the path's completion marks and the cursor's plan must refetch.
+      queryClient.invalidateQueries({ queryKey: ["sessionPlan"] });
+      queryClient.invalidateQueries({ queryKey: ["lessonsCompleted"] });
       queryClient.invalidateQueries({ queryKey: ["streak"] });
       queryClient.invalidateQueries({ queryKey: ["activity"] });
       setStatus("done");

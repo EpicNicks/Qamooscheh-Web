@@ -62,6 +62,7 @@ export function useOfflineQueueFlush() {
       if (settledIds.length > 0) removeFromQueue(currentUserId, settledIds);
       queryClient.invalidateQueries({ queryKey: ["bootstrap"] });
       queryClient.invalidateQueries({ queryKey: ["sessionPlan"] });
+      queryClient.invalidateQueries({ queryKey: ["lessonsCompleted"] });
       queryClient.invalidateQueries({ queryKey: ["league", "current"] });
       // Each flushed session lands on its own occurredAt day, so a flush can
       // fill in yesterday as well as today — the streak has to be re-read.

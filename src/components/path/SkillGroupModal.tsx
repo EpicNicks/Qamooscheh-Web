@@ -53,7 +53,7 @@ export function SkillGroupModal({ skills, nextSkipTarget, originRef, onClose, on
   const actionsRef = useRef<ReturnType<typeof useSkillActions> | null>(null);
   const listNav = useListNavigation(skills.length, () => actionsRef.current?.onPrimary());
   const activeSkill = skills[listNav.activeIndex] ?? null;
-  const actions = useSkillActions(activeSkill, nextSkipTarget, themeIndex);
+  const actions = useSkillActions(activeSkill, nextSkipTarget, themeIndex, skills);
   actionsRef.current = actions;
 
   /**

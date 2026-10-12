@@ -25,9 +25,11 @@ interface SkillNodeProps {
   nextSkipTarget?: PositionKey | null;
   /** Mark the node when the skill is finished. Set only for a fork's alternates: a lone finished lesson is already shown by being behind the cursor. */
   markCompleted?: boolean;
+  /** The other alternates at a fork's position, so a passed-over one is told apart from a lesson tested out of. */
+  siblings?: readonly PathSkill[];
 }
 
-export function SkillNode({ skill, layout = "node", nextSkipTarget = null, markCompleted = false }: SkillNodeProps) {
+export function SkillNode({ skill, layout = "node", nextSkipTarget = null, markCompleted = false, siblings = [] }: SkillNodeProps) {
   const navigate = useNavigate();
   const theme = usePathTheme();
   const locked = skill.status === "locked";
@@ -39,7 +41,7 @@ export function SkillNode({ skill, layout = "node", nextSkipTarget = null, markC
   // both queries are already cached from whichever page fetched them first.
   const bootstrap = useBootstrap();
   const themeIndex = useThemeIndex(bootstrap.data?.course ?? null);
-  const actions = useSkillActions(skill, nextSkipTarget, themeIndex.data);
+  const actions = useSkillActions(skill, nextSkipTarget, themeIndex.data, siblings);
 
   function handleClick() {
     if (locked) return;
