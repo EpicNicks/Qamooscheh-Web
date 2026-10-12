@@ -230,7 +230,9 @@ export function ExerciseSessionScreen<TItem extends ExerciseSessionItem, TFeedba
     <div className={styles.wrap}>
       {topRow(overlay ? setTopRowEl : undefined)}
       {title && <h1 className={styles.chapterTitle}>{title}</h1>}
-      {askingReportContext && <ReportIssue key={current.key} context={askingReportContext} stage="unanswered" />}
+      {/* Keyed apart from the exercise beside it, which is keyed by current.key: a
+          shared key among siblings leaves this behind, one more after each answer. */}
+      {askingReportContext && <ReportIssue key={`report:${current.key}`} context={askingReportContext} stage="unanswered" />}
       {overlay ? <div ref={setExerciseEl}>{exercise}</div> : exercise}
       {overlay?.({ item: current, topRowEl, exerciseEl })}
       {skipModal}
