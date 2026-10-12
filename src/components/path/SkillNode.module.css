@@ -173,6 +173,11 @@
   color: var(--color-text);
 }
 
+/* A fork alternate not yet completed: blue, like the connector leading to it. */
+.openBranch {
+  --node-accent: var(--color-current);
+}
+
 .current {
   --node-accent: var(--color-current);
   background: color-mix(in srgb, var(--color-current) 12%, var(--color-surface));

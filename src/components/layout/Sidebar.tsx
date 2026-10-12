@@ -41,6 +41,9 @@ export function Sidebar({ variant = "rail" }: { variant?: "rail" | "drawer" }) {
           state, and checking themeIndex.themes.length here would mean every
           page paint pays for fetching themes.json, which nothing else
           currently does. */}
+      <NavLink to="/vocabulary" className={({ isActive }) => (isActive ? `${styles.link} ${styles.active}` : styles.link)}>
+        Vocabulary
+      </NavLink>
       <NavLink to="/themes" className={({ isActive }) => (isActive ? `${styles.link} ${styles.active}` : styles.link)}>
         Deep Dives
       </NavLink>

@@ -43,6 +43,13 @@ export interface RoadEdge {
   d: string;
   fromPositionIndex: number;
   toPositionIndex: number;
+  fromSkillIndex: number;
+  toSkillIndex: number;
+  /** Endpoints, x in logical units and y in px — what `d` is drawn between. */
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
 }
 
 export interface RoadLayout {
@@ -96,6 +103,12 @@ export function computeRoadLayout(positionSkillCounts: number[], config: RoadLay
           d: `M ${from.x},${from.y} L ${to.x},${to.y}`,
           fromPositionIndex: from.positionIndex,
           toPositionIndex: to.positionIndex,
+          fromSkillIndex: from.skillIndex,
+          toSkillIndex: to.skillIndex,
+          x1: from.x,
+          y1: from.y,
+          x2: to.x,
+          y2: to.y,
         });
       }
     }

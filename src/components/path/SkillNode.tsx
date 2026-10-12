@@ -62,7 +62,11 @@ export function SkillNode({ skill, layout = "node", nextSkipTarget = null, markC
     setPopoverOpen(true);
   }
 
-  const classes = [styles.node, styles[skill.status], layout === "row" && styles.row].filter(Boolean).join(" ");
+  // A fork alternate still to do reads blue (its connector does too, in SkillRoad); locked ones stay grey.
+  const openBranch = markCompleted && !skill.completed && !locked;
+  const classes = [styles.node, styles[skill.status], layout === "row" && styles.row, openBranch && styles.openBranch]
+    .filter(Boolean)
+    .join(" ");
   const icon = theme.icons[skill.category];
   const done = markCompleted && skill.completed;
 

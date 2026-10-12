@@ -50,6 +50,34 @@
   stroke: var(--path-stroke-current);
 }
 
+/* A fork alternate still to do, and the connector leading to it. */
+.open {
+  stroke: var(--color-current);
+}
+
+/*
+ * Phone: how many lessons a connector into/out of a collapsed fork stands for.
+ * Sits on the connector's midpoint, over the lines but under the nodes.
+ */
+.edgeCount {
+  position: absolute;
+  z-index: 1;
+  transform: translate(-50%, -50%);
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 2px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 0.7rem;
+  font-weight: 700;
+  pointer-events: none;
+}
+
 .nodeWrap {
   position: absolute;
   z-index: 2;

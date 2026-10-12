@@ -27,6 +27,15 @@ function nodeLeft(pct: number): string {
   return `max(0px, min(calc(100% - var(--skill-node-width)), calc(${pct}% - var(--skill-node-width) / 2)))`;
 }
 
+/** Logical units between the parallel lines of a collapsed fork's connector; wider than the stroke so they read as separate. */
+const FORK_LINE_SPACING = 9;
+
+/** A collapsed fork's per-lesson line: done keeps the walked-road colour, still-to-do is blue, a locked fork is all grey. */
+function forkLineClass(status: PathPosition["status"], completed: boolean): string {
+  if (status === "locked") return styles.locked;
+  return completed ? styles.unlocked : styles.open;
+}
+
 /**
  * The straight, branching road of a unit's standard skills.
  *
@@ -82,18 +91,52 @@ export function SkillRoad({
         aria-hidden="true"
       >
         {layout.edges.map((edge) => {
+          const key = `${edge.fromPositionIndex}-${edge.toPositionIndex}-${edge.d}`;
+          const to = positions[edge.toPositionIndex];
+
+          if (collapseForks) {
+            // The fork this connector stands for (entering one wins over
+            // leaving one): one line per lesson, left to right in lesson
+            // order, each in that lesson's own state.
+            const fork = [to, positions[edge.fromPositionIndex]].find((p) => p.skills.length > 1);
+            if (fork) {
+              return fork.skills.map((s, i) => {
+                const dx = (i - (fork.skills.length - 1) / 2) * FORK_LINE_SPACING;
+                return (
+                  <path
+                    key={`${key}#${i}`}
+                    className={[styles.edge, forkLineClass(fork.status, s.completed)].join(" ")}
+                    d={`M ${edge.x1 + dx},${edge.y1} L ${edge.x2 + dx},${edge.y2}`}
+                  />
+                );
+              });
+            }
+          }
+
           // An edge takes its look from where it LEADS: road already walked
-          // strokes differently from road ahead.
-          const status = positions[edge.toPositionIndex].status;
-          return (
-            <path
-              key={`${edge.fromPositionIndex}-${edge.toPositionIndex}-${edge.d}`}
-              className={[styles.edge, styles[status]].join(" ")}
-              d={edge.d}
-            />
-          );
+          // strokes differently from road ahead — except one leading to a
+          // fork alternate still to do, which is blue.
+          const target = to.skills[edge.toSkillIndex];
+          const open = !collapseForks && to.skills.length > 1 && to.status !== "locked" && !target.completed;
+          return <path key={key} className={[styles.edge, open ? styles.open : styles[to.status]].join(" ")} d={edge.d} />;
         })}
       </svg>
+
+      {collapseForks &&
+        layout.edges.map((edge) => {
+          const fork = [positions[edge.toPositionIndex], positions[edge.fromPositionIndex]].find((p) => p.skills.length > 1);
+          if (!fork) return null;
+          return (
+            <span
+              key={`count-${edge.fromPositionIndex}-${edge.toPositionIndex}`}
+              className={styles.edgeCount}
+              style={{ left: `${pct((edge.x1 + edge.x2) / 2)}%`, top: `${(edge.y1 + edge.y2) / 2}px` }}
+              aria-hidden="true"
+            >
+              {fork.skills.length}
+            </span>
+          );
+        })}
 
       {layout.nodes.map((node) => {
         const position = positions[node.positionIndex];
