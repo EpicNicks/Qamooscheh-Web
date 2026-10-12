@@ -136,11 +136,16 @@ export function AnnotatedWord({
     setPosition({ x, y, below });
   }, []);
 
-  const show = useCallback(() => {
+  // Positions the tooltip and counts it as shown — what opens it (hover, focus
+  // or a press) is the caller's own state, so a hover never leaves it marked focused.
+  const reveal = useCallback(() => {
     place();
-    setFocused(true);
     onReveal?.();
   }, [place, onReveal]);
+  const show = useCallback(() => {
+    reveal();
+    setFocused(true);
+  }, [reveal]);
   const hide = useCallback(() => setFocused(false), []);
   // Opened by a press (`toggle`), not hover/focus: no CSS state to show it
   // with on a tap or a click, so it's shown by data-open instead.
@@ -171,7 +176,7 @@ export function AnnotatedWord({
   );
   useEffect(() => () => verbFormsCloser.close(), [verbFormsCloser]);
   const flipPinned = () => {
-    if (!pinned) show();
+    if (!pinned) reveal();
     setPinned(!pinned);
     setDismissed(pinned);
   };
@@ -332,7 +337,7 @@ export function AnnotatedWord({
         onPointerEnter={(event) => {
           // A touch's pointer "enters" for the length of the tap; the tap itself pins.
           if (event.pointerType === "touch") return;
-          if (!open) show();
+          if (!open) reveal();
           hoverCloser.enter();
           if (verbFormsOpen) verbFormsCloser.enter();
         }}
