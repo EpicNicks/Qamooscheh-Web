@@ -122,22 +122,6 @@ export function SkillRoad({
         })}
       </svg>
 
-      {collapseForks &&
-        layout.edges.map((edge) => {
-          const fork = [positions[edge.toPositionIndex], positions[edge.fromPositionIndex]].find((p) => p.skills.length > 1);
-          if (!fork) return null;
-          return (
-            <span
-              key={`count-${edge.fromPositionIndex}-${edge.toPositionIndex}`}
-              className={styles.edgeCount}
-              style={{ left: `${pct((edge.x1 + edge.x2) / 2)}%`, top: `${(edge.y1 + edge.y2) / 2}px` }}
-              aria-hidden="true"
-            >
-              {fork.skills.length}
-            </span>
-          );
-        })}
-
       {layout.nodes.map((node) => {
         const position = positions[node.positionIndex];
         const isGroup = collapseForks && position.skills.length > 1;
