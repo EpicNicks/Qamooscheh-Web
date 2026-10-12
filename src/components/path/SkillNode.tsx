@@ -6,7 +6,6 @@ import { useBootstrap } from "../../hooks/useBootstrap";
 import { useThemeIndex } from "../../hooks/useCourseContent";
 import { LessonStartPopover } from "./LessonStartPopover";
 import { DeepDiveChooserModal } from "./DeepDiveChooserModal";
-import { CheckIcon } from "../common/icons";
 import { useSkillActions } from "./useSkillActions";
 import styles from "./SkillNode.module.css";
 
@@ -23,7 +22,7 @@ interface SkillNodeProps {
   layout?: SkillNodeLayout;
   /** The checkpoint target for "test out of this lesson" — only ever relevant to the one node that's actually "current" (see PathPage). Absent/null for SkillList, which never renders a "current" standard skill. */
   nextSkipTarget?: PositionKey | null;
-  /** Mark the node when the skill is finished. Set only for a fork's alternates: a lone finished lesson is already shown by being behind the cursor. */
+  /** Set only for a fork's alternates: colours the border blue while still to do (a finished one keeps the default border). */
   markCompleted?: boolean;
   /** The other alternates at a fork's position, so a passed-over one is told apart from a lesson tested out of. */
   siblings?: readonly PathSkill[];
@@ -70,16 +69,10 @@ export function SkillNode({ skill, layout = "node", nextSkipTarget = null, markC
     .filter(Boolean)
     .join(" ");
   const icon = theme.icons[skill.category];
-  const done = markCompleted && skill.completed;
 
   return (
     <>
       <button ref={buttonRef} type="button" className={classes} disabled={locked} onClick={handleClick} title={skill.title}>
-        {done && (
-          <span className={styles.doneBadge} role="img" aria-label="Completed">
-            <CheckIcon />
-          </span>
-        )}
         {layout === "node" && <span className={styles.fold} aria-hidden="true" />}
         {icon != null && <span className={styles.icon}>{icon}</span>}
         <span className={styles.title}>{skill.title}</span>

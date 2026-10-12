@@ -207,19 +207,3 @@
   font-size: 0.95rem;
   text-align: left;
 }
-
-/* The check on a finished fork alternate; the label is on the element, the glyph is decoration. */
-.doneBadge {
-  position: absolute;
-  top: -6px;
-  right: -6px;
-  width: 18px;
-  height: 18px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  background: var(--color-success, var(--color-primary));
-  color: var(--color-primary-contrast, #fff);
-  font-size: 0.8rem;
-}
