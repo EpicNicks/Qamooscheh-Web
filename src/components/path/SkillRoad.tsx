@@ -30,10 +30,15 @@ function nodeLeft(pct: number): string {
 /** Logical units between the parallel lines of a collapsed fork's connector; wider than the stroke so they read as separate. */
 const FORK_LINE_SPACING = 9;
 
-/** A collapsed fork's per-lesson line: done keeps the walked-road colour, still-to-do is blue, a locked fork is all grey. */
-function forkLineClass(status: PathPosition["status"], completed: boolean): string {
+/**
+ * A collapsed fork's per-lesson line: done keeps the walked-road colour; a
+ * lesson still to do is blue running into the fork and grey running out of it
+ * towards the next lesson; a locked fork is all grey.
+ */
+function forkLineClass(status: PathPosition["status"], completed: boolean, leaving: boolean): string {
   if (status === "locked") return styles.locked;
-  return completed ? styles.unlocked : styles.open;
+  if (completed) return styles.unlocked;
+  return leaving ? styles.locked : styles.open;
 }
 
 /**
@@ -100,12 +105,13 @@ export function SkillRoad({
             // order, each in that lesson's own state.
             const fork = [to, positions[edge.fromPositionIndex]].find((p) => p.skills.length > 1);
             if (fork) {
+              const leaving = fork !== to;
               return fork.skills.map((s, i) => {
                 const dx = (i - (fork.skills.length - 1) / 2) * FORK_LINE_SPACING;
                 return (
                   <path
                     key={`${key}#${i}`}
-                    className={[styles.edge, forkLineClass(fork.status, s.completed)].join(" ")}
+                    className={[styles.edge, forkLineClass(fork.status, s.completed, leaving)].join(" ")}
                     d={`M ${edge.x1 + dx},${edge.y1} L ${edge.x2 + dx},${edge.y2}`}
                   />
                 );
