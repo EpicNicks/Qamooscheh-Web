@@ -84,6 +84,9 @@ interface AnnotatedWordProps {
  * `:focus-visible > .wrap` rule.
  */
 const TOOLTIP_VIEWPORT_MARGIN = 8;
+/** How long the verb forms popover outlasts the pointer leaving it and its word — enough to cross the gap, or to glance away and back. */
+const VERB_FORMS_CLOSE_DELAY_MS = 400;
+
 /** Gap between the word and its tooltip, matching the old `margin-bottom`. */
 const TOOLTIP_GAP = 4;
 
@@ -94,7 +97,16 @@ interface TooltipPosition {
   below: boolean;
 }
 
-export function AnnotatedWord({ word, hint, settings, focusable = true, onReveal, tooltip = true, speech, toggle = false }: AnnotatedWordProps) {
+export function AnnotatedWord({
+  word,
+  hint,
+  settings,
+  focusable = true,
+  onReveal,
+  tooltip = true,
+  speech,
+  toggle = false,
+}: AnnotatedWordProps) {
   const wrapRef = useRef<HTMLSpanElement>(null);
   const tooltipRef = useRef<HTMLSpanElement>(null);
   // The tooltip is `position: fixed`, not absolute. That way no scrolling or
@@ -147,6 +159,18 @@ export function AnnotatedWord({ word, hint, settings, focusable = true, onReveal
   const lastPointer = useRef("mouse");
   const verbEntry = useVerbEntry(focusable ? hint?.verbLemma : undefined);
   const [verbFormsOpen, setVerbFormsOpen] = useState(false);
+  // Lets the verb forms popover linger a moment after the pointer leaves it and
+  // the word, and stay while either is hovered (shared, since it's portalled
+  // out of the word and the pointer crosses a gap between the two).
+  const [verbFormsCloser] = useState(() =>
+    createHoverCloser((value) => {
+      if (!value) {
+        setVerbFormsOpen(false);
+        wrapRef.current?.focus({ preventScroll: true });
+      }
+    }, VERB_FORMS_CLOSE_DELAY_MS),
+  );
+  useEffect(() => () => verbFormsCloser.close(), [verbFormsCloser]);
   const flipPinned = () => {
     if (!pinned) show();
     setPinned(!pinned);
@@ -209,7 +233,10 @@ export function AnnotatedWord({ word, hint, settings, focusable = true, onReveal
   const ezafeMark = (className: string) => (ezafe ? <span className={className}>{ezafe}</span> : null);
   const lines = hint
     ? assembleTooltipLines([
-        { include: settings.translationEnabled, text: register ? `${hint.translation} [${register}]` : hint.translation },
+        {
+          include: settings.translationEnabled,
+          text: register ? `${hint.translation} [${register}]` : hint.translation,
+        },
         {
           include: settings.romanizationEnabled && settings.display === "native",
           text: hint.romanization !== null && ezafe ? hint.romanization + ezafe : hint.romanization,
@@ -228,11 +255,7 @@ export function AnnotatedWord({ word, hint, settings, focusable = true, onReveal
   );
   // A marked ezafe is worth pointing out even with the translation hint off.
   if (ezafe && !settings.translationEnabled) {
-    tooltipLines.push(
-      <>
-        {ezafeMark(styles.ezafeChip)} ezafe
-      </>,
-    );
+    tooltipLines.push(<>{ezafeMark(styles.ezafeChip)} ezafe</>);
   }
 
   const base =
@@ -312,9 +335,12 @@ export function AnnotatedWord({ word, hint, settings, focusable = true, onReveal
           if (event.pointerType === "touch") return;
           if (!open) show();
           hoverCloser.enter();
+          if (verbFormsOpen) verbFormsCloser.enter();
         }}
         onPointerLeave={(event) => {
-          if (event.pointerType !== "touch") hoverCloser.leave();
+          if (event.pointerType === "touch") return;
+          hoverCloser.leave();
+          if (verbFormsOpen) verbFormsCloser.leave();
         }}
         onMouseEnter={speak}
         onMouseLeave={unspeak}
@@ -340,7 +366,12 @@ export function AnnotatedWord({ word, hint, settings, focusable = true, onReveal
           role="tooltip"
           data-placement={position?.below ? "below" : "above"}
           style={
-            position ? ({ "--tooltip-x": `${position.x}px`, "--tooltip-y": `${position.y}px` } as CSSProperties) : undefined
+            position
+              ? ({
+                  "--tooltip-x": `${position.x}px`,
+                  "--tooltip-y": `${position.y}px`,
+                } as CSSProperties)
+              : undefined
           }
         >
           {tooltipLines.map((line, i) => (
@@ -365,10 +396,10 @@ export function AnnotatedWord({ word, hint, settings, focusable = true, onReveal
       {verbEntry && verbFormsOpen && (
         <VerbFormsModal
           entry={verbEntry}
-          onClose={() => {
-            setVerbFormsOpen(false);
-            wrapRef.current?.focus();
-          }}
+          anchorEl={wrapRef.current}
+          onClose={verbFormsCloser.close}
+          onPointerEnter={verbFormsCloser.enter}
+          onPointerLeave={verbFormsCloser.leave}
         />
       )}
     </>
@@ -376,7 +407,11 @@ export function AnnotatedWord({ word, hint, settings, focusable = true, onReveal
 }
 
 /** A mistake hint is the chip's only tooltip line. */
-const MISTAKE_HINT_TEXT: TextDisplaySettings = { ...PLAIN_TEXT, translationEnabled: true, vowelMarks: true };
+const MISTAKE_HINT_TEXT: TextDisplaySettings = {
+  ...PLAIN_TEXT,
+  translationEnabled: true,
+  vowelMarks: true,
+};
 
 /**
  * An "explain" chip shown next to a word the correction marks, when that
@@ -389,7 +424,11 @@ export function MistakeHintChip({ kind }: { kind: MistakeKind }) {
     <span className={styles.hintChip} dir="ltr">
       <AnnotatedWord
         word="explain"
-        hint={{ translation: MISTAKE_HINTS[kind], romanization: null, ruby: null }}
+        hint={{
+          translation: MISTAKE_HINTS[kind],
+          romanization: null,
+          ruby: null,
+        }}
         settings={MISTAKE_HINT_TEXT}
         toggle
       />
@@ -473,7 +512,11 @@ export function EnglishAnnotatedText({
   settings: TextDisplaySettings;
   onReveal?: () => void;
 }) {
-  const wordSettings: TextDisplaySettings = { ...settings, display: "native", translationEnabled: true };
+  const wordSettings: TextDisplaySettings = {
+    ...settings,
+    display: "native",
+    translationEnabled: true,
+  };
   const speech = useHoverSpeech(tags);
   return (
     <>
@@ -482,7 +525,11 @@ export function EnglishAnnotatedText({
           <AnnotatedWord
             key={i}
             word={segment.text}
-            hint={{ translation: segment.hint.native, romanization: segment.hint.romanization, ruby: null }}
+            hint={{
+              translation: segment.hint.native,
+              romanization: segment.hint.romanization,
+              ruby: null,
+            }}
             settings={wordSettings}
             onReveal={onReveal}
             speech={speech}
