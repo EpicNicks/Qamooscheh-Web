@@ -4,7 +4,7 @@ import { themesForLesson } from "../../domain/themeLookup";
 import type { ThemeIndexArtifact } from "../../types/content";
 
 export interface SkillActions {
-  /** "Start lesson" for the current skill, "Practice" for one being revisited. */
+  /** "Start lesson" for the current skill or one never completed, "Practice" for a completed one being revisited. */
   primaryLabel: string;
   onPrimary: () => void;
   /** Only present on the current skill when there's a position ahead to test into. */
@@ -56,7 +56,8 @@ export function useSkillActions(
   }
 
   return {
-    primaryLabel: skill?.status === "current" ? "Start lesson" : "Practice",
+    // A passed-over fork alternate was never completed, so it's a first attempt, not practice.
+    primaryLabel: skill?.status === "current" || skill?.completed === false ? "Start lesson" : "Practice",
     onPrimary: primaryAction,
     onSkip:
       skill?.status === "current" && nextSkipTarget
