@@ -44,7 +44,7 @@ function clampedCenterX(center: number): number {
 interface LessonStartPopoverProps {
   /** The tapped node itself — its position is re-measured on every scroll/resize so the popover tracks it instead of freezing at click-time coordinates. */
   anchorRef: RefObject<HTMLElement | null>;
-  /** "Start lesson" for the current skill, "Practice" for a past one being revisited, "Take the placement test" for a future unit's entry node (SkillNode's placement variant) — see SkillNode. */
+  /** "Start lesson" for the current skill or one never completed (e.g. a passed-over fork alternate), "Practice" for a completed one being revisited, "Take the placement test" for a future unit's entry node (SkillNode's placement variant) — see SkillNode. */
   primaryLabel: string;
   onPrimary: () => void;
   /** Opens the Deep Dive chooser modal — only offered on a standard-category skill tagged with at least one theme (useSkillActions.hasDeepDive). */
