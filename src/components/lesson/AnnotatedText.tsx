@@ -159,15 +159,14 @@ export function AnnotatedWord({
   const lastPointer = useRef("mouse");
   const verbEntry = useVerbEntry(focusable ? hint?.verbLemma : undefined);
   const [verbFormsOpen, setVerbFormsOpen] = useState(false);
+  // The word the popover is placed against; set when it opens, as a ref can't be read during render.
+  const [verbFormsAnchor, setVerbFormsAnchor] = useState<HTMLElement | null>(null);
   // Lets the verb forms popover linger a moment after the pointer leaves it and
   // the word, and stay while either is hovered (shared, since it's portalled
   // out of the word and the pointer crosses a gap between the two).
   const [verbFormsCloser] = useState(() =>
     createHoverCloser((value) => {
-      if (!value) {
-        setVerbFormsOpen(false);
-        wrapRef.current?.focus({ preventScroll: true });
-      }
+      if (!value) setVerbFormsOpen(false);
     }, VERB_FORMS_CLOSE_DELAY_MS),
   );
   useEffect(() => () => verbFormsCloser.close(), [verbFormsCloser]);
@@ -385,6 +384,7 @@ export function AnnotatedWord({
               className={styles.verbFormsButton}
               onClick={(event) => {
                 event.stopPropagation();
+                setVerbFormsAnchor(wrapRef.current);
                 setVerbFormsOpen(true);
               }}
             >
@@ -396,8 +396,11 @@ export function AnnotatedWord({
       {verbEntry && verbFormsOpen && (
         <VerbFormsModal
           entry={verbEntry}
-          anchorEl={wrapRef.current}
-          onClose={verbFormsCloser.close}
+          anchorEl={verbFormsAnchor}
+          onClose={() => {
+            verbFormsCloser.close();
+            wrapRef.current?.focus({ preventScroll: true });
+          }}
           onPointerEnter={verbFormsCloser.enter}
           onPointerLeave={verbFormsCloser.leave}
         />
