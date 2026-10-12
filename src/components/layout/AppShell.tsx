@@ -1,5 +1,5 @@
-import { useLayoutEffect, useRef, type ComponentType } from "react";
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { useEffect, useLayoutEffect, useRef, type ComponentType } from "react";
+import { NavLink, Outlet, useLocation, useNavigationType } from "react-router-dom";
 import { useAuth } from "../../auth/useAuth";
 import { useBootstrap } from "../../hooks/useBootstrap";
 import { useOfflineQueueFlush } from "../../hooks/useOfflineQueueFlush";
@@ -38,7 +38,18 @@ export function AppShell() {
   const { pendingCount, isFlushing } = useOfflineQueueFlush();
   const bootstrap = useBootstrap();
   const location = useLocation();
+  const navigationType = useNavigationType();
   const isLessonMode = LESSON_MODE_PATH.test(location.pathname);
+
+  // React Router leaves the window where it was, so a page opened from a
+  // scrolled one (the journey, say) would start scrolled too. Every page
+  // starts at the top, except: back/forward, which the browser restores; a
+  // #hash, which its page scrolls to itself (HelpPage); and the journey, which
+  // centres on the learner's current lesson (PathPage).
+  useEffect(() => {
+    if (navigationType === "POP" || location.hash || location.pathname === "/path") return;
+    window.scrollTo(0, 0);
+  }, [location.pathname, location.hash, navigationType]);
   const shellRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLElement>(null);
   const isMobile = useIsMobile();
