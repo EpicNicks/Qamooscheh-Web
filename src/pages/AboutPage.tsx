@@ -13,7 +13,7 @@ export function AboutPage() {
     <div className={styles.wrap}>
       <div className={styles.content}>
         <div className={styles.brand}>ParsLing</div>
-        <p className={styles.tagline}>A guided, spaced-repetition way to actually learn Persian or Japanese.</p>
+        <p className={styles.tagline}>A guided, spaced-repetition way to actually learn Persian (Farsi).</p>
 
         <div className={styles.section}>
           <h2>What it is</h2>
@@ -32,8 +32,8 @@ export function AboutPage() {
               review and when, instead of a fixed drill order.
             </li>
             <li>
-              <strong>Native-script input.</strong> On-screen keyboards for Persian and Japanese, with a phonetic
-              (romanized-typing) option for either, so you're never blocked on a layout you don't have installed.
+              <strong>Persian-script input.</strong> An on-screen Persian keyboard, with a phonetic
+              (romanized-typing) option, so you're never blocked on a layout you don't have installed.
             </li>
             <li>
               <strong>Instant, honest feedback.</strong> Near-misses (a one-letter typo, an Arabic-vs-Persian
@@ -50,7 +50,10 @@ export function AboutPage() {
 
         <div className={styles.section}>
           <h2>Languages</h2>
-          <p>Persian (فارسی) and Japanese (日本語) today, each with its own keyboard, grading rules, and course.</p>
+          <p>
+            Persian (Farsi, فارسی) is the focus: a full course with its own keyboard and grading rules built around
+            how Persian is actually written.
+          </p>
         </div>
 
         <div className={styles.section}>

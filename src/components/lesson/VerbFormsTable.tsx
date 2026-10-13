@@ -37,3 +37,22 @@ export function VerbFormsTable({ entry, tense, negative }: { entry: VerbIndexEnt
     </table>
   );
 }
+
+/**
+ * The verb's heading: its infinitive and, where the course authors one, its
+ * English gloss ("to buy") beneath it. `titleId` labels the popover.
+ */
+export function VerbFormsHeading({ entry, titleId }: { entry: VerbIndexEntry; titleId?: string }) {
+  return (
+    <div className={styles.heading}>
+      <h2 id={titleId} className={styles.title} dir="rtl" lang="fa">
+        {entry.infinitive}
+      </h2>
+      {entry.gloss && (
+        <p className={styles.gloss} lang="en">
+          {entry.gloss}
+        </p>
+      )}
+    </div>
+  );
+}

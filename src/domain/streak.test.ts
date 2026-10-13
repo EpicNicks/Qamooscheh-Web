@@ -5,6 +5,7 @@ import {
   formatStreakDay,
   formatStreakDays,
   formatTimeLeft,
+  msUntilRollover,
 } from "./streak";
 import type { StreakResponse } from "../types/api";
 
@@ -81,5 +82,19 @@ describe("addDays / formatStreakDay", () => {
 
   it("never shifts the displayed day", () => {
     expect(formatStreakDay("2026-10-05")).toContain("5");
+  });
+});
+
+describe("msUntilRollover", () => {
+  it("waits until just after the streak-day ends", () => {
+    expect(msUntilRollover(streak({}), NOW.getTime())).toBe(9 * 3_600_000 + 1_000);
+  });
+
+  it("never polls faster than once a minute, even past the deadline", () => {
+    expect(msUntilRollover(streak({ nextDayStartsAt: "2026-09-30T21:00:00Z" }), NOW.getTime())).toBe(60_000);
+  });
+
+  it("sets no timer without a streak", () => {
+    expect(msUntilRollover(undefined, NOW.getTime())).toBe(false);
   });
 });

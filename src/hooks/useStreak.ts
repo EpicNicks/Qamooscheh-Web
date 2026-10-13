@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { cancelStreakPause, getStreak, pauseStreak } from "../api/streak";
+import { msUntilRollover } from "../domain/streak";
 import type { StreakPauseRequest, StreakResponse } from "../types/api";
 
 /**
@@ -7,12 +8,15 @@ import type { StreakPauseRequest, StreakResponse } from "../types/api";
  * day in daily_activity — useLessonEngine's finishLesson, useSkillWalkthrough,
  * useCheckpoint's submit, and useOfflineQueueFlush — so finishing a lesson
  * ticks the header number over without a refresh. The day rolling over with
- * the app left open is covered by react-query's default refetch-on-focus.
+ * the app left open is covered by a refetch just after `nextDayStartsAt`
+ * (plus react-query's default refetch-on-focus) — `today` is the key the
+ * daily-goal ring reads XP under, so a stale one would pin it to yesterday.
  */
 export function useStreak() {
   return useQuery({
     queryKey: ["streak"],
     queryFn: getStreak,
+    refetchInterval: (query) => msUntilRollover(query.state.data),
   });
 }
 

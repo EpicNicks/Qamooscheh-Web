@@ -143,3 +143,24 @@ describe("English prompt hints", () => {
     expect(isLatinText("123")).toBe(false);
   });
 });
+
+describe("English prompt hints: verb forms", () => {
+  const base = { register: null, romanization: null, romanizationIsAuthored: false };
+  const verbs = buildLexemeHintMap({
+    "خرید<n>": { ...base, gloss: "purchase", pos: "noun" },
+    "خرید<v>": { ...base, gloss: "he / she bought", pos: "verb", verbForm: "conjugated", lemma: "خریدن" },
+    "کتاب<n>": { ...base, gloss: "book", pos: "noun", lemma: "کتاب" },
+  });
+  const lemmas = (text: string, tags: string[]) =>
+    segmentEnglish(text, englishCandidates(tags, verbs))
+      .filter((s) => s.hint)
+      .map((s) => `${s.text}=${s.hint!.verbLemma ?? "-"}`);
+
+  it("carries a verb lexeme's infinitive, so the hover can offer Verb forms", () => {
+    expect(lemmas("She bought a book", ["خرید<v>", "کتاب<n>"])).toEqual(["She bought=خریدن", "book=-"]);
+  });
+
+  it("takes it from the tagged sense, not a homograph's", () => {
+    expect(lemmas("a purchase", ["خرید<n>"])).toEqual(["purchase=-"]);
+  });
+});

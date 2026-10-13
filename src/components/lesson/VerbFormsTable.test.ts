@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { VerbIndexEntry } from "../../types/content";
 import { availableTenses, verbRows } from "../../domain/verbForms";
-import { VerbFormsTable } from "./VerbFormsTable";
+import { VerbFormsHeading, VerbFormsTable } from "./VerbFormsTable";
 
 const entry: VerbIndexEntry = {
   infinitive: "کار کردن",
@@ -60,5 +60,22 @@ describe("VerbFormsTable", () => {
     expect(html).not.toContain("Spoken");
     expect(html).toContain("کار نخواهد کرد");
     expect(html).not.toContain("کار خواهد کرد");
+  });
+});
+
+describe("VerbFormsHeading", () => {
+  it("shows the infinitive with its English gloss beneath", () => {
+    const html = renderToStaticMarkup(createElement(VerbFormsHeading, { entry: { ...entry, gloss: "to work" }, titleId: "t" }));
+    expect(html).toContain('<h2 id="t"');
+    expect(html).toContain("کار کردن");
+    expect(html).toContain(">to work</p>");
+  });
+
+  it("shows just the infinitive when the course authors no gloss", () => {
+    for (const gloss of [null, undefined]) {
+      const html = renderToStaticMarkup(createElement(VerbFormsHeading, { entry: { ...entry, gloss } }));
+      expect(html).toContain("کار کردن");
+      expect(html).not.toContain("<p");
+    }
   });
 });

@@ -3,7 +3,7 @@
 // system ever measured session duration, but daily_activity.xp (GET
 // /v1/activity, XpPolicy.ForSession server-side) is a real, already-computed
 // per-day measurement, so XP is what a goal can actually be checked against.
-import type { ActivityDay } from "../types/api";
+import type { ActivityDay, StreakResponse } from "../types/api";
 
 export interface DailyGoalPreset {
   xp: number;
@@ -29,22 +29,34 @@ export function matchDailyGoalPreset(xp: number): DailyGoalPreset | undefined {
 }
 
 /**
- * "YYYY-MM-DD" for right now, in THIS DEVICE's local time zone — deliberately
- * not `toISOString()` (which is UTC, and would call it "tomorrow" for
- * several hours every evening in most western time zones). Only ever
- * compared against `ActivityDay.localDay`, which is the server's own
- * day-bucketing (StreakCalculator, keyed by the learner's IANA time zone and
- * day_start_hour) — the two can disagree by up to a day-start-hour's worth
- * of hours right around midnight, which is an acceptable approximation for
- * a cosmetic progress ring, not something FSRS-critical reads.
+ * "YYYY-MM-DD" for right now, in THIS DEVICE's local time zone and starting at
+ * midnight — deliberately not `toISOString()` (UTC). Only a fallback for while
+ * GET /v1/streak hasn't answered: it is NOT the server's streak-day, which
+ * starts at `dayStartHour` (default 3am) in the learner's stored zone. Matching
+ * activity against this would read 0 XP from midnight to the day start, and
+ * whenever the device zone differs from the stored one (API_SPEC.md §2.12a).
  */
-export function todayLocalDay(): string {
-  return new Date().toLocaleDateString("en-CA");
+export function deviceLocalDay(now: Date = new Date()): string {
+  return now.toLocaleDateString("en-CA");
 }
 
-/** Today's XP from an activity history (GET /v1/activity, newest day first) — 0 if today hasn't posted any activity yet. */
-export function xpToday(days: readonly ActivityDay[]): number {
-  return days.find((day) => day.localDay === todayLocalDay())?.xp ?? 0;
+/**
+ * The learner's current streak-day — the key `ActivityDay.localDay` is
+ * bucketed by. The server's `StreakResponse.today` when there is one (never
+ * re-derived client-side: the day start and DST make that disagree), else the
+ * device date as a stand-in while the streak is still loading.
+ */
+export function currentStreakDay(streak: Pick<StreakResponse, "today"> | null | undefined): string {
+  return streak?.today ?? deviceLocalDay();
+}
+
+/**
+ * XP on streak-day `today` from an activity history (GET /v1/activity, newest
+ * day first) — 0 if that day hasn't posted any activity yet. Pass
+ * `currentStreakDay(streak)`, not the device date.
+ */
+export function xpToday(days: readonly ActivityDay[], today: string): number {
+  return days.find((day) => day.localDay === today)?.xp ?? 0;
 }
 
 /** Every XP the learner has earned in a course: the sum of its whole activity history (GET /v1/activity returns every day, not a window). */
