@@ -13,12 +13,12 @@ export function AboutPage() {
     <div className={styles.wrap}>
       <div className={styles.content}>
         <div className={styles.brand}>ParsLing</div>
-        <p className={styles.tagline}>A guided, spaced-repetition way to actually learn Persian (Farsi).</p>
+        <p className={styles.tagline}>Learn Persian (Farsi) with lessons that adapt to you.</p>
 
         <div className={styles.section}>
           <h2>What it is</h2>
           <p>
-            ParsLing is a Duolingo-style language course: short lessons arranged along a branching skill path, each
+            ParsLing is a game-like language course: short lessons arranged along a branching skill path, each
             one a mix of exercise types: word bank, type-in, match, and speak, building toward full sentences,
             short stories, and conversations, rather than staying at isolated vocabulary.
           </p>
