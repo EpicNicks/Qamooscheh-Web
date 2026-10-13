@@ -57,3 +57,19 @@ export function formatStreakDay(day: string): string {
     timeZone: "UTC",
   });
 }
+
+/** setTimeout's ceiling; a longer delay fires immediately. */
+const MAX_TIMER_MS = 2_147_483_647;
+
+/**
+ * Milliseconds until just after the streak-day ends — useStreak's refetch
+ * interval, so `today` rolls over with the app left open. False (no timer)
+ * with no streak yet; floored at a minute so a device clock running ahead of
+ * the server can't turn it into a tight loop.
+ */
+export function msUntilRollover(streak: StreakResponse | undefined, now: number = Date.now()): number | false {
+  if (!streak) return false;
+  const end = Date.parse(streak.nextDayStartsAt);
+  if (Number.isNaN(end)) return false;
+  return Math.min(MAX_TIMER_MS, Math.max(60_000, end - now + 1_000));
+}

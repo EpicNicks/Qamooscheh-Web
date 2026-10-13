@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { availableTenses } from "../../domain/verbForms";
 import type { VerbIndexEntry } from "../../types/content";
 import { Button } from "../common/Button";
-import { VerbFormsTable } from "./VerbFormsTable";
+import { VerbFormsHeading, VerbFormsTable } from "./VerbFormsTable";
 import styles from "./VerbFormsModal.module.css";
 
 /** Breathing room kept between the popover and the viewport edge, and between it and its word. */
@@ -128,9 +128,7 @@ export function VerbFormsModal({
         if (event.key === "Enter") event.stopPropagation();
       }}
     >
-      <h2 id={titleId} className={styles.title} dir="rtl" lang="fa">
-        {entry.infinitive}
-      </h2>
+      <VerbFormsHeading entry={entry} titleId={titleId} />
       <dl className={styles.facts}>
         <dt>Principal parts</dt>
         <dd className={styles.persian} dir="rtl" lang="fa">

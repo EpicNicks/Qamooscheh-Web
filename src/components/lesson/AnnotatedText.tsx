@@ -537,6 +537,7 @@ export function EnglishAnnotatedText({
               translation: segment.hint.native,
               romanization: segment.hint.romanization,
               ruby: null,
+              verbLemma: segment.hint.verbLemma,
             }}
             settings={wordSettings}
             onReveal={onReveal}

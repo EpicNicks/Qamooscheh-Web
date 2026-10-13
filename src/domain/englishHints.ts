@@ -8,10 +8,11 @@ import { segmentWords } from "./annotation";
 import { tidyGloss } from "./attachedEndings";
 import type { WordHint } from "./romanization";
 
-/** What an English word's hover shows: the lexeme as it's written, and its romanization. */
+/** What an English word's hover shows: the lexeme as it's written, its romanization, and its infinitive when it is a verb (the "Verb forms" entry). */
 export interface NativeHint {
   native: string;
   romanization: string | null;
+  verbLemma?: string;
 }
 
 interface Candidate {
@@ -128,8 +129,15 @@ export function englishCandidates(tags: readonly string[], hintMap: ReadonlyMap<
     const hint = hintMap.get(surface);
     if (!surface || !hint) continue;
     const pos = tag.slice(surface.length);
-    const sense = hint.senses?.find((s) => s.pos === pos) ?? { translation: hint.translation, romanization: hint.romanization };
-    const native = { native: surface, romanization: sense.romanization };
+    // The tag's own sense carries its own verbLemma. WordHint.verbLemma is
+    // first-wins across every lexeme written this way, so it is only the
+    // fallback for a tag no sense matches.
+    const sense = hint.senses?.find((s) => s.pos === pos) ?? {
+      translation: hint.translation,
+      romanization: hint.romanization,
+      verbLemma: hint.verbLemma,
+    };
+    const native: NativeHint = { native: surface, romanization: sense.romanization, verbLemma: sense.verbLemma };
     for (const phrase of glossPhrases(tidyGloss(sense.translation))) {
       if (phrase.length === 0 || phrase[0].startsWith("-")) continue;
       const forms = phrase[0] === "to" && phrase.length > 1 ? [phrase, phrase.slice(1)] : [phrase];

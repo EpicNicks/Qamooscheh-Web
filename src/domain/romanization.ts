@@ -47,6 +47,8 @@ export interface WordSense {
   pos: string;
   translation: string;
   romanization: string | null;
+  /** This lexeme's own infinitive when it is a verb — unlike WordHint.verbLemma, never another homograph's. */
+  verbLemma?: string;
 }
 
 /** The tooltip label for a register — nothing for a word that isn't specific to one. */
@@ -67,7 +69,13 @@ export function buildLexemeHintMap(lexemeIndex: LexemeIndex | null | undefined):
   for (const [tag, entry] of Object.entries(lexemeIndex)) {
     const surface = tag.split("<", 1)[0];
     if (!surface) continue;
-    const sense: WordSense = { tag, pos: tag.slice(surface.length), translation: entry.gloss, romanization: entry.romanization };
+    const sense: WordSense = {
+      tag,
+      pos: tag.slice(surface.length),
+      translation: entry.gloss,
+      romanization: entry.romanization,
+      verbLemma: verbLemmaOf(entry),
+    };
     for (const written of [surface, ...(entry.forms ?? [])]) {
       // Two lexemes can share a surface (the same word tagged as a noun and a
       // verb, or in two registers) — merge onto whatever's already there

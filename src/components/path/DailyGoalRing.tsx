@@ -2,7 +2,8 @@ import { useEffect, useRef } from "react";
 import { usePrefs } from "../../hooks/usePrefs";
 import { useActivity } from "../../hooks/useCourseCatalog";
 import { useLocalAppPref } from "../../hooks/useLocalAppPref";
-import { matchDailyGoalPreset, todayLocalDay, xpToday } from "../../domain/dailyGoal";
+import { useStreak } from "../../hooks/useStreak";
+import { currentStreakDay, matchDailyGoalPreset, xpToday } from "../../domain/dailyGoal";
 import { playSound } from "../../domain/sfx";
 import styles from "./DailyGoalRing.module.css";
 
@@ -15,7 +16,13 @@ const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
  * Goals) — the visual feedback the goal itself was missing before this
  * existed as anything but a stored number nothing compared against.
  *
- * The first time in a calendar day the ring actually reaches its goal, it
+ * "Today" is the server's streak-day (StreakResponse.today), the same key
+ * GET /v1/activity buckets by — it starts at the learner's dayStartHour
+ * (default 3am) in their stored zone, so the device date would read 0 XP from
+ * midnight to then (API_SPEC.md §2.12a). The device date stands in only while
+ * the streak is loading, and never triggers the celebration.
+ *
+ * The first time in a streak-day the ring actually reaches its goal, it
  * plays a one-off completion pulse (CSS only — no confetti library, no
  * emoji) and remembers having done so in localAppPrefs, so reloading the
  * page or finishing another lesson the same day doesn't replay it. A
@@ -30,6 +37,7 @@ const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 export function DailyGoalRing({ courseCode, compact = false }: { courseCode: string | null | undefined; compact?: boolean }) {
   const prefs = usePrefs();
   const activity = useActivity(courseCode);
+  const streak = useStreak();
   const [lastCelebrated, setLastCelebrated] = useLocalAppPref("lastGoalCelebrationDay", null);
   const [celebrationEnabled] = useLocalAppPref("goalCelebrationEnabled", true);
   const [soundEffects] = useLocalAppPref("soundEffects", true);
@@ -37,18 +45,21 @@ export function DailyGoalRing({ courseCode, compact = false }: { courseCode: str
   const wrapRef = useRef<HTMLDivElement>(null);
 
   const goal = prefs.data?.dailyGoalXp ?? null;
-  const xp = activity.data ? xpToday(activity.data.days) : 0;
+  const today = currentStreakDay(streak.data);
+  const xp = activity.data ? xpToday(activity.data.days, today) : 0;
   const reached = goal !== null && xp >= goal;
-  const today = todayLocalDay();
+  // The device-date fallback is only good enough to draw; remembering a
+  // celebration under it could key the wrong day and replay or skip one.
+  const knowsToday = streak.data != null;
 
-  // Fires exactly once per calendar day, the moment the data on hand first
+  // Fires exactly once per streak-day, the moment the data on hand first
   // shows the goal met. The pulse itself is driven straight on the DOM node
   // (a restarted CSS animation via classList, not a `celebrating` state
   // flag) — this effect's only REACT-visible write is persisting
   // lastCelebrated, which is the actual external-system sync; the animation
   // is a one-shot imperative effect with nothing for a render to derive.
   useEffect(() => {
-    if (!reached || !celebrationEnabled || lastCelebrated === today) return;
+    if (!reached || !knowsToday || !celebrationEnabled || lastCelebrated === today) return;
     setLastCelebrated(today);
     // lastCelebrated is only saved once this effect is done, so a second run
     // straight after (development StrictMode) would otherwise chime again.
@@ -61,7 +72,7 @@ export function DailyGoalRing({ courseCode, compact = false }: { courseCode: str
     // it's already present from a previous mount in the same session.
     void el.offsetWidth;
     el.classList.add(styles.celebrating);
-  }, [reached, celebrationEnabled, lastCelebrated, today, setLastCelebrated, soundEffects]);
+  }, [reached, knowsToday, celebrationEnabled, lastCelebrated, today, setLastCelebrated, soundEffects]);
 
   if (goal === null) return null;
 

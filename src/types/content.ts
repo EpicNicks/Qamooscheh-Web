@@ -177,6 +177,8 @@ export interface VerbIndexEntry {
   principalParts: string[];
   /** The imperative has only `2s` and `2p`. */
   table: Partial<Record<VerbTense, Partial<Record<VerbPerson, VerbCell>>>>;
+  /** The infinitive's English meaning ("to buy"); absent or null where the course authors none (API_SPEC.md §2.4). */
+  gloss?: string | null;
 }
 
 /** verbs.json itself: infinitive -> entry. */

@@ -106,11 +106,10 @@ export interface LocalAppPrefs {
    */
   seenLessonOverlay: { wordBank: boolean; typeIn: boolean };
   /**
-   * The last local calendar day (`YYYY-MM-DD`, this device's own clock — not
-   * user_prefs' server-side day_start_hour bucketing, which PathPage's
-   * DailyGoalRing has no reason to duplicate for a purely cosmetic
-   * first-time-per-day celebration) the daily-XP-goal celebration was shown,
-   * or null if never. Local rather than synced: it gates an animation, not a
+   * The last streak-day (`YYYY-MM-DD`, the server's StreakResponse.today —
+   * the same day key the ring's XP is read under, so the two never disagree
+   * around the learner's day_start_hour) the daily-XP-goal celebration was
+   * shown, or null if never. Local rather than synced: it gates an animation, not a
    * fact about the learner's study — the same reasoning suppressSkipWarning
    * stays local.
    */
