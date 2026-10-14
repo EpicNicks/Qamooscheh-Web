@@ -26,6 +26,7 @@ import { ProfilePage } from "./pages/ProfilePage";
 import { SettingsPage } from "./pages/settings/SettingsPage";
 import { HelpPage } from "./pages/HelpPage";
 import { FriendsPage } from "./pages/FriendsPage";
+import { FriendProfilePage } from "./pages/FriendProfilePage";
 import { LeaguesPage } from "./pages/LeaguesPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 
@@ -103,6 +104,7 @@ export default function App() {
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/help" element={<HelpPage />} />
         <Route path="/friends" element={<FriendsPage />} />
+        <Route path="/friends/:userId" element={<FriendProfilePage />} />
         <Route path="/leagues" element={<LeaguesPage />} />
       </Route>
 

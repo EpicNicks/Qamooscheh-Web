@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
   useAcceptFriendRequest,
   useDeclineFriendRequest,
@@ -28,6 +29,7 @@ import styles from "./FriendsPage.module.css";
 const SEARCH_DEBOUNCE_MS = 250;
 
 export function FriendsPage() {
+  const navigate = useNavigate();
   const friends = useFriends();
   const requests = usePendingFriendRequests();
   // The input stays on `query` (instant), the request keys off the debounced,
@@ -57,9 +59,7 @@ export function FriendsPage() {
         acceptRequest.mutate(hit.userId, { onSettled: () => setAddingUserId(null) });
         break;
       case "view":
-        // There is no separate friend profile page or endpoint; View takes
-        // the learner to the friend's row in their list.
-        document.getElementById(`friend-${hit.userId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+        navigate(`/friends/${hit.userId}`);
         break;
       case "pending":
         break;
@@ -153,11 +153,14 @@ export function FriendsPage() {
         {friends.data && friends.data.length === 0 && <p className={styles.empty}>No friends yet — search for a username above.</p>}
         <ul className={styles.list}>
           {friends.data?.map((friend) => (
-            <li key={friend.userId} id={`friend-${friend.userId}`} className={styles.row}>
+            <li key={friend.userId} className={styles.row}>
               <span>
                 {friend.displayName ?? "Unnamed learner"}
                 {friend.username && <span className={styles.handle}> @{friend.username}</span>}
               </span>
+              <Link className={styles.viewLink} to={`/friends/${friend.userId}`}>
+                View
+              </Link>
             </li>
           ))}
         </ul>
