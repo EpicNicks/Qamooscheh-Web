@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SAMPLES, SOUNDS, soundLength } from "./sfx";
+import { FILL_SOUND, fillSoundFreq, SAMPLES, SOUNDS, soundLength } from "./sfx";
 
 describe("feedback sounds", () => {
   it("keeps the answer sounds short enough to sit before the read-back", () => {
@@ -16,7 +16,7 @@ describe("feedback sounds", () => {
       const freqs = SOUNDS[effect].notes.map((note) => note.freq);
       return freqs.every((freq, i) => i === 0 || freq < freqs[i - 1]);
     };
-    expect(rises("correct") && rises("lessonPassed") && rises("goalReached")).toBe(true);
+    expect(rises("correct") && rises("lessonPassed") && rises("goalReached") && rises("lessonPerfect")).toBe(true);
     expect(falls("wrong") && falls("lessonFailed")).toBe(true);
   });
 
@@ -24,7 +24,20 @@ describe("feedback sounds", () => {
     expect(soundLength("lessonPassed")).toBeCloseTo(0.33 + 0.5);
   });
 
+  it("keeps the perfect-lesson chime as a short extra, longer than the passed sound's last note", () => {
+    expect(soundLength("lessonPerfect")).toBeGreaterThan(1);
+    expect(soundLength("lessonPerfect")).toBeLessThan(2);
+  });
+
   it("measures a recording by its known length", () => {
     expect(soundLength("storyComplete")).toBe(SAMPLES.storyComplete.length);
+  });
+
+  it("sweeps the fill cue steadily up from its low to its high pitch", () => {
+    expect(fillSoundFreq(0)).toBeCloseTo(FILL_SOUND.fromHz);
+    expect(fillSoundFreq(1)).toBeCloseTo(FILL_SOUND.toHz);
+    expect(fillSoundFreq(0.5)).toBeCloseTo(Math.sqrt(FILL_SOUND.fromHz * FILL_SOUND.toHz));
+    expect(fillSoundFreq(-1)).toBeCloseTo(FILL_SOUND.fromHz);
+    expect(fillSoundFreq(2)).toBeCloseTo(FILL_SOUND.toHz);
   });
 });

@@ -1,0 +1,68 @@
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+  width: 100%;
+}
+
+.one {
+  grid-template-columns: minmax(0, 180px);
+  justify-content: center;
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 8px;
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  min-height: 64px;
+}
+
+.tile b {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 1.25rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.caption {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+/* Its refetch hasn't landed: keep the space, show nothing stale. */
+.pending {
+  visibility: hidden;
+}
+
+.xp {
+  color: var(--color-primary);
+}
+
+.mini {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  transform: rotate(-90deg);
+}
+
+.miniTrack,
+.miniProgress {
+  fill: none;
+  stroke-width: 3.5;
+}
+
+.miniTrack {
+  stroke: var(--color-border);
+}
+
+.miniProgress {
+  stroke: var(--color-success);
+  stroke-linecap: round;
+}

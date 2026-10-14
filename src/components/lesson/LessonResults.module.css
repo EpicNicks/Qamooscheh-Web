@@ -77,3 +77,15 @@
     transform: scale(1);
   }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .fill {
+    width: var(--pct);
+    animation: none;
+  }
+
+  .number {
+    opacity: 1;
+    animation: none;
+  }
+}

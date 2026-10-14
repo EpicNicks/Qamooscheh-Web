@@ -16,6 +16,10 @@ import { RemixContentsPicker } from "../components/lesson/RemixContentsPicker";
 import { ExerciseSessionScreen } from "../components/lesson/ExerciseSessionScreen";
 import { RealLessonOverlay } from "../components/tutorial/RealLessonOverlay";
 import { LessonResults } from "../components/lesson/LessonResults";
+import { LessonRecap, type RecapNote } from "../components/lesson/LessonRecap";
+import { RecapStats } from "../components/lesson/RecapStats";
+import { DeepDivePanel } from "../components/lesson/DeepDivePanel";
+import { shouldCelebrate } from "../domain/lessonRecap";
 import { LESSON_PASS_THRESHOLD } from "../domain/lessonScore";
 import { Spinner } from "../components/common/Spinner";
 import { ErrorBanner } from "../components/common/ErrorBanner";
@@ -210,11 +214,6 @@ function LessonPageContent() {
     if (!isReviewing) settleAnswer();
   });
 
-  // What the server credited, on either end screen (API_SPEC.md §2.3 point 8).
-  const earnedXp = engine.sessionXp != null && engine.sessionXp > 0 && (
-    <p className={styles.practiceNote}>+{engine.sessionXp} XP</p>
-  );
-
   // The remix's own queries below are live and re-key with bootstrap; once the
   // lesson is open they must not replace it (domain/lessonPin.ts).
   const lessonOpen = engine.status === "ready" || engine.status === "submitting" || engine.status === "done" || engine.status === "rejected";
@@ -337,90 +336,82 @@ function LessonPageContent() {
     // on, not a practice round.
     if (engine.status === "done" && engine.lessonCompleted === false) {
       return (
-        <div className={styles.done}>
-          <h1>Not passed yet</h1>
-          <p>
-            You need {Math.round(LESSON_PASS_THRESHOLD * 100)}% on your first tries to pass this lesson
-            {isDeepDive ? "" : " and unlock the next one"}. Your answers still count toward your reviews — take it
-            again to pass.
-          </p>
-          {earnedXp}
-          <LessonResults
-            correct={engine.score.correct}
-            total={engine.score.total}
-            score={engine.score.score}
-            passMark={LESSON_PASS_THRESHOLD}
-            sound="lessonFailed"
-          />
-          <div className={styles.doneActions}>
-            <Button variant="secondary" onClick={() => navigate(isDeepDive ? "/themes" : "/path")}>
-              {isDeepDive ? "Back to browsing" : "Back to path"}
-            </Button>
-            <Button onClick={engine.retake}>Try again</Button>
-          </div>
-        </div>
+        <LessonRecap
+          correct={engine.score.correct}
+          total={engine.score.total}
+          score={engine.score.score}
+          passMark={LESSON_PASS_THRESHOLD}
+          tone="warning"
+          celebrate={false}
+          title="Not passed yet"
+          body={
+            <>
+              You need {Math.round(LESSON_PASS_THRESHOLD * 100)}% on your first tries to pass this lesson
+              {isDeepDive ? "" : " and unlock the next one"}. Your answers still count toward your reviews — take it
+              again to pass.
+            </>
+          }
+          notes={[]}
+          stats={(revealed) => (
+            <RecapStats courseCode={engine.courseCode} xp={engine.sessionXp} withProgress={false} revealed={revealed} />
+          )}
+          actions={
+            <>
+              <Button onClick={engine.retake}>Try again</Button>
+              <Button variant="ghost" onClick={() => navigate(isDeepDive ? "/themes" : "/path")}>
+                {isDeepDive ? "Back to browsing" : "Back to path"}
+              </Button>
+            </>
+          }
+          sound="lessonFailed"
+        />
       );
     }
 
     if (engine.status === "done") {
+      const notes: RecapNote[] = [];
+      if (engine.lessonCompleted && !isDeepDive) notes.push({ tone: "ok", text: "The next lesson is unlocked." });
+      if (engine.isPracticeMode) notes.push({ tone: "muted", text: "Practice round — doesn't count toward your review schedule." });
+      if (engine.result && engine.result.outcome === "AlreadyProcessed") notes.push({ tone: "muted", text: "Already recorded." });
+      if (engine.journeyAdvanced) notes.push({ tone: "info", text: "This also moved you forward in your Journey." });
       return (
-        <div className={styles.done}>
-          <h1>Lesson complete!</h1>
-          {engine.lessonCompleted && !isDeepDive && <p className={styles.practiceNote}>The next lesson is unlocked.</p>}
-          {engine.isPracticeMode && <p className={styles.practiceNote}>Practice round — doesn't count toward your review schedule.</p>}
-          {engine.result && engine.result.outcome === "AlreadyProcessed" && <p>Already recorded.</p>}
-          {engine.journeyAdvanced && <p className={styles.practiceNote}>This also moved you forward in your Journey.</p>}
-          {earnedXp}
-          <LessonResults
-            correct={engine.score.correct}
-            total={engine.score.total}
-            score={engine.score.score}
-            passMark={engine.lessonCompleted != null ? LESSON_PASS_THRESHOLD : undefined}
-            sound="lessonPassed"
-          />
-          <div className={styles.doneActions}>
-            <Button variant={nextLesson ? "secondary" : "primary"} onClick={() => navigate("/path")}>
-              Back to path
-            </Button>
-            <Button variant="secondary" onClick={engine.replay}>
-              Replay this lesson
-            </Button>
-            {nextLesson && (
-              <Button onClick={() => navigate(`/lesson?skill=${encodeURIComponent(nextLesson.skillKey)}`)}>
-                Next lesson
-              </Button>
-            )}
-          </div>
-          {showDeepDiveBridge && primarySkillRef && (
-            <div className={styles.doneActions}>
-              {lessonThemes.length === 1 ? (
-                <Button
-                  variant="secondary"
-                  onClick={() =>
-                    navigate(`/themes/${encodeURIComponent(lessonThemes[0].id)}?from=${encodeURIComponent(primarySkillRef.skillKey)}`)
-                  }
-                >
-                  Deep Dive
-                </Button>
-              ) : (
-                <div className={styles.themeChips}>
-                  <span>Deep Dive:</span>
-                  {lessonThemes.map((theme) => (
-                    <Button
-                      key={theme.id}
-                      variant="secondary"
-                      onClick={() =>
-                        navigate(`/themes/${encodeURIComponent(theme.id)}?from=${encodeURIComponent(primarySkillRef.skillKey)}`)
-                      }
-                    >
-                      {theme.id}
-                    </Button>
-                  ))}
-                </div>
-              )}
-            </div>
+        <LessonRecap
+          correct={engine.score.correct}
+          total={engine.score.total}
+          score={engine.score.score}
+          tone="success"
+          celebrate={shouldCelebrate(engine.lessonCompleted, engine.sessionXp)}
+          title="Lesson complete!"
+          notes={notes}
+          stats={(revealed) => (
+            <RecapStats courseCode={engine.courseCode} xp={engine.sessionXp} withProgress revealed={revealed} />
           )}
-        </div>
+          actions={
+            <>
+              <Button
+                onClick={() => (nextLesson ? navigate(`/lesson?skill=${encodeURIComponent(nextLesson.skillKey)}`) : navigate("/path"))}
+              >
+                {nextLesson ? "Next lesson" : "Back to path"}
+              </Button>
+              <div className={styles.ghostRow}>
+                <Button variant="ghost" onClick={engine.replay}>
+                  Replay lesson
+                </Button>
+                {nextLesson && (
+                  <Button variant="ghost" onClick={() => navigate("/path")}>
+                    Back to path
+                  </Button>
+                )}
+              </div>
+            </>
+          }
+          after={
+            showDeepDiveBridge && primarySkillRef ? (
+              <DeepDivePanel lessonKey={primarySkillRef.skillKey} topicIds={lessonThemes.map((theme) => theme.id)} />
+            ) : undefined
+          }
+          sound="lessonPassed"
+        />
       );
     }
   }

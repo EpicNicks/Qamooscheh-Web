@@ -1,5 +1,7 @@
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, type CSSProperties } from "react";
 import { useLocalAppPref } from "../../hooks/useLocalAppPref";
+import { useCountUp } from "../../hooks/useCountUp";
+import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { playSound } from "../../domain/sfx";
 import styles from "./LessonResults.module.css";
 
@@ -9,7 +11,8 @@ const ANIMATION_MS = 900;
  * End-of-lesson score breakdown: fraction, percentage, and a horizontal bar
  * that "crunches" out to the target percentage (a slight overshoot-then-
  * settle, via the `crunch` keyframes in the CSS module) with the percentage
- * counted up in sync and revealed once the fill lands.
+ * counted up in sync and revealed once the fill lands. Under reduced motion
+ * the bar and number are simply there (no overshoot, no count).
  *
  * `score` (0..1), when given, is the weighted score the pass mark is measured
  * on (a forgiven typo is half a point — domain/lessonScore.ts) and sets the
@@ -42,20 +45,8 @@ export function LessonResults({
   }, []);
 
   const pct = Math.round((score ?? (total === 0 ? 0 : correct / total)) * 100);
-  const [displayed, setDisplayed] = useState(0);
-
-  useEffect(() => {
-    const start = performance.now();
-    let frame: number;
-    function tick(now: number) {
-      const t = Math.min(1, (now - start) / ANIMATION_MS);
-      const eased = 1 - Math.pow(1 - t, 3);
-      setDisplayed(Math.round(eased * pct));
-      if (t < 1) frame = requestAnimationFrame(tick);
-    }
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
-  }, [pct]);
+  const reduced = useMediaQuery("(prefers-reduced-motion: reduce)");
+  const displayed = useCountUp(pct, ANIMATION_MS, reduced).value;
 
   return (
     <div className={styles.wrap}>
