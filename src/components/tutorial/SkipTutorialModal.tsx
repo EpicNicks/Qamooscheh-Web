@@ -46,7 +46,7 @@ export function SkipTutorialModal({
         <h2 id="skip-tutorial-title" className={styles.title}>
           {TITLE[source]}
         </h2>
-        <p className={styles.body}>You can go straight to your first real lesson instead. You can replay this tutorial later from Settings.</p>
+        <p className={styles.body}>You can go straight to your first real Parsle instead. You can replay this tutorial later from Settings.</p>
         <div className={styles.actions}>
           <Button variant="secondary" onClick={onCancel} autoFocus>
             Keep going

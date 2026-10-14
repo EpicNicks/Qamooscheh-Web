@@ -13,12 +13,12 @@ export function AboutPage() {
     <div className={styles.wrap}>
       <div className={styles.content}>
         <div className={styles.brand}>ParsLing</div>
-        <p className={styles.tagline}>Learn Persian (Farsi) with lessons that adapt to you.</p>
+        <p className={styles.tagline}>Learn Persian (Farsi) with Parsles that adapt to you.</p>
 
         <div className={styles.section}>
           <h2>What it is</h2>
           <p>
-            ParsLing is a game-like language course: short lessons arranged along a branching skill path, each
+            ParsLing is a game-like language course: short Parsles arranged along a branching skill path, each
             one a mix of exercise types: word bank, type-in, match, and speak, building toward full sentences,
             short stories, and conversations, rather than staying at isolated vocabulary.
           </p>
@@ -43,7 +43,7 @@ export function AboutPage() {
             </li>
             <li>
               <strong>Checkpoints.</strong> Already know a unit's material? Test out of it instead of taking every
-              lesson in order.
+              Parsle in order.
             </li>
           </ul>
         </div>
@@ -59,7 +59,7 @@ export function AboutPage() {
         <div className={styles.section}>
           <h2>Where it's at</h2>
           <p>
-            ParsLing is in alpha: lessons, checkpoints, streaks, friends, and leagues are built and working, but
+            ParsLing is in alpha: Parsles, checkpoints, streaks, friends, and leagues are built and working, but
             new accounts are closed for now, while it's tested with a small group before opening more broadly.
           </p>
         </div>

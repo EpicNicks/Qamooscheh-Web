@@ -58,7 +58,7 @@ export function LanguageSettingsPopover({ anchorEl, onClose, children }: Languag
   };
 
   return createPortal(
-    <div ref={popoverRef} className={styles.popover} style={style} role="dialog" aria-label="Lesson settings">
+    <div ref={popoverRef} className={styles.popover} style={style} role="dialog" aria-label="Parsle settings">
       {children}
     </div>,
     document.body,

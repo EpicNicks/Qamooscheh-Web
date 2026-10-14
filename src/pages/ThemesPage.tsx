@@ -45,7 +45,7 @@ export function ThemesPage() {
 
   const themes = themeIndex.data?.themes ?? [];
   if (themes.length === 0) {
-    return <p>No themed lessons yet for this course.</p>;
+    return <p>No themed Parsles yet for this course.</p>;
   }
 
   const roots = childrenOf(themes, null);
@@ -55,7 +55,7 @@ export function ThemesPage() {
       <div className={styles.header}>
         <p className={styles.intro}>Pick a topic to explore, or mix several together.</p>
         <Button variant="deepDive" onClick={() => navigate("/theme-remix")}>
-          Remix
+          Repack
         </Button>
       </div>
       <div className={styles.grid}>
@@ -66,7 +66,7 @@ export function ThemesPage() {
           return (
             <button key={theme.id} type="button" className={styles.card} onClick={() => setOpenRootId(theme.id)}>
               <span className={styles.name}>{theme.id}</span>
-              <span className={styles.count}>{standardCount} lessons</span>
+              <span className={styles.count}>{standardCount} Parsles</span>
             </button>
           );
         })}

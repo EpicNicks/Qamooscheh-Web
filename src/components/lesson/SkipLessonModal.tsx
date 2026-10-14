@@ -69,7 +69,7 @@ export function SkipLessonModal({
         onClick={(event) => event.stopPropagation()}
       >
         <h2 id="skip-lesson-title" className={styles.title}>
-          Leave this lesson?
+          Leave this Parsle?
         </h2>
         <p className={styles.body}>
           Your answers so far won't be saved, and nothing you've done here will count toward your progress.

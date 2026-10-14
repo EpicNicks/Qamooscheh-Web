@@ -88,7 +88,7 @@ export function OnboardingTutorialStep({ onDone }: { onDone: () => void }) {
     return (
       <div className={styles.done}>
         <h1>Nice work!</h1>
-        <p>That's the shape of every lesson — read the prompt, answer it, then check your work.</p>
+        <p>That's the shape of every Parsle — read the prompt, answer it, then check your work.</p>
         <Button onClick={onDone}>Continue</Button>
       </div>
     );

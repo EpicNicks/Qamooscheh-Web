@@ -41,7 +41,7 @@ export function RequireGrader() {
           message={
             state.offline
               ? "Grading is unavailable offline: the answer checker hasn't been downloaded on this device yet. Reconnect and it will load."
-              : "Couldn't load the answer checker, so lessons can't be graded right now."
+              : "Couldn't load the answer checker, so Parsles can't be graded right now."
           }
         />
         <Button variant="secondary" onClick={ensure}>

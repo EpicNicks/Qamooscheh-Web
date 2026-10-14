@@ -120,8 +120,8 @@ export function AppShell() {
               <span
                 className={styles.syncBadge}
                 role="status"
-                title="Lessons saved offline, waiting to sync"
-                aria-label={isFlushing ? "Syncing saved lessons" : `${pendingCount} lessons waiting to sync`}
+                title="Parsles saved offline, waiting to sync"
+                aria-label={isFlushing ? "Syncing saved Parsles" : `${pendingCount} Parsles waiting to sync`}
               >
                 <span className={styles.syncDot} aria-hidden="true" />
                 <span className={styles.syncText}>{isFlushing ? "Syncing…" : `${pendingCount} pending sync`}</span>

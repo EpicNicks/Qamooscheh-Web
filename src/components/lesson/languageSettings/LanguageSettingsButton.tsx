@@ -41,7 +41,7 @@ const LANGUAGE_SETTINGS: Partial<Record<Language, ComponentType<LanguageSettings
  */
 interface LanguageSettingsButtonProps {
   courseCode: string | null | undefined;
-  /** Only LessonPage passes this — the popover grows a "Replay the lesson walkthrough" section when it's present, even for a language with no script panel above. */
+  /** Only LessonPage passes this — the popover grows a "Replay the Parsle walkthrough" section when it's present, even for a language with no script panel above. */
   onReplayTutorial?: () => void;
 }
 
@@ -68,7 +68,7 @@ export function LanguageSettingsButton({ courseCode, onReplayTutorial }: Languag
 
   return (
     <>
-      <button ref={setButtonEl} type="button" className={styles.cog} aria-label="Lesson settings" onClick={() => setOpen((o) => !o)}>
+      <button ref={setButtonEl} type="button" className={styles.cog} aria-label="Parsle settings" onClick={() => setOpen((o) => !o)}>
         <SettingsIcon size="1.25rem" />
       </button>
       {open && prefs.data && (
@@ -112,7 +112,7 @@ export function LanguageSettingsButton({ courseCode, onReplayTutorial }: Languag
                   setOpen(false);
                 }}
               >
-                Replay the lesson walkthrough
+                Replay the Parsle walkthrough
               </button>
             </div>
           )}

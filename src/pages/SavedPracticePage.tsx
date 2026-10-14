@@ -332,7 +332,7 @@ export function SavedPracticePage() {
     return (
       <div className={styles.done}>
         <h1>Nothing to practise yet</h1>
-        <p>Save words from this course — with the ★ on the vocabulary list, or after an answer in a lesson — and they'll show up here.</p>
+        <p>Save words from this course — with the ★ on the vocabulary list, or after an answer in a Parsle — and they'll show up here.</p>
         <Button onClick={() => navigate("/vocabulary")}>Back to vocabulary</Button>
       </div>
     );

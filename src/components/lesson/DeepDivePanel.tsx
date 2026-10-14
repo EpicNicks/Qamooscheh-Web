@@ -7,7 +7,7 @@ import styles from "./DeepDivePanel.module.css";
 
 /**
  * The recap's Deep Dive entry: one panel whose height doesn't depend on how
- * many topics the lesson has. "Remix these topics" is the primary action
+ * many topics the lesson has. "Repack these topics" is the primary action
  * (every root topic, the lesson-less remix route); up to three topics are
  * small "browse this topic" links and anything past that collapses into a
  * "+N more" chip opening the Journey's DeepDiveChooserModal, which lists every
@@ -23,10 +23,10 @@ export function DeepDivePanel({ lessonKey, topicIds }: { lessonKey: string; topi
     <section className={styles.panel} aria-label="Deep Dive">
       <div className={styles.head}>
         <b className={styles.title}>Deep Dive</b>
-        <span className={styles.hint}>More on this lesson's topics</span>
+        <span className={styles.hint}>More on this Parsle's topics</span>
       </div>
       <Button variant="deepDive" onClick={() => navigate(remixTopicsPath(topicIds))}>
-        Remix these topics
+        Repack these topics
       </Button>
       <div className={styles.chips}>
         {shown.map((id) => (

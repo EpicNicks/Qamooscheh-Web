@@ -24,7 +24,7 @@ type XpState = { status: "idle" } | { status: "saving" } | { status: "saved"; xp
 /**
  * Saved words as flashcards (issue #23), outside any lesson. Two modes:
  * "Flip" (self-rated) earns nothing on its own — a flip only earns XP inside
- * a saved-words remix — and "Type" (translation) earns 5 XP per right
+ * a saved-words Repack — and "Type" (translation) earns 5 XP per right
  * meaning, submitted once when the round ends. Neither touches review
  * scheduling.
  */
@@ -96,7 +96,7 @@ export function FlashcardsPage() {
         {words.length === 0 ? (
           <p>
             You haven't saved any words from this course yet. Save words with the ★ on the vocabulary list, or after an
-            answer in a lesson.
+            answer in a Parsle.
           </p>
         ) : (
           <>
@@ -111,7 +111,7 @@ export function FlashcardsPage() {
             <p className={styles.note}>
               {kind === "translation"
                 ? "Each meaning you get right earns 5 XP."
-                : "Flipping cards is practice only. It earns XP inside a saved-words remix."}{" "}
+                : "Flipping cards is practice only. It earns XP inside a saved-words Repack."}{" "}
               Flashcards don't change your review schedule.
             </p>
             <Button onClick={start}>

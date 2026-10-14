@@ -52,7 +52,7 @@ const FAQ: FaqEntry[] = [
     answer: (
       <>
         <p>
-          Yes. Hover over a word, or tap it, to see its translation or romanization. The ⚙ in a lesson's top bar
+          Yes. Hover over a word, or tap it, to see its translation or romanization. The ⚙ in a Parsle's top bar
           picks which hints show, and can also show vowel marks and a romanized line above each sentence.
         </p>
         <p>
@@ -60,19 +60,19 @@ const FAQ: FaqEntry[] = [
           remembering the word: it earns half the XP, and the word comes back for review sooner.
         </p>
         <p>
-          To look words up before a lesson, open its Start popover on the path and choose <em>Review vocabulary</em>.
+          To look words up before a Parsle, open its Start popover on the path and choose <em>Review vocabulary</em>.
         </p>
       </>
     ),
   },
   {
     id: "passing-a-lesson",
-    question: "Why didn't I pass a lesson?",
+    question: "Why didn't I pass a Parsle?",
     answer: (
       <>
         <p>
-          A lesson needs 75% on your first tries to pass and unlock the next one. A wrong answer comes back later in
-          the lesson, but getting it right the second time doesn't add to the score. An answer accepted with a
+          A Parsle needs 75% on your first tries to pass and unlock the next one. A wrong answer comes back later in
+          the Parsle, but getting it right the second time doesn't add to the score. An answer accepted with a
           small typo counts as half.
         </p>
         <p>Your answers still count toward your reviews either way, so take it again to pass.</p>
@@ -96,7 +96,7 @@ const FAQ: FaqEntry[] = [
           </li>
           <li>
             <strong>Practise saved words</strong> — your most-due saved words, each as a flip card followed by
-            exercises from lessons that use it. The exercises count just like a lesson's, and each flip card you knew
+            exercises from Parsles that use it. The exercises count just like a Parsle's, and each flip card you knew
             earns 5 XP.
           </li>
         </ul>
@@ -112,15 +112,15 @@ const FAQ: FaqEntry[] = [
     answer: (
       <>
         <p>
-          Mostly from lessons, for each exercise you answer: 10 XP for getting it right first time, 7 with a small
+          Mostly from Parsles, for each exercise you answer: 10 XP for getting it right first time, 7 with a small
           typo, and 3 for getting it right when it comes back after a miss. After a wrong typed answer,{" "}
           <em>Retry</em> lets you type the correct answer once more: 2 XP the first time for that exercise, 1 the second, and
           nothing after that. A hinted answer earns half, and a wrong
           one nothing; how fast you answer doesn't matter. Flashcards add more (see above).
         </p>
         <p>
-          The XP that pops up after each answer is what the lesson earns you once it's saved, and the total shows at
-          the end. Practice rounds (<em>Practice anyway</em>, <em>Replay this lesson</em>) earn none, since they don't
+          The XP that pops up after each answer is what the Parsle earns you once it's saved, and the total shows at
+          the end. Practice rounds (<em>Practice anyway</em>, <em>Replay this Parsle</em>) earn none, since they don't
           count toward your reviews.
           Your daily goal is in Settings → Goals, and leagues rank you by the XP you earn.
         </p>
@@ -157,12 +157,12 @@ const FAQ: FaqEntry[] = [
     answer: (
       <>
         <p>
-          The red × leaves the lesson. Nothing you've answered so far is saved, and none of it counts toward your
+          The red × leaves the Parsle. Nothing you've answered so far is saved, and none of it counts toward your
           progress.
         </p>
         <p>
-          <em>Test out</em>, in a lesson's Start popover, is a short quiz instead of the full lesson: pass it and you
-          move past that lesson. <em>Skip ahead</em> on the path does the same for a bigger jump, if you already know
+          <em>Test out</em>, in a Parsle's Start popover, is a short quiz instead of the full Parsle: pass it and you
+          move past that Parsle. <em>Skip ahead</em> on the path does the same for a bigger jump, if you already know
           the material up to that point.
         </p>
       </>
