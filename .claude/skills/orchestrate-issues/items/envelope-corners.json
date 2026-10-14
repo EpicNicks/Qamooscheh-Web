@@ -1,0 +1,18 @@
+{
+  "name": "envelope-corners",
+  "repo": "web",
+  "branch": "envelope-corners",
+  "title": "Make the journey envelope's top-left corner transparent so connecting lines no longer break",
+  "closes": 50,
+  "issue": "Issue #50. PLAN: The 'envelope' nodes on the journey are the dog-eared cards (.fold in src/**/SkillNode.module.css). Their top-left corners are not transparent, so lines connecting to them show a break. Find the cause and fix it in CSS (and markup only if needed) so the corners are transparent and the connecting lines meet the card cleanly, in both desktop and mobile views and in light/dark themes. Do not change the node layout or other visuals. Visual check by reasoning about the CSS; add a test only if one is natural.",
+  "allowedPaths": ["^src/", "^public/"],
+  "acceptance": [
+    "Envelope top-left corner is transparent; connecting lines do not break",
+    "No other node visuals change",
+    "lint, tsc -b, build, test green locally and in CI"
+  ],
+  "gate": "plan approved by the user 2026-10-13",
+  "approved": true,
+  "reviewer": "sonnet",
+  "reviewers": 1
+}

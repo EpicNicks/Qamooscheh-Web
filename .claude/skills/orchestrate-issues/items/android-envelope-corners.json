@@ -1,0 +1,26 @@
+{
+  "name": "android-envelope-corners",
+  "repo": "android",
+  "branch": "envelope-corners",
+  "title": "Journey nodes: transparent corner so connector lines don't break",
+  "closes": 51,
+  "issue": "Android issue #51. Web fixed the 'envelope' (dog-eared card) node: the folded corner was painted in the page colour, so connector lines showed a break; it is now genuinely transparent (web PR #89, EpicNicks/Qamooscheh-Web). Find Android's equivalent path node (and group/fork nodes) and check for the same artifact; if present, cut the corner transparently instead of painting over it, in light and dark themes. No other visual changes. Android uses Gradle; read CLAUDE.md, README.md and docs/SPEC.md first, find the relevant screens/modules yourself. The web reference implementation is read-only at E:/Code/Projects/Qamooscheh-Web/Qamooscheh-Web (git log / the named PR via gh pr view --repo EpicNicks/Qamooscheh-Web). If the Android app already behaves as required, make NO code change: write dev.json with needsUser 'already satisfied: <evidence>' and stop. If a decision needs the user or a backend change is required, stop with needsUser. Android CI runs unit tests, Roborazzi screenshot verification, lint and assembleDevDebug: add or update unit/screenshot tests for the change and record baselines only for intended visual changes.",
+  "reviewer": "sonnet",
+  "reviewers": 1,
+  "acceptance": [
+    "Folded corner transparent; connectors don't break at it, light and dark",
+    "No other node visuals change",
+    "Gradle tests, screenshot verification, lint and assembleDevDebug green"
+  ],
+  "allowedPaths": [
+    "^app/",
+    "^core/",
+    "^feature/",
+    "^keyboard/",
+    "^docs/",
+    "^build-logic/",
+    "^gradle/libs.versions.toml$"
+  ],
+  "gate": "plan approved by the user 2026-10-14",
+  "approved": true
+}

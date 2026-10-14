@@ -1,0 +1,24 @@
+{
+  "name": "cdn-content-cache",
+  "repo": "web",
+  "branch": "cdn-content-cache",
+  "title": "Download CDN course content once per version (Cache Storage), without breaking open lessons",
+  "closes": null,
+  "issue": "Issue #82 (read it with gh; it is open and must stay open for the delta-update part, so this PR must say 'Part of #82', not 'Closes'). Ask: CDN content pulls are optimised, data downloaded once per version, with only new and updated files pulled on update; may need hardening in general. PLAN (web-only first step): today src/api/content.ts fetches CDN content by version with plain fetch and no Cache Storage or diffing (the grader already caches whole versions in Cache Storage, see src/grader/loadGrader.ts and public/grader-sw.js; reuse that pattern/conventions). (1) Audit every CDN fetch (manifest, course/{code}/v{version}/ files, anything repeated per lesson/page) and record in the PR body what is fetched, how often, and what refetches today. (2) Cache each versioned CDN URL in Cache Storage (immutable per version, so cache-first; versioned URLs never change) so each file is downloaded at most once per version across reloads and tabs; dedupe concurrent in-flight requests for the same URL; make failures retry sensibly and never cache an error or partial response; fall back to plain fetch if Cache Storage is unavailable (private mode). (3) Prune caches of superseded versions, but NEVER the course version pinned by an open lesson (see PR #90 / src/domain/lessonPin.ts and the engine's frozen course version): pruning must happen only for versions no open lesson uses, e.g. at startup or after a lesson ends. (4) Per-file delta updates need per-file hashes in the course manifest, which is a backend contract change: do NOT implement or fake it. Instead list the precise backend ask in the PR body (manifest lists each file with a sha256 so clients re-download only changed files; versions retained for a window per #83) and note that with a hash-bearing manifest the cache layer can key by hash. Keep React Query behaviour and staleTime semantics unchanged. Add unit tests with a mocked Cache Storage/fetch for: cache hit, miss, in-flight dedupe, error not cached, unavailable Cache Storage fallback, pruning that keeps the pinned version.",
+  "allowedPaths": [
+    "^src/",
+    "^public/",
+    "^package(-lock)?\\.json$"
+  ],
+  "acceptance": [
+    "Each versioned CDN file downloaded at most once per version; cache-first with dedupe and safe fallback",
+    "Superseded versions pruned, never the version an open lesson pins",
+    "No fake delta logic; backend ask (per-file sha256 in the manifest) listed in the PR body; PR says Part of #82",
+    "lint, tsc -b, build, test green locally and in CI"
+  ],
+  "gate": "plan approved by the user 2026-10-14",
+  "approved": true,
+  "reviewer": "opus",
+  "reviewers": 2,
+  "notes": "USER REVISION 2026-10-14: deviations 1-3 (cross-tab Web Locks, audio left to HTTP cache, removed fetchAndVerifyJson) are accepted. Replace the pruning rule: keep the LAST N=3 course versions of the live course (the pinned/open-lesson version and the version currently in use are always kept, even beyond N) and keep the latest cached version of every other enrolled/visited course; prune everything older. N is a named constant. Rationale: a learner between versions still needs the older version for the grader and an open lesson; switching courses must not force a redownload. Update tests (keeps last N, keeps pinned beyond N, keeps other courses latest, prunes the rest). Do not touch the CourseUpdateBanner or auto-update behaviour (separate work). List only NEW deviations."
+}

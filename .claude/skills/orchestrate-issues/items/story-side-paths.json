@@ -1,0 +1,20 @@
+{
+  "name": "story-side-paths",
+  "repo": "web",
+  "branch": "story-side-paths",
+  "title": "Stories as side branches off the road (junction spurs)",
+  "closes": 60,
+  "issue": "Issue #60. Implement Option A ('junction spurs') of the approved proposal at C:/Users/epicn/AppData/Local/Temp/claude/E--Code-Projects-Qamooscheh-Web-Qamooscheh-Web/8bcc13c3-742b-454a-8f3b-63611fceadd8/scratchpad/issue60-design.md (mockups issue60-mockups.html beside it; read both fully, including the implementation breakdown and files). USER DECISIONS 2026-10-14: (1) First release: a story is a branch off the unit's LAST Parsle (the review), i.e. stories keep their current order position at the end of the unit; do not require content reordering, but derive position from the published unit order (stop discarding it in useCoursePath) so reordered content works later. (2) Locking on the road: a story stays locked until the Parsle before it is passed; the Stories library stays unlocked by unit as today. (3) Tag symbol: shown ALONGSIDE the Parsle title (never replacing it), using the lesson's main tag, which is the FIRST listed tag (declare the existing published themes field in the web types); on mobile the tiles shrink from 100px to 84px as proposed. (4) Stories only (conversations and songs unchanged); the side of the branch varies: either side, chosen deterministically per story (e.g. a stable hash of the story key) so the road looks mixed and surprising but never re-shuffles between renders; the layout, connectors and scroll must work for both sides on desktop and mobile. Status reuses forkLineKind (grey locked, blue open, green done). Stories never become the current lesson; scroll-to-current, checkpoints and skipping must be unchanged. TERMINOLOGY: new user-facing copy says Parsle for a lesson in a unit. Add unit tests for pure logic (layout rows, side choice, lock rule, tag symbol choice). No backend change; list contract notes in the PR body. PR body: what changed per layout and Not verified (not run in a browser).",
+  "allowedPaths": ["^src/", "^public/"],
+  "acceptance": [
+    "Stories render as junction spurs off the unit's last Parsle, side varying per story but stable",
+    "Locked until the previous Parsle is passed; library unlocked by unit unchanged",
+    "Main-tag symbol alongside the title; mobile tiles 84px; desktop and mobile layouts work for both sides",
+    "Scroll-to-current, checkpoints and skipping unchanged",
+    "lint, tsc -b, build, test green locally and in CI"
+  ],
+  "gate": "design Option A with answers approved by the user 2026-10-14",
+  "approved": true,
+  "reviewer": "opus",
+  "reviewers": 2
+}
