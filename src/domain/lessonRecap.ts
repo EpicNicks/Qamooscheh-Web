@@ -28,6 +28,11 @@ export function nextRecapPhase(phase: RecapPhase, celebrate: boolean): RecapPhas
   return "reveal";
 }
 
+/** The not-passed ring's pass-mark tick waits for the fill to land, so it can't give the result away early. */
+export function showPassMarkTick(phase: RecapPhase): boolean {
+  return phase !== "fill";
+}
+
 /** Where the sequence starts: reduced motion shows the final state immediately. */
 export function initialRecapPhase(reducedMotion: boolean): RecapPhase {
   return reducedMotion ? "reveal" : "fill";

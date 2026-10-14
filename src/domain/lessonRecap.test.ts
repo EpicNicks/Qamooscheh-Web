@@ -6,6 +6,7 @@ import {
   initialRecapPhase,
   isPerfectScore,
   nextRecapPhase,
+  showPassMarkTick,
   remixTopicsPath,
   selectTopicChips,
   shouldCelebrate,
@@ -25,6 +26,12 @@ describe("recap sequence", () => {
 
   it("fills then reveals with no burst otherwise", () => {
     expect(run(false)).toEqual(["fill", "reveal"]);
+  });
+
+  it("hides the pass-mark tick while filling and shows it from the fill landing", () => {
+    expect(showPassMarkTick("fill")).toBe(false);
+    expect(run(false).slice(1).every(showPassMarkTick)).toBe(true);
+    expect(showPassMarkTick(initialRecapPhase(true))).toBe(true);
   });
 
   it("stays revealed once revealed", () => {

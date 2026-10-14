@@ -2,7 +2,7 @@ import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import { useLocalAppPref } from "../../hooks/useLocalAppPref";
 import { useRecapSequence } from "../../hooks/useRecapSequence";
 import { playFillSound, playSound, soundLength } from "../../domain/sfx";
-import { burstParticleCount, isPerfectScore, RECAP_FILL_MS } from "../../domain/lessonRecap";
+import { burstParticleCount, isPerfectScore, RECAP_FILL_MS, showPassMarkTick } from "../../domain/lessonRecap";
 import { ScoreRing } from "./ScoreRing";
 import styles from "./LessonRecap.module.css";
 
@@ -107,7 +107,7 @@ export function LessonRecap({
               ))}
             </div>
           )}
-          <ScoreRing pct={pct} progress={progress} shown={value} passMark={passMark} tone={tone} />
+          <ScoreRing pct={pct} progress={progress} shown={value} passMark={showPassMarkTick(phase) ? passMark : undefined} tone={tone} />
         </div>
         <div className={styles.reveal}>
           <h1 className={styles.title}>{perfect ? "Perfect lesson!" : title}</h1>
