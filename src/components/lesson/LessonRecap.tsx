@@ -1,7 +1,7 @@
 import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import { useLocalAppPref } from "../../hooks/useLocalAppPref";
 import { useRecapSequence } from "../../hooks/useRecapSequence";
-import { playFillSound, playSound } from "../../domain/sfx";
+import { playFillSound, playSound, soundLength } from "../../domain/sfx";
 import { burstParticleCount, isPerfectScore, RECAP_FILL_MS } from "../../domain/lessonRecap";
 import { ScoreRing } from "./ScoreRing";
 import styles from "./LessonRecap.module.css";
@@ -25,8 +25,9 @@ export interface RecapNote {
  *
  * `celebrate` is whether there's anything to cheer (a pass, or XP credited);
  * the burst is bigger and the title reads "Perfect lesson!" on a flawless
- * score. `sound` plays once, as the fill lands; a rising cue plays while the
- * ring fills (not under reduced motion, where there is no fill).
+ * score. `sound` plays once, as the fill lands, followed by a chime on a
+ * perfect pass; a rising cue plays while the ring fills (not under reduced
+ * motion, where there is no fill).
  */
 export function LessonRecap({
   correct,
@@ -72,8 +73,11 @@ export function LessonRecap({
   useEffect(() => {
     if (played.current || phase === "fill") return;
     played.current = true;
-    if (sound && soundEffects) playSound(sound);
-  }, [phase, sound, soundEffects]);
+    if (!sound || !soundEffects) return;
+    playSound(sound);
+    // A flawless lesson adds a chime once the landing sound has played out.
+    if (perfect && sound === "lessonPassed") playSound("lessonPerfect", soundLength(sound));
+  }, [phase, sound, soundEffects, perfect]);
 
   // The fill cue, for the length of the fill; cut off if the recap goes first.
   useEffect(() => {

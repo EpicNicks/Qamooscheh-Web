@@ -9,7 +9,7 @@
 
 import storyCompleteUrl from "../assets/sfx/story-complete.wav";
 
-type SynthEffect = "correct" | "wrong" | "lessonPassed" | "lessonFailed" | "goalReached";
+type SynthEffect = "correct" | "wrong" | "lessonPassed" | "lessonPerfect" | "lessonFailed" | "goalReached";
 type SampleEffect = "storyComplete";
 export type SoundEffect = SynthEffect | SampleEffect;
 
@@ -25,12 +25,21 @@ interface Note {
 const notes = (freqs: number[], step: number, length: number, lastLength = length): Note[] =>
   freqs.map((freq, i) => ({ freq, at: i * step, length: i === freqs.length - 1 ? lastLength : length }));
 
+/** C6 E6 G6 C7 climb, then the E7 G7 sparkle. */
+const PERFECT_NOTES: Note[] = [
+  ...notes([1046.5, 1318.51, 1567.98, 2093.0], 0.08, 0.14),
+  { freq: 2637.02, at: 0.4, length: 0.18 },
+  { freq: 3135.96, at: 0.48, length: 0.7 },
+];
+
 // Rising for good news, falling for bad; the wrong-answer sound is low and
 // soft so that hearing it over and over doesn't sting.
 export const SOUNDS: Record<SynthEffect, { wave: OscillatorType; volume: number; notes: Note[] }> = {
   correct: { wave: "sine", volume: 0.18, notes: notes([659.25, 987.77], 0.08, 0.12, 0.22) }, // E5 B5
   wrong: { wave: "triangle", volume: 0.16, notes: notes([233.08, 174.61], 0.11, 0.14, 0.24) }, // Bb3 F3
   lessonPassed: { wave: "sine", volume: 0.18, notes: notes([523.25, 659.25, 783.99, 1046.5], 0.11, 0.16, 0.5) }, // C5 E5 G5 C6
+  // The extra for a flawless lesson, played after lessonPassed: a quick arpeggio up to C7, then a held E7 G7 sparkle.
+  lessonPerfect: { wave: "sine", volume: 0.14, notes: PERFECT_NOTES },
   lessonFailed: { wave: "triangle", volume: 0.15, notes: notes([392.0, 329.63, 261.63], 0.16, 0.2, 0.45) }, // G4 E4 C4
   goalReached: { wave: "sine", volume: 0.16, notes: notes([783.99, 1046.5, 1318.51], 0.09, 0.14, 0.4) }, // G5 C6 E6
 };
@@ -56,10 +65,11 @@ const MAX_START_DELAY_MS = 300;
 /**
  * Plays `effect` once — now, or not at all. Silently does nothing where Web
  * Audio isn't available, or where the browser won't play sound yet (nothing
- * has been tapped or typed on the page since it loaded).
+ * has been tapped or typed on the page since it loaded). `delaySeconds`
+ * starts it that long after now, to follow another sound (synthesised only).
  */
-export function playSound(effect: SoundEffect): void {
-  whenRunning((ctx) => schedule(ctx, effect));
+export function playSound(effect: SoundEffect, delaySeconds = 0): void {
+  whenRunning((ctx) => schedule(ctx, effect, delaySeconds));
 }
 
 /** Runs `start` with a running audio context, or drops it: see playSound. */
@@ -162,10 +172,10 @@ export function preloadSound(effect: SoundEffect): void {
   fetchSample(effect).catch(() => {});
 }
 
-function schedule(ctx: AudioContext, effect: SoundEffect): void {
+function schedule(ctx: AudioContext, effect: SoundEffect, delaySeconds = 0): void {
   if (isSample(effect)) return scheduleSample(ctx, effect);
   const { wave, volume, notes } = SOUNDS[effect];
-  const start = ctx.currentTime + 0.01;
+  const start = ctx.currentTime + 0.01 + delaySeconds;
   for (const note of notes) {
     const oscillator = ctx.createOscillator();
     const gain = ctx.createGain();

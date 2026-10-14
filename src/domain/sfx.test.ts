@@ -16,12 +16,17 @@ describe("feedback sounds", () => {
       const freqs = SOUNDS[effect].notes.map((note) => note.freq);
       return freqs.every((freq, i) => i === 0 || freq < freqs[i - 1]);
     };
-    expect(rises("correct") && rises("lessonPassed") && rises("goalReached")).toBe(true);
+    expect(rises("correct") && rises("lessonPassed") && rises("goalReached") && rises("lessonPerfect")).toBe(true);
     expect(falls("wrong") && falls("lessonFailed")).toBe(true);
   });
 
   it("measures a sound to its last note's end", () => {
     expect(soundLength("lessonPassed")).toBeCloseTo(0.33 + 0.5);
+  });
+
+  it("keeps the perfect-lesson chime as a short extra, longer than the passed sound's last note", () => {
+    expect(soundLength("lessonPerfect")).toBeGreaterThan(1);
+    expect(soundLength("lessonPerfect")).toBeLessThan(2);
   });
 
   it("measures a recording by its known length", () => {

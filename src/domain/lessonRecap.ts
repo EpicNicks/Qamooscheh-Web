@@ -5,8 +5,8 @@
 /** The recap's animation phases, in order. A lesson with nothing to celebrate skips "burst". */
 export type RecapPhase = "fill" | "burst" | "reveal";
 
-/** Ring fill length. */
-export const RECAP_FILL_MS = 1000;
+/** Ring fill length; the fill sound runs for the same time (domain/sfx.ts). */
+export const RECAP_FILL_MS = 1900;
 /** How long the burst holds before the text is revealed (its particles keep flying into the reveal). */
 export const RECAP_BURST_MS = 450;
 
