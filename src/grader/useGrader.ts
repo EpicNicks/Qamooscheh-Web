@@ -1,5 +1,5 @@
-import { useContext } from "react";
-import { GraderContext, type GraderContextValue } from "./GraderContext";
+import { useContext, useEffect } from "react";
+import { GraderContext, GraderHoldContext, type GraderContextValue } from "./GraderContext";
 import type { Grader } from "./types";
 
 export function useGraderState(): GraderContextValue {
@@ -12,4 +12,13 @@ export function useGraderState(): GraderContextValue {
 export function useGrader(): Grader | null {
   const { state } = useGraderState();
   return state.status === "ready" ? state.grader : null;
+}
+
+/** While `held`, RequireGrader keeps the calling lesson mounted whatever the grader state does (a lesson with a pinned grader must not be unmounted by a language change). */
+export function useHoldGrader(held: boolean): void {
+  const hold = useContext(GraderHoldContext);
+  useEffect(() => {
+    if (!held || !hold) return;
+    return hold();
+  }, [held, hold]);
 }

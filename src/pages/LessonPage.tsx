@@ -215,11 +215,15 @@ function LessonPageContent() {
     <p className={styles.practiceNote}>+{engine.sessionXp} XP</p>
   );
 
-  if (isThemeRemixRoute && themeIndex.isError) {
+  // The remix's own queries below are live and re-key with bootstrap; once the
+  // lesson is open they must not replace it (domain/lessonPin.ts).
+  const lessonOpen = engine.status === "ready" || engine.status === "submitting" || engine.status === "done" || engine.status === "rejected";
+
+  if (isThemeRemixRoute && themeIndex.isError && !lessonOpen) {
     return <ErrorBanner message="Couldn't load themes from the CDN." />;
   }
 
-  if (themeRemixIsEmpty) {
+  if (themeRemixIsEmpty && !lessonOpen) {
     return (
       <div className={styles.done}>
         <h1>Nothing to remix here yet</h1>

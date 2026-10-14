@@ -30,7 +30,9 @@ import { useAuth } from "../auth/useAuth";
 import { loadCardStates, mergeCardStates } from "../lib/cardStateStore";
 import { enqueue as enqueueOffline } from "../lib/offlineQueue";
 import { checkAnswer, type AnswerVerdict, type SeparatorMarks } from "../domain/answerFeedback";
-import { useGrader } from "../grader/useGrader";
+import { useGrader, useHoldGrader } from "../grader/useGrader";
+import { loadGate, pinFirst } from "../domain/lessonPin";
+import type { Grader } from "../grader/types";
 import { resolveExerciseType } from "../domain/exerciseResolution";
 import { LESSON_PASS_THRESHOLD, verdictWeight } from "../domain/lessonScore";
 import { filterRemixExercises, type RemixContents } from "../domain/remixContents";
@@ -155,8 +157,20 @@ export function useLessonEngine(
   const isDeepDive = deepDiveLessonKeys != null;
 
   const bootstrap = useBootstrap();
-  const grader = useGrader();
-  const course = bootstrap.data?.course ?? null;
+  const liveGrader = useGrader();
+  const liveCourse = bootstrap.data?.course ?? null;
+  // What the lesson started with (domain/lessonPin.ts): the course (code and
+  // version, which key the content queries) and the session plan, frozen when
+  // the queue is seeded below, plus the grader. A deploy mid-lesson must not
+  // swap any of them under an answer being checked, the content on screen or
+  // the submit at the end; the next lesson picks up the new ones.
+  const started = useRef<{ course: typeof liveCourse; plan: SessionPlanResponse } | null>(null);
+  const course = started.current?.course ?? liveCourse;
+  const pinnedGrader = useRef<Grader | null>(null);
+  pinnedGrader.current = pinFirst(pinnedGrader.current, liveGrader);
+  const grader = pinnedGrader.current;
+  useHoldGrader(grader !== null);
+  const courseCode = course?.code ?? null;
 
   // Cursor-driven mode's own query — enabled only when NOT deep-diving.
   const cursorPlan = useQuery({
@@ -214,9 +228,12 @@ export function useLessonEngine(
   // actually reads below) — lets every existing `plan.data`/`plan.isLoading`/
   // `plan.isError` reference below stay unchanged regardless of which mode
   // is active.
-  const plan = isDeepDive
+  const livePlan = isDeepDive
     ? { data: deepDivePlanData, isLoading: deepDivePlanIsLoading, isError: deepDivePlanIsError }
     : cursorPlan;
+  const plan = started.current
+    ? { data: started.current.plan as SessionPlanResponse | undefined, isLoading: false, isError: false }
+    : livePlan;
 
   // The learner's current cursor, reused as the practice-mode skill whenever
   // `plan.data.skills` comes back empty — which it does whenever nothing's
@@ -425,6 +442,7 @@ export function useLessonEngine(
   // background refetch of `plan`/`skillArtifacts` would blow away in-progress
   // answers.
   if (queue === null && skillsReady && plan.data && !awaitingRemixContents) {
+    started.current = { course: liveCourse, plan: plan.data };
     setQueue(initialQueue);
     setTotalCount(initialQueue.length);
     snapshotSession(initialQueue, skillArtifacts);
@@ -521,7 +539,7 @@ export function useLessonEngine(
     if (!current || !queue) return { correct: false, requeued: false, note: null, verdict: "incorrect", attempt: 1, xp: 0, submittedText };
 
     const attempt = current.attempt + 1;
-    const feedback = checkAnswer(grader, course?.code, current.exercise, submittedText, { attempt, usedHint: opts?.usedHint });
+    const feedback = checkAnswer(grader, courseCode, current.exercise, submittedText, { attempt, usedHint: opts?.usedHint });
     const correct = feedback.verdict !== "incorrect";
     const latencyMs = Math.round(performance.now() - shownAt.current);
 
@@ -606,7 +624,7 @@ export function useLessonEngine(
           : recorded,
       ),
     );
-    return checkAnswer(grader, course?.code, instance.exercise, retypeText, { attempt, usedHint, retype: true, retypeNumber }).xp;
+    return checkAnswer(grader, courseCode, instance.exercise, retypeText, { attempt, usedHint, retype: true, retypeNumber }).xp;
   }
 
   /** Called once the review of an answer closes: submits the lesson if its last answer was waiting on a retype. */
@@ -635,7 +653,7 @@ export function useLessonEngine(
   }, []);
 
   async function finishLesson(finalItems: RecordedItem[], score: number, keepalive = false) {
-    if (!plan.data || !course) return;
+    if (!plan.data || !course || !courseCode) return;
     setStatus("submitting");
 
     if (isPracticeMode) {
@@ -659,7 +677,7 @@ export function useLessonEngine(
           submissionId: crypto.randomUUID(),
           unitKey: recorded.unitKey,
           skillKey: recorded.skillKey,
-          courseCode: course.code,
+          courseCode,
           courseVersion,
           occurredAt,
           completed: true,
@@ -673,7 +691,7 @@ export function useLessonEngine(
     const sessions = [...bySkill.values()];
     if (!isRemix) {
       const covered = sessions.some((session) => {
-        const exerciseCount = skillArtifacts.get(refKey(session))?.exercises.length ?? 0;
+        const exerciseCount = (sessionArtifacts.get(refKey(session)) ?? skillArtifacts.get(refKey(session)))?.exercises.length ?? 0;
         return exerciseCount > 0 && new Set(session.items.map((item) => item.exerciseOrdinal)).size >= exerciseCount;
       });
       setLessonCompleted(covered && score >= LESSON_PASS_THRESHOLD);
@@ -749,14 +767,19 @@ export function useLessonEngine(
     }
   }
 
+  const gate = loadGate(
+    started.current != null,
+    bootstrap.isLoading || plan.isLoading || skillsLoading,
+    bootstrap.isError || plan.isError || skillsError,
+  );
   const derivedStatus: LessonStatus =
     status === "submitting" || status === "done" || status === "rejected"
       ? status
       : isLessonNotFound
         ? "unavailable"
-        : bootstrap.isLoading || plan.isLoading || skillsLoading
+        : gate === "loading"
           ? "loading"
-          : bootstrap.isError || plan.isError || skillsError
+          : gate === "error"
             ? "error"
             : awaitingRemixContents && queue === null
               ? "choosing"
@@ -783,7 +806,7 @@ export function useLessonEngine(
   return {
     status: derivedStatus,
     course,
-    courseCode: course?.code ?? null,
+    courseCode,
     current,
     progress: { completed: totalCount - (queue?.length ?? totalCount), total: totalCount },
     /** `correct` counts first attempts accepted at all; `score` (0..1) is the weighted one the pass mark is measured on (domain/lessonScore.ts). */

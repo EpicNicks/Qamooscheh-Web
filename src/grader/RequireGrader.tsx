@@ -1,8 +1,10 @@
-import { useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { Outlet } from "react-router-dom";
 import { Button } from "../components/common/Button";
 import { ErrorBanner } from "../components/common/ErrorBanner";
 import { Spinner } from "../components/common/Spinner";
+import { graderGate } from "../domain/lessonPin";
+import { GraderHoldContext } from "./GraderContext";
 import { useGraderState } from "./useGrader";
 
 /**
@@ -13,15 +15,26 @@ import { useGraderState } from "./useGrader";
  */
 export function RequireGrader() {
   const { state, ensure } = useGraderState();
-
+  // A lesson that has pinned its grader (useHoldGrader) stays mounted when the
+  // provider leaves "ready" (a language change): it keeps grading with the
+  // pinned one (pinFirst) and the next lesson gets the new one. Before that the
+  // gate applies, so nothing is graded without a grader.
+  const holds = useRef(0);
+  const hold = useCallback(() => {
+    holds.current += 1;
+    return () => {
+      holds.current -= 1;
+    };
+  }, []);
   useEffect(() => {
     ensure();
     // Once per mount: ensure() changes with the state, and re-running it on every change would retry a failed load in a loop.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (state.status === "loading") return <Spinner label="Loading the answer checker…" />;
-  if (state.status === "unavailable") {
+  const gate = graderGate(state.status, holds.current > 0);
+  if (gate === "loading") return <Spinner label="Loading the answer checker…" />;
+  if (gate === "unavailable" && state.status === "unavailable") {
     return (
       <div>
         <ErrorBanner
@@ -37,5 +50,9 @@ export function RequireGrader() {
       </div>
     );
   }
-  return <Outlet />;
+  return (
+    <GraderHoldContext.Provider value={hold}>
+      <Outlet />
+    </GraderHoldContext.Provider>
+  );
 }

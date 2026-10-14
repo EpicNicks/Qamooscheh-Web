@@ -13,7 +13,11 @@ function fakeCaches() {
     return {
       match: async (url: string) => store.get(url)?.clone(),
       put: async (url: string, response: Response) => void store.set(url, response),
-      add: async (url: string) => void store.set(url, await fetch(url)),
+      add: async (url: string) => {
+        const response = await fetch(url);
+        if (!response.ok) throw new TypeError(`Request failed: ${response.status}`);
+        store.set(url, response);
+      },
     };
   };
   return {
@@ -58,7 +62,15 @@ beforeEach(() => {
       return new Response("body");
     }),
   );
-  vi.doMock("./runtime", () => ({ startGrader: vi.fn(async () => grader), resourceResponse: vi.fn() }));
+  vi.doMock("./runtime", () => ({
+    // Like the real one, fails when the build's entry file can't be had.
+    startGrader: vi.fn(async (_root: string, resource?: (path: string) => Promise<Response>) => {
+      const main = await resource?.("main.mjs");
+      if (main && main.ok === false) throw new Error(`main.mjs: ${main.status}`);
+      return grader;
+    }),
+    resourceResponse: vi.fn(),
+  }));
   vi.resetModules();
 });
 
@@ -109,6 +121,35 @@ describe("loadGrader", () => {
     await expect(loadGrader("fa")).rejects.toThrow();
 
     online = true;
+    expect(await loadGrader("fa")).toBe(grader);
+  });
+
+  it("re-reads the index when a deploy removed the build it named, instead of failing the lesson", async () => {
+    served = index(["fa", 1]);
+    const live = vi.mocked(fetch).getMockImplementation()!;
+    vi.mocked(fetch).mockImplementation(async (input) => {
+      if (String(input).includes("/grader/fa/v1/")) {
+        // The deploy has landed: v1 is gone, and the index now names v2.
+        served = index(["fa", 2]);
+        return new Response("gone", { status: 404 });
+      }
+      return live(input);
+    });
+    const { loadGrader } = await import("./loadGrader");
+    expect(await loadGrader("fa")).toBe(grader);
+    expect([...caches.stores.keys()]).toContain("grader:fa/v2");
+  });
+
+  it("forgets a stale index after a failed load so a retry reads the current one", async () => {
+    served = index(["fa", 1]);
+    const live = vi.mocked(fetch).getMockImplementation()!;
+    vi.mocked(fetch).mockImplementation(async (input) => {
+      if (String(input).includes("/grader/fa/v1/")) return new Response("gone", { status: 404 });
+      return live(input);
+    });
+    const { loadGrader } = await import("./loadGrader");
+    await expect(loadGrader("fa")).rejects.toThrow();
+    served = index(["fa", 2]);
     expect(await loadGrader("fa")).toBe(grader);
   });
 });
