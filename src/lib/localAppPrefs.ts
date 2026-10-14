@@ -216,6 +216,8 @@ export interface LocalAppPrefs {
    * saved-words one is the only one with flashcards.
    */
   remixContents: { lesson: RemixContents; saved: RemixContents };
+  /** True once the learner has dismissed the one-time "change your username?" prompt (Friends page). Local, per user, like suppressSkipWarning. */
+  usernamePromptDismissed: boolean;
 }
 
 const DEFAULTS: LocalAppPrefs = {
@@ -248,6 +250,7 @@ const DEFAULTS: LocalAppPrefs = {
   colorVision: "default",
   smoulderingStreak: true,
   remixContents: { lesson: "all", saved: "flashcards_and_all" },
+  usernamePromptDismissed: false,
 };
 
 function storageKey(userId: string): string {

@@ -10,7 +10,7 @@ export function getPendingRequests(): Promise<FriendRefResponse[]> {
   return apiFetch<FriendRefResponse[]>("/v1/friends/requests");
 }
 
-/** Empty/short queries return `[]`, never a 400 — safe to call per keystroke. */
+/** Exact, case-insensitive username match; zero or one hit. Anything not a well-formed username is `[]`, never a 400. */
 export function searchUsers(query: string): Promise<UserSearchResultResponse[]> {
   return apiFetch<UserSearchResultResponse[]>(`/v1/friends/search?query=${encodeURIComponent(query)}`);
 }
