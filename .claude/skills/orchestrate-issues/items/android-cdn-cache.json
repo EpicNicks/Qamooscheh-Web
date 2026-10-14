@@ -1,0 +1,28 @@
+{
+  "name": "android-cdn-cache",
+  "repo": "android",
+  "branch": "cdn-cache",
+  "title": "Course content downloaded once per version with bounded old-version pruning",
+  "closes": 55,
+  "issue": "Android issue #55, web reference: Qamooscheh-Web#82 / PR #93. AUDIT first: what Android downloads per course version (manifest, course files, lexeme index, audio), how often, what it refetches, and where it stores it. TARGET: each versioned CDN file is fetched at most once per version (versioned URLs are immutable); in-flight requests deduped; errors/partial responses never cached or served; keep the last 3 versions of the live course plus the latest of every other course; never prune the version an open lesson pins (see the redeploy work in Android issue #52); verify the manifest hash on cache and network reads as web does. Per-file delta updates need a per-file sha256 in the course manifest from the backend: do NOT fake it; list the ask in the PR body (tracked on Qamooscheh-Web#82). If Android already satisfies part of this, change only the gaps and say which in the PR body. Android uses Gradle; read CLAUDE.md, README.md and docs/SPEC.md first, find the relevant screens/modules yourself. The web reference implementation is read-only at E:/Code/Projects/Qamooscheh-Web/Qamooscheh-Web (git log / the named PR via gh pr view --repo EpicNicks/Qamooscheh-Web). If the Android app already behaves as required, make NO code change: write dev.json with needsUser 'already satisfied: <evidence>' and stop. If a decision needs the user or a backend change is required, stop with needsUser. Android CI runs unit tests, Roborazzi screenshot verification, lint and assembleDevDebug: add or update unit/screenshot tests for the change and record baselines only for intended visual changes.",
+  "reviewer": "opus",
+  "reviewers": 1,
+  "acceptance": [
+    "PR body has the audit and what changed",
+    "Each versioned file downloaded at most once; dedupe; errors not cached",
+    "Keeps last 3 live-course versions plus latest of other courses; pinned never pruned",
+    "No fake delta logic; backend ask listed",
+    "Gradle tests, screenshot verification, lint and assembleDevDebug green"
+  ],
+  "allowedPaths": [
+    "^app/",
+    "^core/",
+    "^feature/",
+    "^keyboard/",
+    "^docs/",
+    "^build-logic/",
+    "^gradle/libs.versions.toml$"
+  ],
+  "gate": "plan approved by the user 2026-10-14",
+  "approved": true
+}

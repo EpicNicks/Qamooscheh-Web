@@ -1,0 +1,28 @@
+{
+  "name": "cloze-flashcard-xp",
+  "repo": "backend",
+  "branch": "cloze-flashcard-xp",
+  "title": "Flashcard submit accepts the cloze kind and pays XP for any learned word",
+  "closes": null,
+  "issue": "For web issue EpicNicks/Qamooscheh-Web#87 (fill-in-the-blank flashcards, phase 1). Read the web proposal at C:/Users/epicn/AppData/Local/Temp/claude/E--Code-Projects-Qamooscheh-Web-Qamooscheh-Web/8bcc13c3-742b-454a-8f3b-63611fceadd8/scratchpad/issue87-design.md first (backend section). USER DECISIONS 2026-10-14: XP per cloze card is 5 on the first attempt, 3 on the first retry, 1 on the second retry (0 afterwards); there is NO daily cap on cloze XP (do not apply the existing 200/day flashcard cap to it); regular mode tolerates a one-letter typo on the client, hardcore mode (opt-in) tolerates none: the server should accept a hardcore flag on the submission (stored or at least validated, no XP difference unless the design says otherwise), and cloze answers are allowed to affect review scheduling (FSRS), so the submission must be usable by the scheduler like other reviews. PLAN: (1) Find POST /v1/flashcards/submit and its XP rules (API_SPEC.md, src/). Extend it to accept kind: 'cloze' with the fields the web proposal needs (the word/lexeme id, the attempt number, outcome, hardcore flag). (2) XP is paid for any LEARNED word, not only saved ones, for cloze. (3) Update API_SPEC.md (including the XP table and conformance vectors: add cloze rows to the shared xp-vectors file and the unit tests per tools/README.md if XP vectors are shared with clients), AGENTS.md rules, and features.yaml with an entry for cloze flashcards (backend implemented, web not_yet, android not_yet). (4) If the existing flashcard design cannot express this without a design decision (e.g. how FSRS is updated for a word reviewed through cloze, or anti-abuse of unlimited XP), stop with needsUser and the precise question. dotnet build and dotnet test must pass.",
+  "allowedPaths": [
+    "^src/",
+    "^tests/",
+    "^tools/",
+    "^content/",
+    "^features.yaml$",
+    "^AGENTS.md$",
+    "^CLAUDE.md$",
+    "^docs/"
+  ],
+  "acceptance": [
+    "flashcards submit accepts kind cloze with attempt-based XP 5/3/1, no daily cap, any learned word",
+    "API_SPEC.md, XP vectors/tests and features.yaml updated",
+    "dotnet build and test green locally and in CI"
+  ],
+  "gate": "plan approved by the user 2026-10-14",
+  "approved": true,
+  "reviewer": "opus",
+  "reviewers": 1,
+  "notes": "USER ANSWERS 2026-10-14 to the two open design questions. (1) FSRS: a cloze result moves the word lexeme_card through the same review path other reviews use, mapping the attempt to a rating: attempt 1 -> good, attempt 2 -> hard, attempt 3 or later -> again; trust the client-reported correctness (the server cannot verify it); clamp how far a single round (and a single submission) can move a card, e.g. at most one review per card per submission and per-day rounds not compounding beyond a sane bound; write review_log rows if the other review paths do. (2) XP bound: still NO hard daily cap, but add a per-card cooldown on paid XP: a learned word pays the full 5/3/1 XP once per server day (use the same server-day notion as the daily-goal/activity-day code), and any further cloze result for the same word that day pays 1 XP (0 only if it was already paid 1 twice that day, choose a simple documented rule). Also record what a later leaderboard plausibility check will need (client-reported per-answer elapsed time or timestamps and the hardcore flag) on the submission, validate that it is sane (non-negative, bounded) and store it, but do NOT build leaderboards or reject on speed now. Document all of this in API_SPEC.md and the XP vectors/tests. Keep the existing approved decisions in issue."
+}

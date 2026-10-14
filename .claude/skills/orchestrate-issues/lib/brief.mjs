@@ -15,6 +15,8 @@ const rules = `## Rules (strict)
 - Push with \`git push origin HEAD:refs/heads/${item.branch}\` (never -u), after every commit. Never push to master, never merge.
 - Stay inside the allowed paths below. Do not touch other repos.${item.repo === "backend"
   ? " Read AGENTS.md and CLAUDE.md first. A contract change updates src/Qamooscheh.Api/API_SPEC.md, and features.yaml gets the backend key (only) in the same PR."
+  : item.repo === "android"
+  ? " Read CLAUDE.md and docs/SPEC.md first. The backend's features.yaml (android key only) is updated by the orchestrator, not you. The web repo shows the reference behaviour (E:/Code/Projects/Qamooscheh-Web/Qamooscheh-Web, read-only)."
   : " The backend's features.yaml is updated by the orchestrator, not you."}
 - Files are LF and UTF-8; keep them that way. Run \`git status\` before committing.
 - Follow the repo's CLAUDE.md and match the surrounding code's comment density, naming and idiom.
@@ -37,9 +39,10 @@ ${item.notes ? "\n## Notes\n" + item.notes + "\n" : ""}
 ## Procedure
 1. \`node ${ORCH}/lib/setup.mjs ${name}\` creates your worktree (with node_modules) and prints its path. Work only there.
 2. Implement with tests for any domain logic; commit small; push after each commit.
-3. Run, in the worktree, what CI runs: ${item.repo === "backend"
-  ? "`dotnet build Qamooscheh.slnx -c Release`, then `dotnet test Qamooscheh.slnx --no-build -c Release`"
-  : "`npm run lint`, `npx tsc -b`, `npm run build`, `npm test`"}. All must pass.
+3. Run, in the worktree, what CI runs: ${{
+  backend: "`dotnet build Qamooscheh.slnx -c Release`, then `dotnet test Qamooscheh.slnx --no-build -c Release`",
+  android: "`./gradlew test --console=plain`, `./gradlew verifyRoborazziDebug --console=plain` (re-record baselines with `./gradlew recordRoborazziDebug` only for intended visual changes, and list them in the PR), `./gradlew lintDevDebug`, `./gradlew assembleDevDebug`. A fresh worktree has no local.properties: copy it from the main checkout (it is untracked and must never be committed)",
+}[item.repo] ?? "`npm run lint`, `npx tsc -b`, `npm run build`, `npm test`"}. All must pass.
 4. Open the PR with \`gh pr create --base master --head ${item.branch} --title "..." --body-file ${L}/pr-body.md\`. Body: what changed and how it was tested${item.closes ? `, "Closes #${item.closes}."` : ""}, a "Not verified" list if anything is unverified (e.g. not checked in a browser). If creation errors, check \`gh pr list --head ${item.branch} --state all\` before retrying.
 5. Write ${L}/dev.json: {"pr":<number>,"branch":"${item.branch}","head":"<sha>","files":[...],"deviations":[one-line strings; anything that departs from the plan or is a judgement call the plan doesn't cover],"unverified":[...],"feature":"<one-line feature summary for the features.yaml ledger>","needsUser":null or a one-line reason you must stop}.
 6. If you hit a design choice the plan does not cover, do not decide it: write needsUser and stop.

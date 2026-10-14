@@ -1,0 +1,28 @@
+{
+  "name": "friend-request-state",
+  "repo": "backend",
+  "branch": "friend-request-state",
+  "title": "Friend requests: idempotent add, request state in search results, search by user id",
+  "closes": null,
+  "issue": "For web issue EpicNicks/Qamooscheh-Web#85 (Friends page UI). Run gh issue view 85 --repo EpicNicks/Qamooscheh-Web. PLAN (backend part only): (1) Investigate the current friends API (API_SPEC.md, src/) and what it does today when adding a friend and when searching users. (2) Make adding a friend idempotent and make the relationship state visible: search results and the add response expose the relationship to each result user (none, request_sent, request_received, friends) so a client can show 'Pending' (disabled) or 'View' (go to the friend's profile) instead of an Add button that persists; sending a request creates a pending request the other user must accept (verify that is how it works today; fix if not), and re-sending is a no-op returning the existing state. (3) Allow searching by a user id / friend code because several people share a display name. Choose a stable, non-secret public identifier only if one exists or can be added safely; do NOT expose internal database ids or emails. (4) Do NOT build push notifications or contact-list matching (Android-only, later). Update API_SPEC.md, tests, and features.yaml (entry for friend request state; backend implemented, web not_yet, android not_yet). If any choice here is a privacy or product decision (public identifier format, whether pending requests are visible to the target, rate limits), stop with needsUser and the precise question rather than guessing. dotnet build and dotnet test must pass.",
+  "allowedPaths": [
+    "^src/",
+    "^tests/",
+    "^tools/",
+    "^content/",
+    "^features.yaml$",
+    "^AGENTS.md$",
+    "^CLAUDE.md$",
+    "^docs/"
+  ],
+  "acceptance": [
+    "Add is idempotent; relationship state returned in search results and add response",
+    "Search by public user id/friend code without exposing internal ids or emails",
+    "API_SPEC.md, tests and features.yaml updated; dotnet build and test green locally and in CI"
+  ],
+  "gate": "plan approved by the user 2026-10-14",
+  "approved": true,
+  "reviewer": "opus",
+  "reviewers": 2,
+  "notes": "USER DECISION 2026-10-14 (REPLACES the earlier Name#1234 tag design; discard any tag work, migrations or code from a previous revision attempt on the branch): Discord-style identity. Every user has a unique USERNAME (handle) separate from their free-text DISPLAY NAME. Friend search by handle is an EXACT, case-insensitive match; display name is never a search key and never identifies a user. Rules (defaults approved by the user): handle is 3-20 characters, lowercase letters, digits, underscore and dot, no leading/trailing dot and no consecutive dots, unique case-insensitively (unique index); a blocked/reserved word list rejects reserved names (admin, support, staff, etc.) and obvious offensive terms (a small configurable list is enough, document how to extend it); EXISTING users are backfilled automatically with a handle derived from their display name (slugified, with a numeric suffix on conflict, never from email) and the API exposes whether the handle was auto-assigned so clients can show a one-time prompt to change it; a user may change their handle once per 30 days and the old handle is held (cannot be claimed by anyone else) for 30 days; users are findable by handle by default and may opt out (a setting); the handle is shown to the user themself and to confirmed friends and in an exact-match search result, never in lists of other users; searches by handle are rate-limited per caller. Do not expose internal ids or emails. Deliver: migration with backfill and unique index, endpoints to read/set the handle and the findable setting, availability check endpoint (rate-limited), friend search by exact handle returning the relationship state (none, request_sent, request_received, friends), idempotent add, API_SPEC.md, tests, features.yaml (entries for friend request state and usernames; backend implemented, web not_yet, android not_yet). Reuse the branch/worktree in L/state.json and PR #46 as the single PR for this item; merge origin/master first; update dev.json; list only judgement calls beyond this."
+}

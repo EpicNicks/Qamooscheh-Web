@@ -1,0 +1,20 @@
+{
+  "name": "lesson-redeploy-safe",
+  "repo": "web",
+  "branch": "lesson-redeploy-safe",
+  "title": "Never kick a user out of a lesson because content or the grader is redeployed",
+  "closes": 83,
+  "issue": "Issue #83. USER REQUIREMENT: avoid ANY instance where the user could be kicked from a lesson because content is redeployed. PLAN: (1) Root-cause spike: audit every path where a mid-lesson load can fail after a deploy: grader loading by version (src/grader/loadGrader.ts, public/grader-sw.js, public/grader/index.json) when old version files vanish; content/manifest fetches by version (src/api/content.ts) while a lesson is open; the 'unavailable' state in src/pages/LessonPage.tsx (~line 268); service worker update/activation and any reload-on-update behaviour; session/bootstrap refetches that swap content under an open lesson. There are no lazy route chunks (no React.lazy). (2) Fix: an open lesson pins its content version and grader version for its whole duration, loads everything it needs up front (or from cache), never re-resolves versions mid-lesson, and any deploy-triggered refresh/SW activation/reload is deferred until the lesson ends. Add tests for the pinning and deferral. (3) Anything that needs the backend (sessions not surviving an API deploy, old versions being deleted from the CDN, missing contract) must NOT be worked around here: stop with needsUser or list it in deviations with a precise backend ask. Document the findings in the PR body.",
+  "allowedPaths": ["^src/", "^public/", "^package(-lock)?\\.json$", "^vite\\.config\\.[jt]s$"],
+  "acceptance": [
+    "Findings of all mid-lesson failure paths listed in the PR body",
+    "Open lesson pins content and grader versions; no mid-lesson version re-resolution",
+    "Deploy-triggered updates/reloads deferred until the lesson ends, with tests",
+    "Backend needs reported, not worked around",
+    "lint, tsc -b, build, test green locally and in CI"
+  ],
+  "gate": "plan approved by the user 2026-10-13",
+  "approved": true,
+  "reviewer": "opus",
+  "reviewers": 2
+}

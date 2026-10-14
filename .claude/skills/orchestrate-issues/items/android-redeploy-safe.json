@@ -1,0 +1,28 @@
+{
+  "name": "android-redeploy-safe",
+  "repo": "android",
+  "branch": "redeploy-safe",
+  "title": "An open lesson never loses its content or grader to a redeploy",
+  "closes": 52,
+  "issue": "Android issue #52, web reference: Qamooscheh-Web#83 / PR #90. REQUIREMENT: avoid ANY case where the learner is kicked out of a lesson because content or the grader is redeployed. Audit every path where an open lesson can lose what it needs: content/manifest refetch on app resume or connectivity change, course version changing via bootstrap, the grader bundle being replaced or removed, a 5xx or timeout during an API deploy, process death and restore (already survived; the restored lesson must use its pinned version). FIX: pin course version, session plan and grader at lesson start; once a lesson is open, background refetch results and failures never replace the lesson screen; updates apply only between lessons. Do not work around backend gaps: list them (old course versions retained on the CDN, submit accepting a non-current version, sessions surviving deploys; see the comment on Qamooscheh-Web#83) in the PR body and in deviations. Document findings per path in the PR body. Android uses Gradle; read CLAUDE.md, README.md and docs/SPEC.md first, find the relevant screens/modules yourself. The web reference implementation is read-only at E:/Code/Projects/Qamooscheh-Web/Qamooscheh-Web (git log / the named PR via gh pr view --repo EpicNicks/Qamooscheh-Web). If the Android app already behaves as required, make NO code change: write dev.json with needsUser 'already satisfied: <evidence>' and stop. If a decision needs the user or a backend change is required, stop with needsUser. Android CI runs unit tests, Roborazzi screenshot verification, lint and assembleDevDebug: add or update unit/screenshot tests for the change and record baselines only for intended visual changes.",
+  "reviewer": "opus",
+  "reviewers": 2,
+  "acceptance": [
+    "Findings for each mid-lesson failure path in the PR body",
+    "Open lesson pins course version, plan and grader; no mid-lesson re-resolution",
+    "Updates deferred until the lesson ends, with tests",
+    "Backend needs reported, not worked around",
+    "Gradle tests, screenshot verification, lint and assembleDevDebug green"
+  ],
+  "allowedPaths": [
+    "^app/",
+    "^core/",
+    "^feature/",
+    "^keyboard/",
+    "^docs/",
+    "^build-logic/",
+    "^gradle/libs.versions.toml$"
+  ],
+  "gate": "plan approved by the user 2026-10-14",
+  "approved": true
+}

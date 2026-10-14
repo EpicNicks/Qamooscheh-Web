@@ -1,0 +1,25 @@
+{
+  "name": "parsle-repack-copy",
+  "repo": "web",
+  "branch": "parsle-repack-copy",
+  "title": "Rename user-facing copy: lessons in a unit are Parsles, Remix is Repack; drop the Lesson complete title",
+  "closes": null,
+  "issue": "USER TERMINOLOGY DECISIONS 2026-10-14: (1) A lesson inside a unit on the journey is a PARSLE (play on parcels); the word also covers custom groupings of lessons made in Repack, and a constructed Repack is itself a custom Parsle. (2) Remix is renamed REPACK in all user-facing text; the timed mode (not built yet) will be 'Repack race'. (3) The 'Lesson complete!' page title is redundant and is removed altogether (not renamed): see src/pages/LessonPage.tsx and src/pages/PracticePage.tsx; the recap card still shows its score, ring and result without that heading, and the result-specific titles ('Perfect lesson!' becomes 'Perfect Parsle!') stay. PLAN: rename USER-FACING COPY ONLY on web: visible strings, aria-labels, titles, button text, alt text, document titles, the README/user docs strings if any. Do NOT rename code identifiers, file names, CSS classes, route paths, query keys, localStorage keys or API fields (they stay lesson/remix). Do not touch URLs. Where 'lesson' is clearly a different concept (e.g. a story, conversation or song lesson type name, generic phrases like 'lesson content' in developer comments, backend error codes) leave it; where it is ambiguous prefer leaving it and list the case. Produce in the PR body a complete before/after table of every changed string and a list of ambiguous cases left alone so the user can review. Update tests that assert on changed strings. Use plural 'Parsles' correctly and keep capitalisation consistent (Parsle is capitalised as a proper term in titles and sentences). Add the new terms to a short 'Terminology' section in CLAUDE.md or the README (whichever documents conventions) so future work uses them.",
+  "allowedPaths": [
+    "^src/",
+    "^public/",
+    "^index.html$",
+    "^README.md$",
+    "^CLAUDE.md$"
+  ],
+  "acceptance": [
+    "User-facing lesson copy reads Parsle and Remix reads Repack; Lesson complete title removed",
+    "No code identifiers, routes or API fields renamed",
+    "PR body has the before/after string table and ambiguous cases",
+    "lint, tsc -b, build, test green locally and in CI"
+  ],
+  "gate": "terminology approved by the user 2026-10-14",
+  "approved": true,
+  "reviewer": "sonnet",
+  "reviewers": 1
+}
