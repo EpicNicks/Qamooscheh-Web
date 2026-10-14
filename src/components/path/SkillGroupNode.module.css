@@ -1,28 +1,33 @@
 /*
  * Stacked-deck affordance: two pseudo-element cards peeking out from behind
  * the real one, so a collapsed fork reads as "there are more behind this"
- * rather than as an ordinary single-lesson node.
+ * rather than as an ordinary single-lesson node. They hang off this wrapper
+ * rather than the button: the button's corner is cut with a mask, which makes
+ * it a stacking context, and its own z-index: -1 children would then paint
+ * over its background.
  */
-.group {
+.deck {
   position: relative;
+  display: block;
 }
 
-.group::before,
-.group::after {
+.deck::before,
+.deck::after {
   content: "";
   position: absolute;
-  inset: 0;
+  /* 2px: the button's border, which the old inset: 0 on the button skipped. */
+  inset: 2px;
   z-index: -1;
   border-radius: var(--radius-md);
   border: 2px solid var(--color-border);
   background: var(--color-surface);
 }
 
-.group::before {
+.deck::before {
   transform: translate(4px, 4px);
 }
 
-.group::after {
+.deck::after {
   transform: translate(8px, 8px);
 }
 
