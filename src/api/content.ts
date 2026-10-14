@@ -4,7 +4,8 @@
 // manifest is hash-verified (see lib/sha256.ts); child artifacts are reached
 // by following the trusted manifest's own relative paths.
 import { CONTENT_BASE_URL } from "../config";
-import { fetchAndVerifyJson } from "../lib/sha256";
+import { contentCacheName, fetchContentJson } from "../lib/contentCache";
+import { verifyManifestBytes } from "../lib/sha256";
 import type { AudioIndexArtifact, CourseManifest, LexemeIndex, SkillArtifact, ThemeIndexArtifact, UnitArtifact, VerbIndex } from "../types/content";
 
 function courseRoot(courseCode: string, version: number): string {
@@ -16,29 +17,33 @@ export function getCourseManifest(
   version: number,
   manifestSha256: string,
 ): Promise<CourseManifest> {
-  return fetchAndVerifyJson<CourseManifest>(`${courseRoot(courseCode, version)}/manifest.json`, manifestSha256);
+  return fetchContentJson<CourseManifest>(
+    `${courseRoot(courseCode, version)}/manifest.json`,
+    contentCacheName(courseCode, version),
+    (bytes) => verifyManifestBytes(bytes, manifestSha256),
+  );
 }
 
-async function fetchJson<T>(url: string): Promise<T> {
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`Failed to fetch ${url}: ${response.status}`);
-  return (await response.json()) as T;
+// Versioned files never change, so they come from the version's Cache Storage
+// cache when it has them (lib/contentCache.ts) and are downloaded once.
+function fetchJson<T>(courseCode: string, version: number, path: string): Promise<T> {
+  return fetchContentJson<T>(`${courseRoot(courseCode, version)}/${path}`, contentCacheName(courseCode, version));
 }
 
 export function getUnitArtifact(courseCode: string, version: number, unitRefPath: string): Promise<UnitArtifact> {
-  return fetchJson<UnitArtifact>(`${courseRoot(courseCode, version)}/${unitRefPath}`);
+  return fetchJson<UnitArtifact>(courseCode, version, unitRefPath);
 }
 
 export function getSkillArtifact(courseCode: string, version: number, skillRefPath: string): Promise<SkillArtifact> {
-  return fetchJson<SkillArtifact>(`${courseRoot(courseCode, version)}/${skillRefPath}`);
+  return fetchJson<SkillArtifact>(courseCode, version, skillRefPath);
 }
 
 export function getLexemeIndex(courseCode: string, version: number, lexemeIndexPath: string): Promise<LexemeIndex> {
-  return fetchJson<LexemeIndex>(`${courseRoot(courseCode, version)}/${lexemeIndexPath}`);
+  return fetchJson<LexemeIndex>(courseCode, version, lexemeIndexPath);
 }
 
 export function getVerbIndex(courseCode: string, version: number, verbIndexPath: string): Promise<VerbIndex> {
-  return fetchJson<VerbIndex>(`${courseRoot(courseCode, version)}/${verbIndexPath}`);
+  return fetchJson<VerbIndex>(courseCode, version, verbIndexPath);
 }
 
 export function getThemeIndex(
@@ -46,11 +51,11 @@ export function getThemeIndex(
   version: number,
   themeIndexPath: string,
 ): Promise<ThemeIndexArtifact> {
-  return fetchJson<ThemeIndexArtifact>(`${courseRoot(courseCode, version)}/${themeIndexPath}`);
+  return fetchJson<ThemeIndexArtifact>(courseCode, version, themeIndexPath);
 }
 
 export function getAudioIndex(courseCode: string, version: number, audioIndexPath: string): Promise<AudioIndexArtifact> {
-  return fetchJson<AudioIndexArtifact>(`${courseRoot(courseCode, version)}/${audioIndexPath}`);
+  return fetchJson<AudioIndexArtifact>(courseCode, version, audioIndexPath);
 }
 
 /**
