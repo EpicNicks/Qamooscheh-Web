@@ -3,6 +3,8 @@ import { Outlet } from "react-router-dom";
 import { Button } from "../components/common/Button";
 import { ErrorBanner } from "../components/common/ErrorBanner";
 import { Spinner } from "../components/common/Spinner";
+import { holdSettled } from "../domain/lessonPin";
+import { GraderContext } from "./GraderContext";
 import { useGraderState } from "./useGrader";
 
 /**
@@ -13,11 +15,12 @@ import { useGraderState } from "./useGrader";
  */
 export function RequireGrader() {
   const { state, ensure } = useGraderState();
-  // Once the grader has been ready, this screen stays up: a later change of
-  // state (a reload of bootstrap naming another language, a retry) must not
-  // swap an open lesson for a spinner or an error.
-  const wasReady = useRef(false);
-  if (state.status === "ready" || state.status === "none") wasReady.current = true;
+  // Once the grader has settled, this screen stays up on that state: a later
+  // change (a reload of bootstrap naming another language, a retry) must not
+  // swap an open lesson for a spinner or an error, nor leave the screens
+  // below it reading a grader that is null while the new one loads.
+  const held = useRef<typeof state | null>(null);
+  held.current = holdSettled(held.current, state);
 
   useEffect(() => {
     ensure();
@@ -25,7 +28,13 @@ export function RequireGrader() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (wasReady.current) return <Outlet />;
+  if (held.current) {
+    return (
+      <GraderContext.Provider value={{ state: held.current, ensure }}>
+        <Outlet />
+      </GraderContext.Provider>
+    );
+  }
   if (state.status === "loading") return <Spinner label="Loading the answer checker…" />;
   if (state.status === "unavailable") {
     return (

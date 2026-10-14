@@ -31,7 +31,7 @@ import { loadCardStates, mergeCardStates } from "../lib/cardStateStore";
 import { enqueue as enqueueOffline } from "../lib/offlineQueue";
 import { checkAnswer, type AnswerVerdict, type SeparatorMarks } from "../domain/answerFeedback";
 import { useGrader } from "../grader/useGrader";
-import { pinFirst } from "../domain/lessonPin";
+import { loadGate, pinFirst } from "../domain/lessonPin";
 import type { Grader } from "../grader/types";
 import { resolveExerciseType } from "../domain/exerciseResolution";
 import { LESSON_PASS_THRESHOLD, verdictWeight } from "../domain/lessonScore";
@@ -158,16 +158,18 @@ export function useLessonEngine(
 
   const bootstrap = useBootstrap();
   const liveGrader = useGrader();
-  const course = bootstrap.data?.course ?? null;
-  // The grader and course code the lesson started with (domain/lessonPin.ts):
-  // a deploy mid-lesson must not swap either under an answer being checked or
-  // the submit at the end.
+  const liveCourse = bootstrap.data?.course ?? null;
+  // What the lesson started with (domain/lessonPin.ts): the course (code and
+  // version, which key the content queries) and the session plan, frozen when
+  // the queue is seeded below, plus the grader. A deploy mid-lesson must not
+  // swap any of them under an answer being checked, the content on screen or
+  // the submit at the end; the next lesson picks up the new ones.
+  const started = useRef<{ course: typeof liveCourse; plan: SessionPlanResponse } | null>(null);
+  const course = started.current?.course ?? liveCourse;
   const pinnedGrader = useRef<Grader | null>(null);
   pinnedGrader.current = pinFirst(pinnedGrader.current, liveGrader);
   const grader = pinnedGrader.current;
-  const pinnedCourseCode = useRef<string | null>(null);
-  pinnedCourseCode.current = pinFirst(pinnedCourseCode.current, course?.code);
-  const courseCode = pinnedCourseCode.current;
+  const courseCode = course?.code ?? null;
 
   // Cursor-driven mode's own query — enabled only when NOT deep-diving.
   const cursorPlan = useQuery({
@@ -225,9 +227,12 @@ export function useLessonEngine(
   // actually reads below) — lets every existing `plan.data`/`plan.isLoading`/
   // `plan.isError` reference below stay unchanged regardless of which mode
   // is active.
-  const plan = isDeepDive
+  const livePlan = isDeepDive
     ? { data: deepDivePlanData, isLoading: deepDivePlanIsLoading, isError: deepDivePlanIsError }
     : cursorPlan;
+  const plan = started.current
+    ? { data: started.current.plan as SessionPlanResponse | undefined, isLoading: false, isError: false }
+    : livePlan;
 
   // The learner's current cursor, reused as the practice-mode skill whenever
   // `plan.data.skills` comes back empty — which it does whenever nothing's
@@ -436,6 +441,7 @@ export function useLessonEngine(
   // background refetch of `plan`/`skillArtifacts` would blow away in-progress
   // answers.
   if (queue === null && skillsReady && plan.data && !awaitingRemixContents) {
+    started.current = { course: liveCourse, plan: plan.data };
     setQueue(initialQueue);
     setTotalCount(initialQueue.length);
     snapshotSession(initialQueue, skillArtifacts);
@@ -760,14 +766,19 @@ export function useLessonEngine(
     }
   }
 
+  const gate = loadGate(
+    started.current != null,
+    bootstrap.isLoading || plan.isLoading || skillsLoading,
+    bootstrap.isError || plan.isError || skillsError,
+  );
   const derivedStatus: LessonStatus =
     status === "submitting" || status === "done" || status === "rejected"
       ? status
       : isLessonNotFound
         ? "unavailable"
-        : bootstrap.isLoading || plan.isLoading || skillsLoading
+        : gate === "loading"
           ? "loading"
-          : bootstrap.isError || plan.isError || skillsError
+          : gate === "error"
             ? "error"
             : awaitingRemixContents && queue === null
               ? "choosing"
