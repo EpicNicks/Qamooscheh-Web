@@ -45,3 +45,15 @@
 .deepDive:hover:not(:disabled) {
   background: var(--color-deepdive-hover);
 }
+
+/* A quiet text-weight action beside a primary one. */
+.ghost {
+  min-height: 44px;
+  background: transparent;
+  color: var(--color-text-muted);
+}
+
+.ghost:hover:not(:disabled) {
+  background: var(--color-border);
+  color: var(--color-text);
+}

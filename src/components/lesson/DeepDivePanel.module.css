@@ -1,0 +1,57 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: 12px var(--space-3);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-deepdive) 8%, var(--color-bg));
+  border: 2px solid color-mix(in srgb, var(--color-deepdive) 30%, transparent);
+  text-align: left;
+}
+
+.head {
+  display: flex;
+  flex-direction: column;
+}
+
+.title {
+  color: var(--color-deepdive);
+}
+
+.hint {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+/* One row whatever the number of topics: at most 3 chips and the overflow chip, each ellipsized. */
+.chips {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.chip {
+  min-width: 0;
+  max-width: 9em;
+  min-height: 36px;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, var(--color-deepdive) 40%, transparent);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.more {
+  flex-shrink: 0;
+  background: var(--color-deepdive);
+  border-color: transparent;
+  color: #fff;
+}

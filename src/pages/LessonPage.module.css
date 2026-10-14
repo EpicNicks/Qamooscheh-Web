@@ -26,13 +26,12 @@
   color: var(--color-text-muted);
 }
 
-.themeChips {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
+/* The recap's quiet secondary actions, side by side. */
+.ghostRow {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
   gap: var(--space-2);
-  font-size: 0.85rem;
-  color: var(--color-text-muted);
 }
 
 /* A flashcard inside the saved-words remix (SavedPracticePage), in place of the exercise screen. */
