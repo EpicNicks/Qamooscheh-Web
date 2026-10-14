@@ -1,5 +1,6 @@
 import { computeRoadLayout } from "../../domain/roadLayout";
 import type { PathPosition, PositionKey } from "../../domain/pathProgress";
+import { forkLineKind } from "../../domain/forkLines";
 import { usePathTheme } from "../../theme/PathThemeContext";
 import { useIsMobile } from "../../hooks/useMediaQuery";
 import { SkillNode } from "./SkillNode";
@@ -29,17 +30,6 @@ function nodeLeft(pct: number): string {
 
 /** Logical units between the parallel lines of a collapsed fork's connector; wider than the stroke so they read as separate. */
 const FORK_LINE_SPACING = 9;
-
-/**
- * A collapsed fork's per-lesson line: done keeps the walked-road colour; a
- * lesson still to do is blue running into the fork and grey running out of it
- * towards the next lesson; a locked fork is all grey.
- */
-function forkLineClass(status: PathPosition["status"], completed: boolean, leaving: boolean): string {
-  if (status === "locked") return styles.locked;
-  if (completed) return styles.unlocked;
-  return leaving ? styles.locked : styles.open;
-}
 
 /**
  * The straight, branching road of a unit's standard skills.
@@ -111,7 +101,7 @@ export function SkillRoad({
                 return (
                   <path
                     key={`${key}#${i}`}
-                    className={[styles.edge, forkLineClass(fork.status, s.completed, leaving)].join(" ")}
+                    className={[styles.edge, styles[forkLineKind(fork.status, s.completed, leaving)]].join(" ")}
                     d={`M ${edge.x1 + dx},${edge.y1} L ${edge.x2 + dx},${edge.y2}`}
                   />
                 );
