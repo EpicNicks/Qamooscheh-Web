@@ -334,16 +334,37 @@ export interface CurrentLeagueResponse {
 export interface FriendRefResponse {
   userId: string;
   displayName: string | null;
+  /** Null in GET /v1/friends/requests: a pending requester is not yet a friend. */
+  username?: string | null;
   since: string;
 }
 
+/** The caller's side of a pair (API_SPEC.md §2.6 "Relationship state"). */
+export type FriendRelationship = "none" | "request_sent" | "request_received" | "friends";
+
 export interface FriendRequestResponse {
   status: FriendshipStatus;
+  relationship: FriendRelationship;
 }
 
 export interface UserSearchResultResponse {
   userId: string;
+  username: string;
   displayName: string;
+  relationship: FriendRelationship;
+}
+
+// ---------------------------------------------------------------------------
+// v1/username (Usernames/UsernameController.cs)
+// ---------------------------------------------------------------------------
+
+export interface UsernameResponse {
+  /** Null only if signup auto-assignment collided five times; the account is unfindable until one is picked. */
+  username: string | null;
+  autoAssigned: boolean;
+  findable: boolean;
+  /** Null when a change is allowed now. */
+  canChangeAt: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -599,6 +620,8 @@ export interface ApiErrorBody {
   reason?: string;
   /** 409 from POST /v1/courses/{code}/roll-forward only: the highest version the caller can legally roll forward to right now. */
   highestEligibleVersion?: number;
+  /** 409 reason "cooldown" from PUT /v1/username: when the next change is allowed. */
+  canChangeAt?: string;
   /** 429 from POST /v1/auth/login and /v1/auth/google once too many sign-ins have failed from this IP or for this account (API_SPEC.md §3 "Per-client limits"): seconds until it may try again. `error` already says it in words. */
   retryAfterSeconds?: number;
 }

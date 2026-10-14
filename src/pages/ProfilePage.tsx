@@ -3,6 +3,7 @@ import { useProfile, useUpdateProfile } from "../hooks/useProfile";
 import { useStreak } from "../hooks/useStreak";
 import { formatStreakDays, formatTimeLeft } from "../domain/streak";
 import { StreakText } from "../components/common/StreakText";
+import { UsernameCard } from "../components/friends/UsernameCard";
 import { Button } from "../components/common/Button";
 import { Spinner } from "../components/common/Spinner";
 import { ErrorBanner } from "../components/common/ErrorBanner";
@@ -63,6 +64,7 @@ export function ProfilePage() {
     <div className={styles.page}>
       <h1>Profile</h1>
       <StreakSummary />
+      <UsernameCard />
       <form className={styles.form} onSubmit={handleSubmit}>
         <p className={styles.hint}>
           This is what friends and leaderboards see — nothing is shown publicly until you set a display name.
