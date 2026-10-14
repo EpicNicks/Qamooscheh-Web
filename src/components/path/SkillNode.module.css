@@ -2,6 +2,8 @@
   /* What the folded-over corner is tinted with — each status below sets its
      own, so the flap always matches the card's border colour. */
   --node-accent: var(--color-border);
+  --fold: 18px;
+  --fold-bleed: 5px;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -45,22 +47,37 @@
 }
 
 /*
- * The dog-eared top-left corner. Not a clip-path on the card: that would make
- * the button a stacking context, and SkillGroupNode's stacked-deck cards
- * (z-index: -1 pseudo-elements) would then paint over its own background.
- * Instead this element paints the corner away in the page colour (::before)
- * and lays the folded-over flap on top (::after) — the flap is the cut-off
- * triangle mirrored across the fold line, as a real folded corner would be.
- *
- * The element overhangs the card by --fold-bleed on the top and left so the
- * "cut" also swallows the .current halo ring there; its anti-diagonal still
- * lands exactly on the fold line, since the overhang is added to both the
- * offset and the size. Hovering deepens the fold with a slight overshoot, as
- * though the corner were being lifted.
+ * The dog-eared top-left corner. The card is masked (not clip-path'd: the mask
+ * can reach past the border box, clip-path can't) so the cut-off triangle is
+ * genuinely transparent and whatever is behind the card — the connector lines
+ * above all — shows through it. The mask is the card's box grown by --mask-pad
+ * on every side (so the halo ring and the group node's count pill survive)
+ * minus the corner triangle; the triangle's square overhangs the card by
+ * --fold-bleed on the top and left so the cut also swallows the .current halo
+ * there, yet its anti-diagonal still lands exactly on the fold line. The
+ * masking is also why SkillGroupNode's stacked-deck cards live on a wrapper.
+ * The folded-over flap (.fold) is the cut-off triangle mirrored across the
+ * fold line, as a real folded corner would be. Hovering deepens the fold with
+ * a slight overshoot, as though the corner were being lifted.
  */
+.node:not(.row) {
+  --mask-pad: 12px;
+  mask-image: linear-gradient(#000 0 0), linear-gradient(to bottom right, #000 50%, transparent 50%);
+  mask-repeat: no-repeat;
+  mask-origin: border-box;
+  mask-clip: no-clip;
+  mask-size:
+    calc(100% + 2 * var(--mask-pad)) calc(100% + 2 * var(--mask-pad)),
+    calc(var(--fold) + 2 * var(--fold-bleed)) calc(var(--fold) + 2 * var(--fold-bleed));
+  mask-position:
+    calc(-1 * var(--mask-pad)) calc(-1 * var(--mask-pad)),
+    calc(-1 * var(--fold-bleed)) calc(-1 * var(--fold-bleed));
+  /* The triangle XORed with the box that contains it is the box minus the triangle. */
+  mask-composite: exclude;
+  transition: mask-size 320ms cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+
 .fold {
-  --fold: 18px;
-  --fold-bleed: 5px;
   position: absolute;
   /* -2px: the card's border, so this is measured from its outer corner. */
   top: calc(-2px - var(--fold-bleed));
@@ -73,19 +90,9 @@
     height 320ms cubic-bezier(0.3, 1.4, 0.5, 1);
 }
 
-.fold::before,
 .fold::after {
   content: "";
   position: absolute;
-}
-
-.fold::before {
-  inset: 0;
-  /* --skill-node-backdrop lets a skin with a motif behind the road match it. */
-  background: linear-gradient(to bottom right, var(--skill-node-backdrop, var(--color-bg)) 50%, transparent 50%);
-}
-
-.fold::after {
   top: var(--fold-bleed);
   left: var(--fold-bleed);
   width: calc(100% - 2 * var(--fold-bleed));
@@ -101,8 +108,8 @@
   transition: filter 320ms ease-out;
 }
 
-.node:not(:disabled):hover .fold,
-.node:focus-visible .fold {
+.node:not(:disabled):hover,
+.node:focus-visible {
   --fold: 26px;
 }
 
@@ -112,6 +119,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .node:not(.row),
   .fold,
   .fold::after {
     transition: none;

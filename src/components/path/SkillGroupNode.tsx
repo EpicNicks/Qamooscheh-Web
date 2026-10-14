@@ -33,26 +33,28 @@ export function SkillGroupNode({ position, nextSkipTarget }: { position: PathPos
 
   return (
     <>
-      <button
-        ref={buttonRef}
-        type="button"
-        className={[nodeStyles.node, nodeStyles[position.status], styles.group].join(" ")}
-        disabled={locked}
-        onClick={() => setModalOpen(true)}
-        aria-haspopup="dialog"
-        aria-label={`${position.skills.length} lesson choices${branches ? `, ${branches.done} of ${branches.total} done` : ""}: ${titles.join(", ")}`}
-        title={titles.join(" · ")}
-      >
-        <span className={nodeStyles.fold} aria-hidden="true" />
-        {theme.icons.standard != null && <span className={nodeStyles.icon}>{theme.icons.standard}</span>}
-        <span className={nodeStyles.title}>{position.skills.length} lessons</span>
-        <span className={styles.countPill}>{position.skills.length}</span>
-        {branches && branches.done > 0 && (
-          <span className={styles.doneCount} aria-hidden="true">
-            {branches.done}/{branches.total} done
-          </span>
-        )}
-      </button>
+      <span className={styles.deck}>
+        <button
+          ref={buttonRef}
+          type="button"
+          className={[nodeStyles.node, nodeStyles[position.status]].join(" ")}
+          disabled={locked}
+          onClick={() => setModalOpen(true)}
+          aria-haspopup="dialog"
+          aria-label={`${position.skills.length} lesson choices${branches ? `, ${branches.done} of ${branches.total} done` : ""}: ${titles.join(", ")}`}
+          title={titles.join(" · ")}
+        >
+          <span className={nodeStyles.fold} aria-hidden="true" />
+          {theme.icons.standard != null && <span className={nodeStyles.icon}>{theme.icons.standard}</span>}
+          <span className={nodeStyles.title}>{position.skills.length} lessons</span>
+          <span className={styles.countPill}>{position.skills.length}</span>
+          {branches && branches.done > 0 && (
+            <span className={styles.doneCount} aria-hidden="true">
+              {branches.done}/{branches.total} done
+            </span>
+          )}
+        </button>
+      </span>
       {modalOpen && (
         <SkillGroupModal
           skills={position.skills}
