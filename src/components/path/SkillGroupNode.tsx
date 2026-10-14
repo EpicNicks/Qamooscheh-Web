@@ -31,7 +31,9 @@ export function SkillGroupNode({ position, nextSkipTarget }: { position: PathPos
   const themeIndex = useThemeIndex(bootstrap.data?.course ?? null);
   const branches = positionBranches(position);
   const titles = position.skills.map((s) => s.title);
-  const tagSymbol = mainTagSymbol(position.skills[0].themes, theme.tagSymbols, themeIndex.data);
+  // Only when every alternate agrees: one lesson's tag must not stand for the whole group.
+  const symbols = position.skills.map((s) => mainTagSymbol(s.themes, theme.tagSymbols, themeIndex.data));
+  const tagSymbol = symbols.every((sym) => sym === symbols[0]) ? symbols[0] : null;
 
   return (
     <>

@@ -351,4 +351,11 @@ describe("story road status", () => {
     expect(storyRoadStatus(0, 0, -1, -1)).toBe("locked");
     expect(storyRoadStatus(0, -1, -1, -1)).toBe("locked");
   });
+
+  it("unlocks when the anchor is completed or the story is done", () => {
+    expect(storyRoadStatus(0, 0, 3, 3, true)).toBe("unlocked");
+    expect(storyRoadStatus(0, 0, 3, 3, false, true)).toBe("unlocked");
+    expect(storyRoadStatus(0, 0, 3, 3, false, false)).toBe("locked");
+    expect(storyRoadStatus(1, 0, 3, 3, true, true)).toBe("locked");
+  });
 });

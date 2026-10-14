@@ -134,16 +134,21 @@ export function splitUnitPositions(positions: PathSkillInput[][]): {
  * later ones locked, and within the cursor's unit it opens once the standard
  * position it branches off (`anchorPositionIndex`) is behind the cursor — or
  * at once when it comes before the first lesson. Never "current": stories do
- * not move the cursor.
+ * not move the cursor. It also opens when the anchor position was already
+ * completed (the cursor clamps on the course's last lesson, so it never moves
+ * past it) or when the story itself is done (e.g. from the library).
  */
 export function storyRoadStatus(
   unitIndex: number,
   currentUnitIndex: number,
   currentPositionIndex: number,
   anchorPositionIndex: number,
+  anchorCompleted = false,
+  storyCompleted = false,
 ): SkillStatus {
   if (unitIndex < currentUnitIndex) return "unlocked";
   if (unitIndex > currentUnitIndex) return "locked";
+  if (anchorCompleted || storyCompleted) return "unlocked";
   if (currentPositionIndex < 0) return "locked";
   return anchorPositionIndex < currentPositionIndex ? "unlocked" : "locked";
 }
@@ -203,11 +208,15 @@ export function computePathProgress(
     const otherSkills = unit.otherSkills.map((skill): PathSkill => {
       // story/conversation/song: gated only by unit position.
       const status: SkillStatus = unitIndex <= currentUnitIndex ? "unlocked" : "locked";
+      const anchorIndex = skill.anchorPositionIndex ?? unit.standardPositions.length - 1;
+      const anchorCompleted = standardPositions[anchorIndex]?.skills.some((s) => s.completed) ?? false;
       const roadStatus = storyRoadStatus(
         unitIndex,
         currentUnitIndex,
         currentPositionIndex,
-        skill.anchorPositionIndex ?? unit.standardPositions.length - 1,
+        anchorIndex,
+        anchorCompleted,
+        completedSkillKeys.has(skill.skillKey),
       );
       return { ...skill, unitKey: unit.unitKey, status, roadStatus, completed: completedSkillKeys.has(skill.skillKey) };
     });
