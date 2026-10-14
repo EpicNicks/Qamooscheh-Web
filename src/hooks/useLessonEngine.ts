@@ -30,7 +30,7 @@ import { useAuth } from "../auth/useAuth";
 import { loadCardStates, mergeCardStates } from "../lib/cardStateStore";
 import { enqueue as enqueueOffline } from "../lib/offlineQueue";
 import { checkAnswer, type AnswerVerdict, type SeparatorMarks } from "../domain/answerFeedback";
-import { useGrader } from "../grader/useGrader";
+import { useGrader, useHoldGrader } from "../grader/useGrader";
 import { loadGate, pinFirst } from "../domain/lessonPin";
 import type { Grader } from "../grader/types";
 import { resolveExerciseType } from "../domain/exerciseResolution";
@@ -169,6 +169,7 @@ export function useLessonEngine(
   const pinnedGrader = useRef<Grader | null>(null);
   pinnedGrader.current = pinFirst(pinnedGrader.current, liveGrader);
   const grader = pinnedGrader.current;
+  useHoldGrader(grader !== null);
   const courseCode = course?.code ?? null;
 
   // Cursor-driven mode's own query — enabled only when NOT deep-diving.

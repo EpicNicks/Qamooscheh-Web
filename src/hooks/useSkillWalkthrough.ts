@@ -25,7 +25,7 @@ import { useBootstrap } from "./useBootstrap";
 import { useSkillArtifactsForRefs } from "./useCourseContent";
 import { submitSessions } from "../api/sessionSubmit";
 import { useAuth } from "../auth/useAuth";
-import { useGrader } from "../grader/useGrader";
+import { useGrader, useHoldGrader } from "../grader/useGrader";
 import type { Grader } from "../grader/types";
 import { mergeCardStates } from "../lib/cardStateStore";
 import { enqueue as enqueueOffline } from "../lib/offlineQueue";
@@ -85,6 +85,7 @@ export function useSkillWalkthrough(unitKey: string, skillKey: string, options: 
   const [pinnedGrader, setPinnedGrader] = useState<Grader | null>(null);
   const grader = pinFirst(pinnedGrader, liveGrader);
   if (pinnedGrader === null && grader !== null) setPinnedGrader(grader);
+  useHoldGrader(grader !== null);
 
   const refs = [{ unitKey, skillKey }];
   const { skills, isLoading: skillLoading, isError: skillError } = useSkillArtifactsForRefs(course, refs);

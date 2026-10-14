@@ -22,3 +22,6 @@ export interface GraderContextValue {
 }
 
 export const GraderContext = createContext<GraderContextValue | null>(null);
+
+/** Lets an open lesson tell RequireGrader it holds a pinned grader; returns the release. Null outside RequireGrader. */
+export const GraderHoldContext = createContext<(() => () => void) | null>(null);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { loadGate, pinFirst } from "./lessonPin";
+import { graderGate, loadGate, pinFirst } from "./lessonPin";
 
 describe("pinFirst", () => {
   it("takes the live value until something is pinned", () => {
@@ -24,5 +24,20 @@ describe("loadGate", () => {
   it("never interrupts a started lesson, whatever its queries do", () => {
     expect(loadGate(true, true, false)).toBeNull();
     expect(loadGate(true, false, true)).toBeNull();
+  });
+});
+
+describe("graderGate", () => {
+  it("shows the spinner or error before a lesson holds a grader", () => {
+    expect(graderGate("loading", false)).toBe("loading");
+    expect(graderGate("unavailable", false)).toBe("unavailable");
+  });
+  it("opens when the grader is ready or the course has none", () => {
+    expect(graderGate("ready", false)).toBe("open");
+    expect(graderGate("none", false)).toBe("open");
+  });
+  it("never unmounts a lesson that holds its pinned grader, whatever the provider reports", () => {
+    expect(graderGate("loading", true)).toBe("open");
+    expect(graderGate("unavailable", true)).toBe("open");
   });
 });

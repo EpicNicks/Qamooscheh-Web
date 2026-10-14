@@ -18,3 +18,14 @@ export function loadGate(started: boolean, loading: boolean, failed: boolean): "
   if (started) return null;
   return loading ? "loading" : failed ? "error" : null;
 }
+
+/**
+ * What the grader-gating layout route shows. A lesson that already holds its
+ * pinned grader (`held`) stays mounted whatever the provider reports, so a
+ * grader language change mid-lesson never replaces it with a spinner and
+ * loses its progress; the gate only applies before a lesson has one.
+ */
+export function graderGate(status: "none" | "loading" | "ready" | "unavailable", held: boolean): "open" | "loading" | "unavailable" {
+  if (held || status === "ready" || status === "none") return "open";
+  return status;
+}
