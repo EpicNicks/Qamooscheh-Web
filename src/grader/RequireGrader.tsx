@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Outlet } from "react-router-dom";
 import { Button } from "../components/common/Button";
 import { ErrorBanner } from "../components/common/ErrorBanner";
@@ -13,6 +13,11 @@ import { useGraderState } from "./useGrader";
  */
 export function RequireGrader() {
   const { state, ensure } = useGraderState();
+  // Once the grader has been ready, this screen stays up: a later change of
+  // state (a reload of bootstrap naming another language, a retry) must not
+  // swap an open lesson for a spinner or an error.
+  const wasReady = useRef(false);
+  if (state.status === "ready" || state.status === "none") wasReady.current = true;
 
   useEffect(() => {
     ensure();
@@ -20,6 +25,7 @@ export function RequireGrader() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  if (wasReady.current) return <Outlet />;
   if (state.status === "loading") return <Spinner label="Loading the answer checker…" />;
   if (state.status === "unavailable") {
     return (

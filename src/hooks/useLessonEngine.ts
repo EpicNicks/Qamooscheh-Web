@@ -31,6 +31,8 @@ import { loadCardStates, mergeCardStates } from "../lib/cardStateStore";
 import { enqueue as enqueueOffline } from "../lib/offlineQueue";
 import { checkAnswer, type AnswerVerdict, type SeparatorMarks } from "../domain/answerFeedback";
 import { useGrader } from "../grader/useGrader";
+import { pinFirst } from "../domain/lessonPin";
+import type { Grader } from "../grader/types";
 import { resolveExerciseType } from "../domain/exerciseResolution";
 import { LESSON_PASS_THRESHOLD, verdictWeight } from "../domain/lessonScore";
 import { filterRemixExercises, type RemixContents } from "../domain/remixContents";
@@ -155,8 +157,17 @@ export function useLessonEngine(
   const isDeepDive = deepDiveLessonKeys != null;
 
   const bootstrap = useBootstrap();
-  const grader = useGrader();
+  const liveGrader = useGrader();
   const course = bootstrap.data?.course ?? null;
+  // The grader and course code the lesson started with (domain/lessonPin.ts):
+  // a deploy mid-lesson must not swap either under an answer being checked or
+  // the submit at the end.
+  const pinnedGrader = useRef<Grader | null>(null);
+  pinnedGrader.current = pinFirst(pinnedGrader.current, liveGrader);
+  const grader = pinnedGrader.current;
+  const pinnedCourseCode = useRef<string | null>(null);
+  pinnedCourseCode.current = pinFirst(pinnedCourseCode.current, course?.code);
+  const courseCode = pinnedCourseCode.current;
 
   // Cursor-driven mode's own query — enabled only when NOT deep-diving.
   const cursorPlan = useQuery({
@@ -521,7 +532,7 @@ export function useLessonEngine(
     if (!current || !queue) return { correct: false, requeued: false, note: null, verdict: "incorrect", attempt: 1, xp: 0, submittedText };
 
     const attempt = current.attempt + 1;
-    const feedback = checkAnswer(grader, course?.code, current.exercise, submittedText, { attempt, usedHint: opts?.usedHint });
+    const feedback = checkAnswer(grader, courseCode, current.exercise, submittedText, { attempt, usedHint: opts?.usedHint });
     const correct = feedback.verdict !== "incorrect";
     const latencyMs = Math.round(performance.now() - shownAt.current);
 
@@ -606,7 +617,7 @@ export function useLessonEngine(
           : recorded,
       ),
     );
-    return checkAnswer(grader, course?.code, instance.exercise, retypeText, { attempt, usedHint, retype: true, retypeNumber }).xp;
+    return checkAnswer(grader, courseCode, instance.exercise, retypeText, { attempt, usedHint, retype: true, retypeNumber }).xp;
   }
 
   /** Called once the review of an answer closes: submits the lesson if its last answer was waiting on a retype. */
@@ -635,7 +646,7 @@ export function useLessonEngine(
   }, []);
 
   async function finishLesson(finalItems: RecordedItem[], score: number, keepalive = false) {
-    if (!plan.data || !course) return;
+    if (!plan.data || !course || !courseCode) return;
     setStatus("submitting");
 
     if (isPracticeMode) {
@@ -659,7 +670,7 @@ export function useLessonEngine(
           submissionId: crypto.randomUUID(),
           unitKey: recorded.unitKey,
           skillKey: recorded.skillKey,
-          courseCode: course.code,
+          courseCode,
           courseVersion,
           occurredAt,
           completed: true,
@@ -673,7 +684,7 @@ export function useLessonEngine(
     const sessions = [...bySkill.values()];
     if (!isRemix) {
       const covered = sessions.some((session) => {
-        const exerciseCount = skillArtifacts.get(refKey(session))?.exercises.length ?? 0;
+        const exerciseCount = (sessionArtifacts.get(refKey(session)) ?? skillArtifacts.get(refKey(session)))?.exercises.length ?? 0;
         return exerciseCount > 0 && new Set(session.items.map((item) => item.exerciseOrdinal)).size >= exerciseCount;
       });
       setLessonCompleted(covered && score >= LESSON_PASS_THRESHOLD);
@@ -783,7 +794,7 @@ export function useLessonEngine(
   return {
     status: derivedStatus,
     course,
-    courseCode: course?.code ?? null,
+    courseCode,
     current,
     progress: { completed: totalCount - (queue?.length ?? totalCount), total: totalCount },
     /** `correct` counts first attempts accepted at all; `score` (0..1) is the weighted one the pass mark is measured on (domain/lessonScore.ts). */

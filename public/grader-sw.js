@@ -4,7 +4,10 @@
 // src/grader/loadGrader.ts (caches named "grader:{language}/v{version}"); this
 // never writes to them. grader/index.json is not served from here: loadGrader
 // keeps its own copy of it.
-self.addEventListener("install", () => self.skipWaiting());
+//
+// An updated copy of this worker waits (no skipWaiting) until the app's tabs
+// are closed rather than taking over an open lesson; the first one claims the
+// page it was installed from so grading works offline straight away.
 self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
 
 self.addEventListener("fetch", (event) => {

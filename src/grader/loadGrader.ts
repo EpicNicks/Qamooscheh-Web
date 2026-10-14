@@ -100,7 +100,10 @@ export function loadGrader(language: string): Promise<Grader | null> {
   const existing = loads.get(language);
   if (existing) return existing;
 
-  const load = (async () => {
+  // A build that can't be fetched may have been replaced by a deploy since the
+  // index was read, so a failure re-reads the index once and tries what it now
+  // names; a failed load also forgets the index so a later retry doesn't reuse it.
+  const attempt = async (): Promise<Grader | null> => {
     const shipped = (await shippedIndex()).graders.find((g) => g.language === language);
     if (!shipped) {
       console.warn(`This build shipped no grader for ${language}; answers get a plain exact-match check`);
@@ -114,7 +117,14 @@ export function loadGrader(language: string): Promise<Grader | null> {
       if (hit) return resourceResponse(path, new Uint8Array(await hit.arrayBuffer()));
       return fetch(`${root}/${path}`);
     });
-  })();
+  };
+  const load = attempt().catch((error: unknown) => {
+    index = null;
+    return attempt().catch(() => {
+      index = null;
+      throw error;
+    });
+  });
   loads.set(language, load);
   load.catch(() => loads.delete(language));
   return load;
