@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SAMPLES, SOUNDS, soundLength } from "./sfx";
+import { FILL_SOUND, fillSoundFreq, SAMPLES, SOUNDS, soundLength } from "./sfx";
 
 describe("feedback sounds", () => {
   it("keeps the answer sounds short enough to sit before the read-back", () => {
@@ -26,5 +26,13 @@ describe("feedback sounds", () => {
 
   it("measures a recording by its known length", () => {
     expect(soundLength("storyComplete")).toBe(SAMPLES.storyComplete.length);
+  });
+
+  it("sweeps the fill cue steadily up from its low to its high pitch", () => {
+    expect(fillSoundFreq(0)).toBeCloseTo(FILL_SOUND.fromHz);
+    expect(fillSoundFreq(1)).toBeCloseTo(FILL_SOUND.toHz);
+    expect(fillSoundFreq(0.5)).toBeCloseTo(Math.sqrt(FILL_SOUND.fromHz * FILL_SOUND.toHz));
+    expect(fillSoundFreq(-1)).toBeCloseTo(FILL_SOUND.fromHz);
+    expect(fillSoundFreq(2)).toBeCloseTo(FILL_SOUND.toHz);
   });
 });

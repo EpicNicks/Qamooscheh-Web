@@ -59,13 +59,18 @@ const MAX_START_DELAY_MS = 300;
  * has been tapped or typed on the page since it loaded).
  */
 export function playSound(effect: SoundEffect): void {
+  whenRunning((ctx) => schedule(ctx, effect));
+}
+
+/** Runs `start` with a running audio context, or drops it: see playSound. */
+function whenRunning(start: (ctx: AudioContext) => void): void {
   const AudioContextClass = typeof window === "undefined" ? undefined : window.AudioContext;
   if (!AudioContextClass) return;
   if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return;
   try {
     context ??= new AudioContextClass();
     const ctx = context;
-    if (ctx.state === "running") return schedule(ctx, effect);
+    if (ctx.state === "running") return start(ctx);
     // Suspended (made before a gesture) or interrupted (Safari): resuming is
     // allowed after one, and every sound here follows one. A resume that
     // takes too long means it wasn't, and the sound would come out of
@@ -74,12 +79,60 @@ export function playSound(effect: SoundEffect): void {
     ctx
       .resume()
       .then(() => {
-        if (ctx.state === "running" && performance.now() - asked < MAX_START_DELAY_MS) schedule(ctx, effect);
+        if (ctx.state === "running" && performance.now() - asked < MAX_START_DELAY_MS) start(ctx);
       })
       .catch(() => {});
   } catch {
     // Feedback sounds are a nicety: never let one break the lesson.
   }
+}
+
+/** The recap's fill cue: a soft sine sweeping up while the ring fills. */
+export const FILL_SOUND = { fromHz: 330, toHz: 880, volume: 0.09 } as const;
+
+/** The fill cue's pitch (Hz) at fill progress 0..1: an even climb in pitch, so it rises as steadily as it sounds. */
+export function fillSoundFreq(progress: number): number {
+  const t = Math.min(1, Math.max(0, progress));
+  return FILL_SOUND.fromHz * (FILL_SOUND.toHz / FILL_SOUND.fromHz) ** t;
+}
+
+/**
+ * Plays the fill cue for `seconds`, fading out as it ends so the landing
+ * sound follows cleanly. Returns a function that cuts it short (unmount).
+ */
+export function playFillSound(seconds: number): () => void {
+  let stop = () => {};
+  let cancelled = false;
+  whenRunning((ctx) => {
+    if (cancelled) return;
+    const start = ctx.currentTime + 0.01;
+    const end = start + seconds;
+    const oscillator = ctx.createOscillator();
+    const gain = ctx.createGain();
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(fillSoundFreq(0), start);
+    oscillator.frequency.exponentialRampToValueAtTime(fillSoundFreq(1), end);
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(FILL_SOUND.volume, start + 0.05);
+    gain.gain.setValueAtTime(FILL_SOUND.volume, end - 0.08);
+    gain.gain.exponentialRampToValueAtTime(0.0001, end);
+    oscillator.connect(gain).connect(ctx.destination);
+    oscillator.start(start);
+    oscillator.stop(end + 0.02);
+    stop = () => {
+      try {
+        gain.gain.cancelScheduledValues(ctx.currentTime);
+        gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+        oscillator.stop();
+      } catch {
+        // Already stopped.
+      }
+    };
+  });
+  return () => {
+    cancelled = true;
+    stop();
+  };
 }
 
 /** A recording's bytes, fetched once; decoded per play, which for a sound this short is quick. */

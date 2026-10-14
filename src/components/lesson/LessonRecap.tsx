@@ -1,8 +1,8 @@
 import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import { useLocalAppPref } from "../../hooks/useLocalAppPref";
 import { useRecapSequence } from "../../hooks/useRecapSequence";
-import { playSound } from "../../domain/sfx";
-import { burstParticleCount, isPerfectScore } from "../../domain/lessonRecap";
+import { playFillSound, playSound } from "../../domain/sfx";
+import { burstParticleCount, isPerfectScore, RECAP_FILL_MS } from "../../domain/lessonRecap";
 import { ScoreRing } from "./ScoreRing";
 import styles from "./LessonRecap.module.css";
 
@@ -25,7 +25,8 @@ export interface RecapNote {
  *
  * `celebrate` is whether there's anything to cheer (a pass, or XP credited);
  * the burst is bigger and the title reads "Perfect lesson!" on a flawless
- * score. `sound` plays once, as the fill lands.
+ * score. `sound` plays once, as the fill lands; a rising cue plays while the
+ * ring fills (not under reduced motion, where there is no fill).
  */
 export function LessonRecap({
   correct,
@@ -73,6 +74,12 @@ export function LessonRecap({
     played.current = true;
     if (sound && soundEffects) playSound(sound);
   }, [phase, sound, soundEffects]);
+
+  // The fill cue, for the length of the fill; cut off if the recap goes first.
+  useEffect(() => {
+    if (reduced || !sound || !soundEffects || phase !== "fill") return;
+    return playFillSound(RECAP_FILL_MS / 1000);
+  }, [reduced, sound, soundEffects, phase]);
 
   const particles = !reduced && celebrate && phase !== "fill" ? burstParticleCount(perfect) : 0;
 
