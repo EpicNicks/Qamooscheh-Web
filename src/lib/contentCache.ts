@@ -80,7 +80,17 @@ export async function fetchContentJson<T>(url: string, cacheName: string, accept
 // so its cache is never pruned while the lesson is open. Held in this tab by a
 // count and across tabs by a shared Web Lock, where those exist.
 const pinned = new Map<string, number>();
-let liveCaches: string[] = [];
+let liveCourse: { code: string; version: number } | null = null;
+
+/** Versions of the live course kept besides pinned and in-use ones (a learner between versions still needs the older one). */
+export const KEEP_LIVE_VERSIONS = 3;
+
+function parseCacheName(name: string): { code: string; version: number } | null {
+  const at = name.lastIndexOf("/v");
+  if (!name.startsWith(CACHE_PREFIX) || at < 0) return null;
+  const version = Number(name.slice(at + 2));
+  return Number.isInteger(version) ? { code: name.slice(CACHE_PREFIX.length, at), version } : null;
+}
 
 /** Keeps `cacheName` out of pruning until the returned release is called, which then prunes what is no longer needed. */
 export function pinContentCache(cacheName: string): () => void {
@@ -122,17 +132,33 @@ async function lockedElsewhere(): Promise<Set<string>> {
 }
 
 /**
- * Deletes the content caches of superseded versions: every one except the live
- * course version(s) (the last passed in, kept for later calls) and any a lesson
- * has pinned, in this tab or another. Best effort.
+ * Deletes the content caches of old versions. Kept: the last KEEP_LIVE_VERSIONS
+ * of the live course (the last one passed in, remembered for later calls, and
+ * always its own version), the latest cached version of every other course, and
+ * any version a lesson has pinned, in this tab or another. Best effort.
  */
-export async function pruneContentCaches(live?: string[]): Promise<void> {
-  if (live) liveCaches = live;
+export async function pruneContentCaches(live?: { code: string; version: number }): Promise<void> {
+  if (live) liveCourse = live;
   if (typeof caches === "undefined") return;
   try {
-    const keep = new Set([...liveCaches, ...pinned.keys(), ...(await lockedElsewhere())]);
+    const keep = new Set([...pinned.keys(), ...(await lockedElsewhere())]);
+    const parsed = new Map<string, { code: string; version: number }>();
     for (const name of await caches.keys()) {
-      if (name.startsWith(CACHE_PREFIX) && !keep.has(name)) await caches.delete(name);
+      const entry = parseCacheName(name);
+      if (entry) parsed.set(name, entry);
+    }
+    const latest = new Map<string, number>();
+    for (const { code, version } of parsed.values()) latest.set(code, Math.max(latest.get(code) ?? version, version));
+    const liveVersions = liveCourse
+      ? [...parsed.values()].filter((entry) => entry.code === liveCourse!.code).map((entry) => entry.version)
+      : [];
+    const recentLive = new Set(liveVersions.sort((a, b) => b - a).slice(0, KEEP_LIVE_VERSIONS));
+    for (const [name, { code, version }] of parsed) {
+      const isLive = liveCourse?.code === code;
+      if (isLive ? recentLive.has(version) || version === liveCourse!.version : version === latest.get(code)) keep.add(name);
+    }
+    for (const name of parsed.keys()) {
+      if (!keep.has(name)) await caches.delete(name);
     }
   } catch (error) {
     console.warn("Couldn't prune old course content", error);

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { contentCacheName, fetchContentBytes, fetchContentJson, pinContentCache, pruneContentCaches } from "./contentCache";
+import { KEEP_LIVE_VERSIONS, contentCacheName, fetchContentBytes, fetchContentJson, pinContentCache, pruneContentCaches } from "./contentCache";
 
 /** Cache Storage stand-in: named caches of url -> body. */
 function fakeCaches() {
@@ -100,23 +100,36 @@ describe("fetchContent", () => {
 
 describe("pruneContentCaches", () => {
   let cache: ReturnType<typeof fakeCaches>;
+  const names = () => [...cache.stores.keys()].sort();
+  const seed = (code: string, versions: number[]) => versions.forEach((v) => cache.stores.set(contentCacheName(code, v), new Map()));
   beforeEach(() => {
     cache = fakeCaches();
     vi.stubGlobal("caches", cache.impl);
-    for (const name of [contentCacheName("fr", 1), contentCacheName("fr", 2), contentCacheName("fr", 3), "grader:fr/v1"]) {
-      cache.stores.set(name, new Map());
-    }
+    cache.stores.set("grader:fr/v1", new Map());
   });
   afterEach(() => vi.unstubAllGlobals());
 
-  it("deletes superseded versions, keeping the live one and caches that aren't content's", async () => {
-    await pruneContentCaches([contentCacheName("fr", 3)]);
-    expect([...cache.stores.keys()].sort()).toEqual([contentCacheName("fr", 3), "grader:fr/v1"].sort());
+  it("keeps the last N live versions and the latest of other courses, pruning the rest", async () => {
+    seed("fr", [1, 2, 3, 4, 5]);
+    seed("es", [1, 2]);
+    seed("de", [7]);
+    await pruneContentCaches({ code: "fr", version: 5 });
+    expect(KEEP_LIVE_VERSIONS).toBe(3);
+    expect(names()).toEqual(
+      [contentCacheName("fr", 3), contentCacheName("fr", 4), contentCacheName("fr", 5), contentCacheName("es", 2), contentCacheName("de", 7), "grader:fr/v1"].sort(),
+    );
   });
 
-  it("keeps a version an open lesson pins, then prunes it once the lesson ends", async () => {
+  it("keeps the in-use live version even when it is older than the last N", async () => {
+    seed("fr", [1, 2, 3, 4, 5]);
+    await pruneContentCaches({ code: "fr", version: 1 });
+    expect(names()).toEqual([contentCacheName("fr", 1), contentCacheName("fr", 3), contentCacheName("fr", 4), contentCacheName("fr", 5), "grader:fr/v1"].sort());
+  });
+
+  it("keeps a version an open lesson pins beyond N, then prunes it once the lesson ends", async () => {
+    seed("fr", [1, 2, 3, 4, 5]);
     const release = pinContentCache(contentCacheName("fr", 1));
-    await pruneContentCaches([contentCacheName("fr", 3)]);
+    await pruneContentCaches({ code: "fr", version: 5 });
     expect(cache.stores.has(contentCacheName("fr", 1))).toBe(true);
     expect(cache.stores.has(contentCacheName("fr", 2))).toBe(false);
     release();
