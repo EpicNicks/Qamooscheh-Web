@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { PathSkill, PositionKey } from "../../domain/pathProgress";
+import { mainTagSymbol } from "../../domain/mainTag";
 import { usePathTheme } from "../../theme/PathThemeContext";
 import { useBootstrap } from "../../hooks/useBootstrap";
 import { useThemeIndex } from "../../hooks/useCourseContent";
@@ -13,9 +14,10 @@ import styles from "./SkillNode.module.css";
  * `"node"` is the square card the road places absolutely; `"row"` is the
  * same skill rendered as a full-width line for SkillList. One component with
  * two layouts rather than two components, so the status styling (locked /
- * unlocked / current) can't drift between them.
+ * unlocked / current) can't drift between them. `"story"` is the round node a
+ * story hangs off the road with, for the same reason.
  */
-export type SkillNodeLayout = "node" | "row";
+export type SkillNodeLayout = "node" | "row" | "story";
 
 interface SkillNodeProps {
   skill: PathSkill;
@@ -31,7 +33,9 @@ interface SkillNodeProps {
 export function SkillNode({ skill, layout = "node", nextSkipTarget = null, markCompleted = false, siblings = [] }: SkillNodeProps) {
   const navigate = useNavigate();
   const theme = usePathTheme();
-  const locked = skill.status === "locked";
+  // A story on the road is gated by what it follows, not just by its unit.
+  const status = layout === "story" ? skill.roadStatus : skill.status;
+  const locked = status === "locked";
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [deepDiveOpen, setDeepDiveOpen] = useState(false);
@@ -64,18 +68,30 @@ export function SkillNode({ skill, layout = "node", nextSkipTarget = null, markC
   }
 
   // A fork alternate still to do reads blue (its connector does too, in SkillRoad); locked ones stay grey.
-  const openBranch = markCompleted && !skill.completed && !locked;
-  const classes = [styles.node, styles[skill.status], layout === "row" && styles.row, openBranch && styles.openBranch]
+  // A story still to do reads the same way.
+  const openBranch = (markCompleted || layout === "story") && !skill.completed && !locked;
+  const classes = [
+    styles.node,
+    styles[status],
+    layout === "row" && styles.row,
+    layout === "story" && styles.story,
+    openBranch && styles.openBranch,
+  ]
     .filter(Boolean)
     .join(" ");
   const icon = theme.icons[skill.category];
+  // Shown on a phone only (SkillNode.module.css), alongside the title.
+  const tagSymbol = layout === "node" ? mainTagSymbol(skill.themes, theme.tagSymbols, themeIndex.data) : null;
+  const label = layout === "story" ? `Story: ${skill.title}${skill.completed ? ", done" : locked ? ", locked" : ""}` : undefined;
 
   return (
     <>
-      <button ref={buttonRef} type="button" className={classes} disabled={locked} onClick={handleClick} title={skill.title}>
+      <button ref={buttonRef} type="button" className={classes} disabled={locked} onClick={handleClick} title={skill.title} aria-label={label}>
         {layout === "node" && <span className={styles.fold} aria-hidden="true" />}
         {icon != null && <span className={styles.icon}>{icon}</span>}
+        {tagSymbol != null && <span className={styles.tagSymbol} aria-hidden="true">{tagSymbol}</span>}
         <span className={styles.title}>{skill.title}</span>
+        {layout === "story" && skill.completed && <span className={styles.done} aria-hidden="true">✓</span>}
       </button>
       {popoverOpen && (
         <LessonStartPopover

@@ -16,7 +16,7 @@ import { ErrorBanner } from "../components/common/ErrorBanner";
 import { errorMessage } from "../lib/errors";
 import styles from "./CourseSection.module.css";
 
-/** The learning journey: standard skills only, as the straight branching road. Story/conversation/song content lives in its own per-category page (CategoryPage), reached via the sidebar. */
+/** The learning journey: the standard skills as the straight branching road, with each unit's stories branching off it. All story/conversation/song content is also browsable in its per-category page (CategoryPage), reached via the sidebar. */
 export function PathPage() {
   const bootstrap = useBootstrap();
   const isMobile = useIsMobile();
@@ -105,7 +105,7 @@ export function PathPage() {
             </Link>
           </h2>
           {nextUnitEntryTarget?.unitKey === unit.unitKey && <PlacementTestNode target={nextUnitEntryTarget} />}
-          <SkillRoad positions={unit.standardPositions} nextSkipTarget={nextSkipTarget} />
+          <SkillRoad unit={unit} nextSkipTarget={nextSkipTarget} />
         </section>
       ))}
       <JumpToCurrentButton containerRef={pageRef} watchKey={path} />

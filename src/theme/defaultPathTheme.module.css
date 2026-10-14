@@ -17,4 +17,18 @@
      logicalWidth is also 320) and SkillRoad.tsx's nodeLeft(), both of which
      read this custom property rather than a duplicated constant. */
   --skill-node-width: 100px;
+  /* A story's round node on the road; must match defaultPathTheme.ts's storyHalfWidth × 2. */
+  --story-node-width: 84px;
+}
+
+/*
+ * Phone: smaller tiles leave room for a story's horizontal branch. Must match
+ * mobileLayout's nodeHalfWidth / storyHalfWidth in defaultPathTheme.ts (× 2).
+ */
+/* keep in sync with src/theme/breakpoints.ts */
+@media (max-width: 768px) {
+  .theme {
+    --skill-node-width: 84px;
+    --story-node-width: 72px;
+  }
 }

@@ -10,6 +10,7 @@
 //   src/pages/CourseSection.module.css
 //   src/theme/defaultPathTheme.module.css
 //   src/components/path/SkillGroupModal.module.css
+//   src/components/path/SkillNode.module.css
 //   src/components/lesson/keyboard/Keyboard.module.css
 //   src/components/lesson/PersianKeyboard.module.css
 //   src/components/lesson/JapaneseKanaKeyboard.module.css
