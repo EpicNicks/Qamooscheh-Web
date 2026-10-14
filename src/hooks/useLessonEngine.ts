@@ -31,6 +31,7 @@ import { loadCardStates, mergeCardStates } from "../lib/cardStateStore";
 import { enqueue as enqueueOffline } from "../lib/offlineQueue";
 import { checkAnswer, type AnswerVerdict, type SeparatorMarks } from "../domain/answerFeedback";
 import { useGrader, useHoldGrader } from "../grader/useGrader";
+import { useHoldContentCache } from "./useContentCache";
 import { loadGate, pinFirst } from "../domain/lessonPin";
 import type { Grader } from "../grader/types";
 import { resolveExerciseType } from "../domain/exerciseResolution";
@@ -170,6 +171,7 @@ export function useLessonEngine(
   pinnedGrader.current = pinFirst(pinnedGrader.current, liveGrader);
   const grader = pinnedGrader.current;
   useHoldGrader(grader !== null);
+  useHoldContentCache(course);
   const courseCode = course?.code ?? null;
 
   // Cursor-driven mode's own query — enabled only when NOT deep-diving.

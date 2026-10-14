@@ -36,16 +36,10 @@ export class ManifestHashMismatchError extends Error {
   }
 }
 
-/** Fetches `url`, verifies its SHA-256 against `expectedHex`, and returns the parsed JSON body. */
-export async function fetchAndVerifyJson<T>(url: string, expectedHex: string): Promise<T> {
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`Failed to fetch ${url}: ${response.status}`);
-  const bytes = await response.arrayBuffer();
-
+/** Throws unless `bytes` hash to `expectedHex`. */
+export async function verifyManifestBytes(bytes: ArrayBuffer, expectedHex: string): Promise<void> {
   const actualHex = await sha256Hex(bytes);
   if (actualHex.toLowerCase() !== expectedHex.toLowerCase()) {
     throw new ManifestHashMismatchError(expectedHex, actualHex);
   }
-
-  return JSON.parse(new TextDecoder().decode(bytes)) as T;
 }

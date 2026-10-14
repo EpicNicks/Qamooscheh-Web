@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, type ComponentType } from "react";
 import { NavLink, Outlet, useLocation, useNavigationType } from "react-router-dom";
 import { useAuth } from "../../auth/useAuth";
 import { useBootstrap } from "../../hooks/useBootstrap";
+import { usePruneContentCaches } from "../../hooks/useContentCache";
 import { useOfflineQueueFlush } from "../../hooks/useOfflineQueueFlush";
 import { useIsMobile } from "../../hooks/useMediaQuery";
 import { useMobileDrawer } from "../../hooks/useMobileDrawer";
@@ -37,6 +38,7 @@ export function AppShell() {
   const { logout } = useAuth();
   const { pendingCount, isFlushing } = useOfflineQueueFlush();
   const bootstrap = useBootstrap();
+  usePruneContentCaches(bootstrap.data?.course);
   const location = useLocation();
   const navigationType = useNavigationType();
   const isLessonMode = LESSON_MODE_PATH.test(location.pathname);
