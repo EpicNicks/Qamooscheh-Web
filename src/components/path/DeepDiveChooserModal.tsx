@@ -43,7 +43,7 @@ export function DeepDiveChooserModal({ lessonKey, onClose }: { lessonKey: string
 
   useEffect(() => {
     // Skips the close × (now first in DOM order) so opening focuses the
-    // actual primary action instead: "Remix all topics" when shown,
+    // actual primary action instead: "Repack all topics" when shown,
     // otherwise the first (Dive Level 1) topic row.
     dialogRef.current?.querySelector<HTMLElement>(`button:not(.${styles.close})`)?.focus();
   }, []);
@@ -103,10 +103,10 @@ export function DeepDiveChooserModal({ lessonKey, onClose }: { lessonKey: string
         {showRemix ? (
           <>
             <p className={styles.body}>
-              Practice a blend across everything this lesson touches on, or pick one topic to browse.
+              Practice a blend across everything this Parsle touches on, or pick one topic to browse.
             </p>
             <Button variant="deepDive" onClick={goRemix}>
-              Remix all topics
+              Repack all topics
             </Button>
           </>
         ) : (

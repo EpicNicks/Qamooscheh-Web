@@ -79,7 +79,7 @@ export function RealLessonOverlay({ topRowEl, exerciseEl, renderType, allowAutoT
       : exerciseEl.querySelector<HTMLElement>(`.${CSS.escape(exerciseStyles.input)}`);
 
   const steps: TutorialStep[] = [
-    { targetEl: topRowEl, title: "Your progress", description: "This fills up as you go — and lets you check settings or leave the lesson." },
+    { targetEl: topRowEl, title: "Your progress", description: "This fills up as you go — and lets you check settings or leave the Parsle." },
     { targetEl: promptEl, title: "The prompt", description: "This tells you what to do for this exercise." },
     kind === "wordBank"
       ? { targetEl: mainEl, title: "Word bank", description: "Tap the tiles, in order, to build your answer." }

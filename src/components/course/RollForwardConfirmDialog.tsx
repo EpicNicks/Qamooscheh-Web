@@ -9,7 +9,7 @@ import styles from "./RollForwardConfirmDialog.module.css";
 
 /** "Unit x Lesson y: Unit name - Lesson name" — indices are 0-based on the wire, so +1 for display. */
 function formatPosition(ref: RollForwardPositionRef, title: { unitTitle: string; skillTitle: string } | undefined): string {
-  const locator = `Unit ${ref.unitIndex + 1} Lesson ${ref.lessonIndex + 1}`;
+  const locator = `Unit ${ref.unitIndex + 1} Parsle ${ref.lessonIndex + 1}`;
   return title ? `${locator}: ${title.unitTitle} - ${title.skillTitle}` : locator;
 }
 
@@ -116,7 +116,7 @@ export function RollForwardConfirmDialog({
                 <div>
                   <p className={styles.label}>Current position</p>
                   {preview.data.from == null ? (
-                    <p>You'll start at the first lesson you still owe.</p>
+                    <p>You'll start at the first Parsle you still owe.</p>
                   ) : (
                     <p>{formatPosition(preview.data.from, fromTitle)}</p>
                   )}

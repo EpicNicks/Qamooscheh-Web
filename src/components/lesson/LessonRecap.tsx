@@ -24,7 +24,7 @@ export interface RecapNote {
  * motion shows the final state straight away.
  *
  * `celebrate` is whether there's anything to cheer (a pass, or XP credited);
- * the burst is bigger and the title reads "Perfect lesson!" on a flawless
+ * the burst is bigger and the title reads "Perfect Parsle!" on a flawless
  * score. `sound` plays once, as the fill lands, followed by a chime on a
  * perfect pass; a rising cue plays while the ring fills (not under reduced
  * motion, where there is no fill).
@@ -52,7 +52,7 @@ export function LessonRecap({
   passMark?: number;
   tone: "success" | "warning";
   celebrate: boolean;
-  title: string;
+  title?: string;
   body?: ReactNode;
   notes: RecapNote[];
   /** The stat tiles; told once the recap's text is revealed. */
@@ -110,7 +110,7 @@ export function LessonRecap({
           <ScoreRing pct={pct} progress={progress} shown={value} passMark={showPassMarkTick(phase) ? passMark : undefined} tone={tone} />
         </div>
         <div className={styles.reveal}>
-          <h1 className={styles.title}>{perfect ? "Perfect lesson!" : title}</h1>
+          {(perfect || title) && <h1 className={styles.title}>{perfect ? "Perfect Parsle!" : title}</h1>}
           <p className={styles.fraction}>
             {correct} of {total} right first try
           </p>

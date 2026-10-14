@@ -17,8 +17,8 @@ interface RemixContentsPickerProps {
 export function RemixContentsPicker({ options, value, onChange, onStart, emptyMessage, backLabel, onBack }: RemixContentsPickerProps) {
   return (
     <div className={styles.picker}>
-      <h1>What should this remix hold?</h1>
-      <div className={styles.options} role="radiogroup" aria-label="Remix contents">
+      <h1>What should this Repack hold?</h1>
+      <div className={styles.options} role="radiogroup" aria-label="Repack contents">
         {options.map((option) => (
           <button
             key={option}

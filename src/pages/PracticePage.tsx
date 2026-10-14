@@ -59,14 +59,14 @@ function PracticeRun({ onTryAgain }: { onTryAgain: () => void }) {
   }
 
   if (walkthrough.status === "error") {
-    return <ErrorBanner message="Couldn't load this lesson." />;
+    return <ErrorBanner message="Couldn't load this Parsle." />;
   }
 
   if (walkthrough.status === "empty") {
     return (
       <div className={styles.done}>
         <h1>Nothing here yet</h1>
-        <p>This lesson has no content to practice.</p>
+        <p>This Parsle has no content to practice.</p>
         <Button onClick={() => navigate("/path")}>Back to path</Button>
       </div>
     );
@@ -86,7 +86,7 @@ function PracticeRun({ onTryAgain }: { onTryAgain: () => void }) {
     if (walkthrough.status === "done" && walkthrough.result?.outcome === "Rejected") {
       return (
         <div className={styles.done}>
-          <h1>This lesson wasn't saved</h1>
+          <h1>This Parsle wasn't saved</h1>
           <p>{"The server didn't record this session, so it won't count toward your progress."}</p>
           <div className={styles.doneActions}>
             <Button onClick={() => navigate("/path")}>Back to path</Button>
@@ -100,7 +100,7 @@ function PracticeRun({ onTryAgain }: { onTryAgain: () => void }) {
         <div className={styles.done}>
           <h1>Not passed yet</h1>
           <p>
-            You need {Math.round(LESSON_PASS_THRESHOLD * 100)}% on your first tries to pass this lesson. Your answers
+            You need {Math.round(LESSON_PASS_THRESHOLD * 100)}% on your first tries to pass this Parsle. Your answers
             still count toward your reviews — take it again to pass.
           </p>
           <LessonResults
@@ -123,7 +123,6 @@ function PracticeRun({ onTryAgain }: { onTryAgain: () => void }) {
     if (walkthrough.status === "done") {
       return (
         <div className={styles.done}>
-          <h1>Lesson complete!</h1>
           {walkthrough.isPracticeMode && (
             <p className={styles.practiceNote}>Practice round — doesn't count toward your review schedule.</p>
           )}

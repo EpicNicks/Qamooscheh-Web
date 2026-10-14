@@ -15,7 +15,7 @@ interface CloseLessonButtonProps {
  */
 export function CloseLessonButton({ isConfirming, onClick }: CloseLessonButtonProps) {
   return (
-    <button type="button" className={styles.close} aria-label="Close lesson" onClick={onClick}>
+    <button type="button" className={styles.close} aria-label="Close Parsle" onClick={onClick}>
       {isConfirming ? ":(" : "✕"}
     </button>
   );

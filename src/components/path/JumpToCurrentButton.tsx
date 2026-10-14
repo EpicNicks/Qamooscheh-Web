@@ -61,8 +61,8 @@ export function JumpToCurrentButton({ containerRef, watchKey }: { containerRef: 
       type="button"
       className={`${styles.button} ${edge === "bottom" ? styles.down : ""}`}
       style={rightGap === null ? undefined : ({ "--jump-right": `${rightGap}px` } as CSSProperties)}
-      aria-label="Jump to current lesson"
-      title="Jump to current lesson"
+      aria-label="Jump to current Parsle"
+      title="Jump to current Parsle"
       onClick={() => document.querySelector("[data-current-node]")?.scrollIntoView({ block: "center", behavior: "smooth" })}
     >
       <svg className={styles.arrow} viewBox="0 0 24 24" aria-hidden="true">

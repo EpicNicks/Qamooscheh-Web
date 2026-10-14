@@ -27,7 +27,7 @@ export function formatTimeLeft(deadline: Date, now: Date = new Date()): string {
  */
 export function describeStreak(streak: StreakResponse, now: Date = new Date()): string {
   const { currentStreakDays, practicedToday, pausedToday, nextDayStartsAt } = streak;
-  if (currentStreakDays === 0) return "No streak yet. Finish a lesson today to start one.";
+  if (currentStreakDays === 0) return "No streak yet. Finish a Parsle today to start one.";
   const run = `${currentStreakDays}-day streak`;
   if (practicedToday) return `${run}. You've practiced today.`;
   if (pausedToday) return `${run}. Paused today, so it's safe.`;

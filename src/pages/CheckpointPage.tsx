@@ -38,7 +38,7 @@ export function CheckpointPage() {
   // anything was actually skipped.
   const skipSummary = checkpoint.skippedCount > 0 && (
     <p className={styles.practiceNote}>
-      Skipping {checkpoint.skippedCount} {checkpoint.skippedCount === 1 ? "lesson" : "lessons"}
+      Skipping {checkpoint.skippedCount} {checkpoint.skippedCount === 1 ? "Parsle" : "Parsles"}
       {checkpoint.alreadyCompletedCount > 0 &&
         ` — ${checkpoint.alreadyCompletedCount} already done via deep dive`}
       .

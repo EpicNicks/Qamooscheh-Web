@@ -114,7 +114,7 @@ export function SkillGroupModal({ skills, nextSkipTarget, originRef, onClose, on
           <CloseIcon />
         </button>
         <h2 id="skill-group-title" className={styles.title}>
-          Choose a lesson
+          Choose a Parsle
         </h2>
 
         <div className={styles.columns}>
@@ -122,7 +122,7 @@ export function SkillGroupModal({ skills, nextSkipTarget, originRef, onClose, on
             ref={listRef}
             className={styles.list}
             role="listbox"
-            aria-label="Lessons at this step"
+            aria-label="Parsles at this step"
             tabIndex={0}
             aria-activedescendant={listNav.activeIndex >= 0 ? `skill-option-${listNav.activeIndex}` : undefined}
             onKeyDown={listNav.onKeyDown}
@@ -169,7 +169,7 @@ export function SkillGroupModal({ skills, nextSkipTarget, originRef, onClose, on
                 className={styles.action}
                 variant="secondary"
                 onClick={actions.onSkip}
-                title="Complete a shorter quiz instead of the full lesson to advance"
+                title="Complete a shorter quiz instead of the full Parsle to advance"
               >
                 Test out
               </Button>

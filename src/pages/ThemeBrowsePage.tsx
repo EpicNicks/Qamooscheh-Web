@@ -75,7 +75,7 @@ export function ThemeBrowsePage() {
   if (bootstrap.isError) return <ErrorBanner message={errorMessage(bootstrap.error, "Couldn't load your course.")} />;
   if (themeIndex.isError) return <ErrorBanner message="Couldn't load themes from the CDN." />;
   if (!theme) return <ErrorBanner message={`No theme named "${themeId}".`} />;
-  if (skillsLoading) return <Spinner label="Loading lessons…" />;
+  if (skillsLoading) return <Spinner label="Loading Parsles…" />;
 
   const completedKeys = new Set(completedLessons.data?.completedLessonKeys ?? []);
 
@@ -102,7 +102,7 @@ export function ThemeBrowsePage() {
         </div>
       </div>
 
-      {skillsError && <ErrorBanner message="Some lessons couldn't be loaded." />}
+      {skillsError && <ErrorBanner message="Some Parsles couldn't be loaded." />}
 
       {standardLessons.length === 0 ? (
         <p>Nothing browsable in this theme right now.</p>

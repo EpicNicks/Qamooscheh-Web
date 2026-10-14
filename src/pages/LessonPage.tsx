@@ -34,7 +34,7 @@ import styles from "./LessonPage.module.css";
  * real, graded lesson — the nothing-due offer, the XP burst, the first-lesson
  * tutorial spotlight, and the scored recap.
  *
- * Keyed on the navigation, so the recap's "Next lesson" — another /lesson
+ * Keyed on the navigation, so the recap's "Next Parsle" — another /lesson
  * URL on this same route — mounts a fresh engine for it rather than leaving
  * the finished one's state on screen.
  */
@@ -187,7 +187,7 @@ function LessonPageContent() {
   // backend gap where the publisher doesn't yet filter them out itself.
   const showDeepDiveBridge = lessonThemes.length > 0 && engine.sessionSkillCategory === "standard";
 
-  // "Next lesson" on the passed recap: whatever the path would now offer as
+  // "Next Parsle" on the passed recap: whatever the path would now offer as
   // its current lesson, started the same way the path starts it. Hidden for a
   // deep dive, at the end of the course, and until the pass's own refresh of
   // the cursor and the session plan has landed — before then the path still
@@ -225,8 +225,8 @@ function LessonPageContent() {
   if (themeRemixIsEmpty && !lessonOpen) {
     return (
       <div className={styles.done}>
-        <h1>Nothing to remix here yet</h1>
-        <p>The topics you picked don't have any practice lessons in your current course version.</p>
+        <h1>Nothing to repack here yet</h1>
+        <p>The topics you picked don't have any practice Parsles in your current course version.</p>
         <div className={styles.doneActions}>
           <Button onClick={() => navigate("/theme-remix")}>Pick other topics</Button>
         </div>
@@ -235,11 +235,11 @@ function LessonPageContent() {
   }
 
   if (engine.status === "loading") {
-    return <Spinner label="Preparing your lesson…" />;
+    return <Spinner label="Preparing your Parsle…" />;
   }
 
   if (engine.status === "error") {
-    return <ErrorBanner message="Couldn't load your next lesson." />;
+    return <ErrorBanner message="Couldn't load your next Parsle." />;
   }
 
   if (engine.status === "choosing") {
@@ -259,7 +259,7 @@ function LessonPageContent() {
           setRememberedContents({ ...rememberedContents, lesson: chosenContents });
           setRemixContents(chosenContents);
         }}
-        emptyMessage={remixChoiceEmpty ? "This remix has none of those right now — pick something else." : null}
+        emptyMessage={remixChoiceEmpty ? "This Repack has none of those right now — pick something else." : null}
         backLabel="Back to browsing"
         onBack={() => navigate(isThemeRemixRoute ? "/theme-remix" : "/themes")}
       />
@@ -273,8 +273,8 @@ function LessonPageContent() {
   if (engine.status === "unavailable") {
     return (
       <div className={styles.done}>
-        <h1>This lesson isn't available</h1>
-        <p>It isn't in your current course version — try updating your course, or pick another lesson to try.</p>
+        <h1>This Parsle isn't available</h1>
+        <p>It isn't in your current course version — try updating your course, or pick another Parsle to try.</p>
         <div className={styles.doneActions}>
           <Button onClick={() => navigate("/themes")}>Back to browsing</Button>
         </div>
@@ -317,7 +317,7 @@ function LessonPageContent() {
       const partial = engine.rejection !== null && engine.rejection.rejected < engine.rejection.total;
       return (
         <div className={styles.done}>
-          <h1>{partial ? "Only part of this lesson was saved" : "This lesson wasn't saved"}</h1>
+          <h1>{partial ? "Only part of this Parsle was saved" : "This Parsle wasn't saved"}</h1>
           <p>
             {engine.rejection?.reason ??
               "The server didn't record this session, so it won't count toward your review schedule."}
@@ -346,7 +346,7 @@ function LessonPageContent() {
           title="Not passed yet"
           body={
             <>
-              You need {Math.round(LESSON_PASS_THRESHOLD * 100)}% on your first tries to pass this lesson
+              You need {Math.round(LESSON_PASS_THRESHOLD * 100)}% on your first tries to pass this Parsle
               {isDeepDive ? "" : " and unlock the next one"}. Your answers still count toward your reviews — take it
               again to pass.
             </>
@@ -370,7 +370,7 @@ function LessonPageContent() {
 
     if (engine.status === "done") {
       const notes: RecapNote[] = [];
-      if (engine.lessonCompleted && !isDeepDive) notes.push({ tone: "ok", text: "The next lesson is unlocked." });
+      if (engine.lessonCompleted && !isDeepDive) notes.push({ tone: "ok", text: "The next Parsle is unlocked." });
       if (engine.isPracticeMode) notes.push({ tone: "muted", text: "Practice round — doesn't count toward your review schedule." });
       if (engine.result && engine.result.outcome === "AlreadyProcessed") notes.push({ tone: "muted", text: "Already recorded." });
       if (engine.journeyAdvanced) notes.push({ tone: "info", text: "This also moved you forward in your Journey." });
@@ -381,7 +381,6 @@ function LessonPageContent() {
           score={engine.score.score}
           tone="success"
           celebrate={shouldCelebrate(engine.lessonCompleted, engine.sessionXp)}
-          title="Lesson complete!"
           notes={notes}
           stats={(revealed) => (
             <RecapStats courseCode={engine.courseCode} xp={engine.sessionXp} withProgress revealed={revealed} />
@@ -391,11 +390,11 @@ function LessonPageContent() {
               <Button
                 onClick={() => (nextLesson ? navigate(`/lesson?skill=${encodeURIComponent(nextLesson.skillKey)}`) : navigate("/path"))}
               >
-                {nextLesson ? "Next lesson" : "Back to path"}
+                {nextLesson ? "Next Parsle" : "Back to path"}
               </Button>
               <div className={styles.ghostRow}>
                 <Button variant="ghost" onClick={engine.replay}>
-                  Replay lesson
+                  Replay Parsle
                 </Button>
                 {nextLesson && (
                   <Button variant="ghost" onClick={() => navigate("/path")}>

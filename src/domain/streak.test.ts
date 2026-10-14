@@ -42,7 +42,7 @@ describe("formatStreakDays", () => {
 describe("describeStreak", () => {
   it("invites a learner with no streak to start one", () => {
     expect(describeStreak(streak({ currentStreakDays: 0, longestStreakDays: 4 }), NOW)).toBe(
-      "No streak yet. Finish a lesson today to start one.",
+      "No streak yet. Finish a Parsle today to start one.",
     );
   });
 

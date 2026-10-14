@@ -32,7 +32,7 @@ export function StudySection({ form, editForm, courseCode }: SettingsSectionProp
           <option value="written">Written / formal</option>
           <option value="both">Both</option>
         </select>
-        <span className={styles.fieldNote}>Doesn't change lesson content yet — no course currently varies its exercises or accepted answers by register.</span>
+        <span className={styles.fieldNote}>Doesn't change Parsle content yet — no course currently varies its exercises or accepted answers by register.</span>
       </label>
     </div>
   );

@@ -240,7 +240,7 @@ export function ThemeRemixPage() {
   if (bootstrap.isLoading || themeIndex.isLoading || skillsLoading) return <Spinner label="Loading themes…" />;
   if (bootstrap.isError) return <ErrorBanner message={errorMessage(bootstrap.error, "Couldn't load your course.")} />;
   if (themeIndex.isError) return <ErrorBanner message="Couldn't load themes from the CDN." />;
-  if (entries.length === 0) return <p>No themed lessons yet for this course.</p>;
+  if (entries.length === 0) return <p>No themed Parsles yet for this course.</p>;
 
   // Picking a topic drags its whole subtree along — the browse pane can't
   // otherwise leave an already-covered subtopic sitting there unselected.
@@ -373,16 +373,16 @@ export function ThemeRemixPage() {
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <h1 className={styles.title}>Remix topics</h1>
+        <h1 className={styles.title}>Repack topics</h1>
         <Button variant="secondary" onClick={() => navigate("/themes")}>
           Back to Deep Dives
         </Button>
       </div>
       <p className={styles.intro}>
-        Pick one or more topics — click or drag them across — then practice a blend of their lessons.
+        Pick one or more topics — click or drag them across — then practice a blend of their Parsles.
       </p>
 
-      {skillsError && <ErrorBanner message="Some lessons couldn't be loaded." />}
+      {skillsError && <ErrorBanner message="Some Parsles couldn't be loaded." />}
 
       <div className={styles.search}>
         <input
@@ -486,7 +486,7 @@ export function ThemeRemixPage() {
             </DroppablePane>
             <div className={styles.actions}>
               <span className={styles.poolSize}>
-                {selected.length === 0 ? "" : `${poolSize} ${poolSize === 1 ? "lesson" : "lessons"} in the mix`}
+                {selected.length === 0 ? "" : `${poolSize} ${poolSize === 1 ? "Parsle" : "Parsles"} in the mix`}
               </span>
               {selected.length > 0 && (
                 <Button variant="secondary" onClick={() => removeAnimated(selected)}>
@@ -494,7 +494,7 @@ export function ThemeRemixPage() {
                 </Button>
               )}
               <Button variant="deepDive" onClick={remix} disabled={selected.length === 0}>
-                Remix
+                Repack
               </Button>
             </div>
           </section>

@@ -58,7 +58,7 @@ export function InputSection({ form, editForm, courseCode }: SettingsSectionProp
 
       <label className={`${styles.field} ${styles.checkboxRow}`}>
         <input type="checkbox" checked={soundEffects} onChange={(e) => setSoundEffects(e.target.checked)} />
-        Sound effects for right and wrong answers and finished lessons
+        Sound effects for right and wrong answers and finished Parsles
       </label>
 
       <VoicePicker

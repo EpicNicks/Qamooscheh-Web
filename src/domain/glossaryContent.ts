@@ -283,7 +283,7 @@ const EZAFE_ENTRY: GlossaryEntry = {
   id: "ezafe",
   title: "Ezafe - Word Glue",
   note:
-    "The ezafe is a short -e sound that glues a noun to whatever describes or owns it: کتابِ من (ketāb-e man, \"my book\", literally \"book-of me\"). Everyday Persian doesn't write it — you have to hear it — so the lessons mark it for you: a kasra (ِ) on the word it follows, or a small hamza (ٔ) on a silent ه. Turn on \"Show vowel marks and the ezafe\" in a lesson's settings to see the marks; hovering a word that carries one highlights it either way. After a vowel it becomes -ye, carried by a ی. It links a whole chain, one word at a time — but never a noun to its verb: کتاب خوب است (the book is good) has none, while کتابِ خوب (a good book) does.",
+    "The ezafe is a short -e sound that glues a noun to whatever describes or owns it: کتابِ من (ketāb-e man, \"my book\", literally \"book-of me\"). Everyday Persian doesn't write it — you have to hear it — so the Parsles mark it for you: a kasra (ِ) on the word it follows, or a small hamza (ٔ) on a silent ه. Turn on \"Show vowel marks and the ezafe\" in a Parsle's settings to see the marks; hovering a word that carries one highlights it either way. After a vowel it becomes -ye, carried by a ی. It links a whole chain, one word at a time — but never a noun to its verb: کتاب خوب است (the book is good) has none, while کتابِ خوب (a good book) does.",
   terms: [
     { term: "کتابِ من", romanization: "ketāb-e man", definition: "my book — after a consonant: -e, marked with a kasra" },
     { term: "هوایِ خوب", romanization: "havā-ye khūb", definition: "good weather — after ا or و: -ye, and a ی is written to carry it" },
