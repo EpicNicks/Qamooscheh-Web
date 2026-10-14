@@ -61,3 +61,32 @@
   /* Half of SkillNode's own height, so `top` positions its centre on the curve. */
   transform: translateY(-50%);
 }
+
+/*
+ * The dot where a story's branch leaves the road: an outlined ring in the
+ * colour of the story's own connector. Decorative, so never a hit target.
+ */
+.junction {
+  position: absolute;
+  z-index: 2;
+  width: 16px;
+  height: 16px;
+  box-sizing: border-box;
+  border: 4px solid var(--path-stroke-locked);
+  border-radius: 50%;
+  background: var(--color-bg);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.junction_locked {
+  border-color: var(--path-stroke-locked);
+}
+
+.junction_unlocked {
+  border-color: var(--path-stroke-active);
+}
+
+.junction_open {
+  border-color: var(--color-current);
+}

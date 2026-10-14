@@ -4,7 +4,7 @@
 import { useMemo } from "react";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { getAudioIndex, getCourseManifest, getLexemeIndex, getSkillArtifact, getThemeIndex, getUnitArtifact, getVerbIndex } from "../api/content";
-import { computePathProgress, type PathSkillInput, type PathUnit, type PositionKey } from "../domain/pathProgress";
+import { computePathProgress, splitUnitPositions, type PathSkillInput, type PathUnit, type PositionKey } from "../domain/pathProgress";
 import type { UnitVocab } from "../domain/courseVocabulary";
 import { refKey } from "../domain/skillRefKey";
 import { useCompletedLessons } from "./useCompletedLessons";
@@ -275,22 +275,18 @@ export function useCoursePath(
             title: skill?.title ?? ref.id,
             category: skill?.category ?? "standard",
             arc: skill?.arc ?? undefined,
+            themes: skill?.themes,
           };
         };
 
-        const inputs = unit.positions.map((pos) => pos.skills.map(toInput));
-
+        // Only standard skills sit in the sequence the cursor walks, so only
+        // they form positions (keeping these indices comparable with the
+        // cursor); every other skill keeps where it was published, as the
+        // standard position it follows, so the road can branch it off there.
         return {
           unitKey: unit.id,
           title: unit.title,
-          // Only standard skills sit in the sequence the cursor walks, so
-          // only they form positions. A position holding nothing standard
-          // contributes none, which keeps these indices comparable with the
-          // cursor the same way the old standard-only list did.
-          standardPositions: inputs
-            .map((skills) => ({ skills: skills.filter((s) => s.category === "standard") }))
-            .filter((pos) => pos.skills.length > 0),
-          otherSkills: inputs.flat().filter((s) => s.category !== "standard"),
+          ...splitUnitPositions(unit.positions.map((pos) => pos.skills.map(toInput))),
         };
       }),
       position ?? null,

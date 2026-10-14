@@ -63,6 +63,11 @@ export interface SkillArtifact {
    * appears in, by unit and then by position within that unit.
    */
   arc: string | null;
+  /**
+   * The lesson's tags as authored; the first is its main tag (the road's tile
+   * symbol is drawn from it). Optional because older artifacts may omit it.
+   */
+  themes?: string[];
   exercises: ExerciseArtifact[];
 }
 

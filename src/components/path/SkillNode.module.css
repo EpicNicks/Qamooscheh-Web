@@ -197,6 +197,75 @@
 }
 
 /*
+ * A story's node on the road: a small round card instead of the dog-eared
+ * square — the fold signals "lesson card", round reads as a side trip. Only
+ * geometry differs; the status colours above apply unchanged.
+ */
+.node.story {
+  width: var(--story-node-width, 84px);
+  padding: var(--space-1);
+  border-radius: 50%;
+  mask-image: none;
+  transition: none;
+}
+
+.node.story .icon {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.node.story .title,
+.node.story .icon + .title {
+  font-size: 0.7rem;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.done {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 0.7rem;
+}
+
+/* The main tag's symbol, drawn above the title on a phone only. */
+.tagSymbol {
+  display: none;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+/* keep in sync with src/theme/breakpoints.ts */
+@media (max-width: 768px) {
+  .node:not(.row):not(.story) {
+    padding: var(--space-1);
+    /* Still clears the fold. */
+    padding-top: 14px;
+  }
+
+  .node:not(.row):not(.story) .title {
+    font-size: 0.7rem;
+    line-height: 1.15;
+  }
+
+  .tagSymbol {
+    display: block;
+  }
+
+  .tagSymbol + .title {
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+  }
+}
+
+/*
  * The list register: same card, same status colours, laid out as a full-width
  * line instead of a square. Only geometry is overridden — everything
  * above still applies, which is the point of this being a modifier rather

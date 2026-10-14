@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computePathProgress, findLessonAfter, positionBranches, findNextStandardTarget, findNextUnitEntryTarget, groupByArc, isFirstStandardPosition } from "./pathProgress";
+import { computePathProgress, findLessonAfter, storyRoadStatus, positionBranches, findNextStandardTarget, findNextUnitEntryTarget, groupByArc, isFirstStandardPosition } from "./pathProgress";
 import type { PathUnitInput, SkillStatus } from "./pathProgress";
 
 function standard(skillKey: string) {
@@ -299,5 +299,63 @@ describe("per-branch completion", () => {
   it("falls back to the first alternate when every branch is finished", () => {
     const path = computePathProgress(courseFixture(), { unitKey: "u1", skillKey: "b1" }, done("b1", "b2"));
     expect(findLessonAfter(path, [{ unitKey: "u1", skillKey: "a1" }])).toEqual({ unitKey: "u1", skillKey: "b1" });
+  });
+});
+
+describe("story road status", () => {
+  // u1 has positions a1, b(1|2), c1 and a story anchored after the last; u2 follows.
+  function withAnchors(): PathUnitInput[] {
+    const [u1, u2] = courseFixture();
+    return [
+      { ...u1, otherSkills: [{ ...story("early"), anchorPositionIndex: -1 }, { ...story("mid"), anchorPositionIndex: 1 }, { ...story("late"), anchorPositionIndex: 2 }] },
+      { ...u2, otherSkills: [{ ...story("next"), anchorPositionIndex: 1 }] },
+    ];
+  }
+  const roadStatuses = (path: ReturnType<typeof computePathProgress>) =>
+    path.map((u) => Object.fromEntries(u.otherSkills.map((s) => [s.skillKey, s.roadStatus])));
+
+  it("opens a story once the position it follows is behind the cursor", () => {
+    expect(roadStatuses(computePathProgress(withAnchors(), { unitKey: "u1", skillKey: "b1" }))).toEqual([
+      { early: "unlocked", mid: "locked", late: "locked" },
+      { next: "locked" },
+    ]);
+    expect(roadStatuses(computePathProgress(withAnchors(), { unitKey: "u1", skillKey: "c1" }))[0]).toEqual({
+      early: "unlocked",
+      mid: "unlocked",
+      late: "locked",
+    });
+  });
+
+  it("opens every story of an earlier unit and locks those of a later one", () => {
+    expect(roadStatuses(computePathProgress(withAnchors(), { unitKey: "u2", skillKey: "d1" }))).toEqual([
+      { early: "unlocked", mid: "unlocked", late: "unlocked" },
+      { next: "locked" },
+    ]);
+  });
+
+  it("keeps the library status unit-level, whatever the road says", () => {
+    const path = computePathProgress(withAnchors(), { unitKey: "u1", skillKey: "a1" });
+    expect(path[0].otherSkills.map((s) => s.status)).toEqual(["unlocked", "unlocked", "unlocked"]);
+    expect(path[1].otherSkills.map((s) => s.status)).toEqual(["locked"]);
+  });
+
+  it("gives a standard skill the same road status as its status", () => {
+    const path = computePathProgress(withAnchors(), { unitKey: "u1", skillKey: "b1" });
+    expect(path[0].standardPositions.flatMap((p) => p.skills).map((s) => s.roadStatus)).toEqual(["unlocked", "current", "current", "locked"]);
+  });
+
+  it("is never current, and locks everything with no cursor", () => {
+    expect(storyRoadStatus(0, 0, 0, 0)).toBe("locked");
+    expect(storyRoadStatus(0, 0, 3, 2)).toBe("unlocked");
+    expect(storyRoadStatus(0, 0, 3, 3)).toBe("locked");
+    expect(storyRoadStatus(0, 0, -1, -1)).toBe("locked");
+    expect(storyRoadStatus(0, -1, -1, -1)).toBe("locked");
+  });
+
+  it("unlocks when the anchor is completed or the story is done", () => {
+    expect(storyRoadStatus(0, 0, 3, 3, true)).toBe("unlocked");
+    expect(storyRoadStatus(0, 0, 3, 3, false, true)).toBe("unlocked");
+    expect(storyRoadStatus(0, 0, 3, 3, false, false)).toBe("locked");
+    expect(storyRoadStatus(1, 0, 3, 3, true, true)).toBe("locked");
   });
 });

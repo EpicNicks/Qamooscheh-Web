@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { mainTagSymbol } from "../../domain/mainTag";
 import { positionBranches, type PathPosition, type PositionKey } from "../../domain/pathProgress";
 import { usePathTheme } from "../../theme/PathThemeContext";
 import { useBootstrap } from "../../hooks/useBootstrap";
@@ -30,6 +31,9 @@ export function SkillGroupNode({ position, nextSkipTarget }: { position: PathPos
   const themeIndex = useThemeIndex(bootstrap.data?.course ?? null);
   const branches = positionBranches(position);
   const titles = position.skills.map((s) => s.title);
+  // Only when every alternate agrees: one lesson's tag must not stand for the whole group.
+  const symbols = position.skills.map((s) => mainTagSymbol(s.themes, theme.tagSymbols, themeIndex.data));
+  const tagSymbol = symbols.every((sym) => sym === symbols[0]) ? symbols[0] : null;
 
   return (
     <>
@@ -46,6 +50,7 @@ export function SkillGroupNode({ position, nextSkipTarget }: { position: PathPos
         >
           <span className={nodeStyles.fold} aria-hidden="true" />
           {theme.icons.standard != null && <span className={nodeStyles.icon}>{theme.icons.standard}</span>}
+          {tagSymbol != null && <span className={nodeStyles.tagSymbol} aria-hidden="true">{tagSymbol}</span>}
           <span className={nodeStyles.title}>{position.skills.length} lessons</span>
           <span className={styles.countPill}>{position.skills.length}</span>
           {branches && branches.done > 0 && (

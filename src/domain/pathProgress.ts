@@ -28,6 +28,14 @@ export interface PathSkillInput {
   category: SkillCategory;
   /** The narrative this skill is a chapter of, if any — only meaningful on story/conversation/song skills. */
   arc?: string;
+  /** The lesson's tags as authored; the first is its main tag (see mainTag.ts). */
+  themes?: string[];
+  /**
+   * Non-standard skills only: the index in `standardPositions` of the last
+   * standard position before this skill in the unit's published order (-1 when
+   * it comes before the first). Where a story branches off the road.
+   */
+  anchorPositionIndex?: number;
 }
 
 /** One point in a unit's standard sequence: 1 skill = no fork, 2+ = alternates. */
@@ -47,6 +55,12 @@ export interface PathSkill extends PathSkillInput {
   status: SkillStatus;
   /** Whether the learner has a completion event for this skill (GET /v1/lessons/completed). Independent of the cursor: a skipped-over fork alternate was never completed. */
   completed: boolean;
+  /**
+   * Status on the Journey road. Equals `status` for a standard skill. A story
+   * stays locked there until the position before it is passed, whereas
+   * `status` (which the library pages use) opens it with its unit.
+   */
+  roadStatus: SkillStatus;
   /** Index within the unit's standard sequence; undefined for non-standard skills, which have no position in it. */
   positionIndex?: number;
 }
@@ -72,8 +86,8 @@ export interface PositionKey {
 
 /**
  * The alternates a learner can choose between at one position, with how many
- * are finished. `kind` leaves room for a story side path (issue #60) to be
- * another kind of branch; only forks exist today.
+ * are finished. `kind` leaves room for another kind of branch; only forks exist
+ * today (a story side path is drawn by roadRows.ts, not as a position branch).
  */
 export interface PositionBranches {
   kind: "fork";
@@ -91,6 +105,52 @@ export function positionBranches(position: PathPosition): PositionBranches | nul
     done: position.skills.filter((s) => s.completed).length,
     total: position.skills.length,
   };
+}
+
+/**
+ * Splits a unit's published positions (each a list of skills of any
+ * category) into the standard sequence the cursor walks and the other skills,
+ * each of which remembers the last standard position before it. A position
+ * mixing a story with lessons anchors the story to that same position.
+ */
+export function splitUnitPositions(positions: PathSkillInput[][]): {
+  standardPositions: PathPositionInput[];
+  otherSkills: PathSkillInput[];
+} {
+  const standardPositions: PathPositionInput[] = [];
+  const otherSkills: PathSkillInput[] = [];
+  for (const skills of positions) {
+    const standard = skills.filter((s) => s.category === "standard");
+    if (standard.length > 0) standardPositions.push({ skills: standard });
+    for (const skill of skills) {
+      if (skill.category !== "standard") otherSkills.push({ ...skill, anchorPositionIndex: standardPositions.length - 1 });
+    }
+  }
+  return { standardPositions, otherSkills };
+}
+
+/**
+ * A story's status on the Journey road: its unit's earlier units are open,
+ * later ones locked, and within the cursor's unit it opens once the standard
+ * position it branches off (`anchorPositionIndex`) is behind the cursor — or
+ * at once when it comes before the first lesson. Never "current": stories do
+ * not move the cursor. It also opens when the anchor position was already
+ * completed (the cursor clamps on the course's last lesson, so it never moves
+ * past it) or when the story itself is done (e.g. from the library).
+ */
+export function storyRoadStatus(
+  unitIndex: number,
+  currentUnitIndex: number,
+  currentPositionIndex: number,
+  anchorPositionIndex: number,
+  anchorCompleted = false,
+  storyCompleted = false,
+): SkillStatus {
+  if (unitIndex < currentUnitIndex) return "unlocked";
+  if (unitIndex > currentUnitIndex) return "locked";
+  if (anchorCompleted || storyCompleted) return "unlocked";
+  if (currentPositionIndex < 0) return "locked";
+  return anchorPositionIndex < currentPositionIndex ? "unlocked" : "locked";
 }
 
 /**
@@ -139,6 +199,7 @@ export function computePathProgress(
           unitKey: unit.unitKey,
           status,
           completed: completedSkillKeys.has(s.skillKey),
+          roadStatus: status,
           positionIndex: posIndex,
         })),
       };
@@ -147,7 +208,17 @@ export function computePathProgress(
     const otherSkills = unit.otherSkills.map((skill): PathSkill => {
       // story/conversation/song: gated only by unit position.
       const status: SkillStatus = unitIndex <= currentUnitIndex ? "unlocked" : "locked";
-      return { ...skill, unitKey: unit.unitKey, status, completed: completedSkillKeys.has(skill.skillKey) };
+      const anchorIndex = skill.anchorPositionIndex ?? unit.standardPositions.length - 1;
+      const anchorCompleted = standardPositions[anchorIndex]?.skills.some((s) => s.completed) ?? false;
+      const roadStatus = storyRoadStatus(
+        unitIndex,
+        currentUnitIndex,
+        currentPositionIndex,
+        anchorIndex,
+        anchorCompleted,
+        completedSkillKeys.has(skill.skillKey),
+      );
+      return { ...skill, unitKey: unit.unitKey, status, roadStatus, completed: completedSkillKeys.has(skill.skillKey) };
     });
 
     return { unitKey: unit.unitKey, title: unit.title, standardPositions, otherSkills };
