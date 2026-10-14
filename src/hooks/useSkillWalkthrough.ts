@@ -26,10 +26,12 @@ import { useSkillArtifactsForRefs } from "./useCourseContent";
 import { submitSessions } from "../api/sessionSubmit";
 import { useAuth } from "../auth/useAuth";
 import { useGrader } from "../grader/useGrader";
+import type { Grader } from "../grader/types";
 import { mergeCardStates } from "../lib/cardStateStore";
 import { enqueue as enqueueOffline } from "../lib/offlineQueue";
 import { checkAnswer, type SeparatorMarks } from "../domain/answerFeedback";
 import { resolveExerciseType } from "../domain/exerciseResolution";
+import { loadGate, pinFirst } from "../domain/lessonPin";
 import { verdictWeight } from "../domain/lessonScore";
 import type { SubmittedItem, SubmittedSession, SubmittedSessionResponse } from "../types/api";
 import type { ExerciseArtifact } from "../types/content";
@@ -72,8 +74,17 @@ export function useSkillWalkthrough(unitKey: string, skillKey: string, options: 
   const queryClient = useQueryClient();
 
   const bootstrap = useBootstrap();
-  const grader = useGrader();
-  const course = bootstrap.data?.course ?? null;
+  const liveGrader = useGrader();
+  const liveCourse = bootstrap.data?.course ?? null;
+  // A run pins the course and grader it started with (domain/lessonPin.ts): a
+  // bootstrap refetch mid-run, failed or rolled forward by a deploy, must not
+  // swap the content or the grader under it. The course is frozen when the
+  // queue is seeded below.
+  const [startedCourse, setStartedCourse] = useState<{ course: typeof liveCourse } | null>(null);
+  const course = startedCourse ? startedCourse.course : liveCourse;
+  const [pinnedGrader, setPinnedGrader] = useState<Grader | null>(null);
+  const grader = pinFirst(pinnedGrader, liveGrader);
+  if (pinnedGrader === null && grader !== null) setPinnedGrader(grader);
 
   const refs = [{ unitKey, skillKey }];
   const { skills, isLoading: skillLoading, isError: skillError } = useSkillArtifactsForRefs(course, refs);
@@ -106,6 +117,7 @@ export function useSkillWalkthrough(unitKey: string, skillKey: string, options: 
   // Seeded lazily, exactly as useLessonEngine does and for the same reason:
   // re-seeding on a background refetch would discard answers already given.
   if (queue === null && artifact) {
+    setStartedCourse({ course: liveCourse });
     setQueue(instances);
     setTotalCount(instances.length);
   }
@@ -193,12 +205,13 @@ export function useSkillWalkthrough(unitKey: string, skillKey: string, options: 
   // contain. That resolves to no fetch at all rather than to a failed one —
   // no query means no isError — so without this it would sit on the spinner
   // forever instead of saying the story doesn't exist.
+  const gate = loadGate(queue !== null, bootstrap.isLoading || skillLoading, bootstrap.isError || skillError);
   const derivedStatus: WalkthroughStatus =
     status === "submitting" || status === "done"
       ? status
-      : bootstrap.isLoading || skillLoading
+      : gate === "loading"
         ? "loading"
-        : bootstrap.isError || skillError
+        : gate === "error"
           ? "error"
           : queue !== null && queue.length === 0 && totalCount === 0
             ? "empty"

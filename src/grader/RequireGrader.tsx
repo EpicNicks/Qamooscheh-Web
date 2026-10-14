@@ -1,10 +1,8 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { Outlet } from "react-router-dom";
 import { Button } from "../components/common/Button";
 import { ErrorBanner } from "../components/common/ErrorBanner";
 import { Spinner } from "../components/common/Spinner";
-import { holdSettled } from "../domain/lessonPin";
-import { GraderContext } from "./GraderContext";
 import { useGraderState } from "./useGrader";
 
 /**
@@ -15,26 +13,16 @@ import { useGraderState } from "./useGrader";
  */
 export function RequireGrader() {
   const { state, ensure } = useGraderState();
-  // Once the grader has settled, this screen stays up on that state: a later
-  // change (a reload of bootstrap naming another language, a retry) must not
-  // swap an open lesson for a spinner or an error, nor leave the screens
-  // below it reading a grader that is null while the new one loads.
-  const held = useRef<typeof state | null>(null);
-  held.current = holdSettled(held.current, state);
-
+  // No hold on the previous state: the provider only leaves a settled state
+  // when the language changes, and the old language's grader must not grade
+  // the new one's answers. An open lesson is kept on its own grader by the
+  // engine (pinFirst), not here.
   useEffect(() => {
     ensure();
     // Once per mount: ensure() changes with the state, and re-running it on every change would retry a failed load in a loop.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (held.current) {
-    return (
-      <GraderContext.Provider value={{ state: held.current, ensure }}>
-        <Outlet />
-      </GraderContext.Provider>
-    );
-  }
   if (state.status === "loading") return <Spinner label="Loading the answer checker…" />;
   if (state.status === "unavailable") {
     return (
