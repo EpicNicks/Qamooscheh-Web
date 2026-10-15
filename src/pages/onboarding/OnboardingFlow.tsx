@@ -7,13 +7,14 @@ import { Spinner } from "../../components/common/Spinner";
 import { errorMessage } from "../../lib/errors";
 import { OnboardingLanguagesStep } from "./OnboardingLanguagesStep";
 import { OnboardingNameStep } from "./OnboardingNameStep";
+import { OnboardingUsernameStep } from "./OnboardingUsernameStep";
 import { OnboardingTutorialStep } from "./OnboardingTutorialStep";
 import styles from "./Onboarding.module.css";
 
-type Step = "name" | "languages" | "tutorial";
+type Step = "name" | "username" | "languages" | "tutorial";
 
 /**
- * First-signup onboarding: a name, one or more languages, then a short
+ * First-signup onboarding: a name, an optional username, one or more languages, then a short
  * interactive walkthrough of what a lesson looks like (OnboardingTutorialStep)
  * before landing in the real app. Held in local state rather than nested
  * routes — there is nothing to deep-link to here, and a browser Back button
@@ -85,7 +86,8 @@ export function OnboardingFlow() {
     <div className={styles.page}>
       <div className={styles.card}>
         <div className={styles.brand}>ParsLing</div>
-        {step === "name" && <OnboardingNameStep onDone={() => setStep("languages")} />}
+        {step === "name" && <OnboardingNameStep onDone={() => setStep("username")} />}
+        {step === "username" && <OnboardingUsernameStep onDone={() => setStep("languages")} />}
         {step === "languages" && (
           <OnboardingLanguagesStep onConfirm={finishLanguages} isSubmitting={isSubmitting} error={error} />
         )}
