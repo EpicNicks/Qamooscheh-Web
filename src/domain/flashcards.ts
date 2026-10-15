@@ -54,7 +54,7 @@ export function glossAnswers(gloss: string): string[] {
 }
 
 /** Whether two strings are at most one edit apart — an insertion, deletion, substitution, or two neighbouring letters swapped (the commonest typo). */
-function withinOneEdit(a: string, b: string): boolean {
+export function withinOneEdit(a: string, b: string): boolean {
   if (a === b) return true;
   if (Math.abs(a.length - b.length) > 1) return false;
   if (a.length === b.length) {
