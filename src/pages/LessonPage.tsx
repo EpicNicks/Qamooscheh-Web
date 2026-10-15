@@ -9,6 +9,7 @@ import { useCoursePath, useAllThemeSkillArtifacts, useThemeIndex, refKey } from 
 import { findLessonAfter, isFirstStandardPosition } from "../domain/pathProgress";
 import { rootThemesForLesson } from "../domain/themeTree";
 import { buildRemixPool, computeMasteryScore, selectRemixLessons, REMIX_MAX_LESSONS } from "../domain/deepDiveRemix";
+import { buildPickedPool, parseLessonIds } from "../domain/repackBuilder";
 import { initialRemixContents, remixContentsOptions, type RemixContents } from "../domain/remixContents";
 import { loadCardStates } from "../lib/cardStateStore";
 import { useLocalAppPref } from "../hooks/useLocalAppPref";
@@ -57,6 +58,10 @@ function LessonPageContent() {
   const isDeepDive = lessonKey != null || isThemeRemixRoute;
   const themeIdsParam = isThemeRemixRoute ? (searchParams.get("themeIds") ?? "") : "";
   const remixThemeIds = useMemo(() => themeIdsParam.split(",").filter((id) => id !== ""), [themeIdsParam]);
+  // ?lessonIds=a,b (from RepackBuilderPage): the learner hand-picked these
+  // Parsles, so they are played as given instead of sampled from a theme pool.
+  const lessonIdsParam = isThemeRemixRoute ? (searchParams.get("lessonIds") ?? "") : "";
+  const pickedLessonIds = useMemo(() => parseLessonIds(lessonIdsParam), [lessonIdsParam]);
 
   const bootstrap = useBootstrap();
   const course = bootstrap.data?.course ?? null;
@@ -127,12 +132,16 @@ function LessonPageContent() {
   const themeRemixReady = isThemeRemixRoute && themeIndex.data != null && !themeSkillsLoading;
   const themeRemixPool = useMemo<ThemeLessonRef[]>(() => {
     if (!themeRemixReady) return [];
+    if (pickedLessonIds.length > 0) return buildPickedPool(themeIndex.data, allThemeSkillArtifacts, pickedLessonIds);
     return buildRemixPool(themeIndex.data, allThemeSkillArtifacts, { themeIds: remixThemeIds });
-  }, [themeRemixReady, themeIndex.data, allThemeSkillArtifacts, remixThemeIds]);
+  }, [themeRemixReady, themeIndex.data, allThemeSkillArtifacts, remixThemeIds, pickedLessonIds]);
   const themeRemixKeys = useMemo<string[]>(
-    () => selectRemixLessons(themeRemixPool, 0.5, REMIX_MAX_LESSONS).map((l) => l.id),
+    () =>
+      pickedLessonIds.length > 0
+        ? themeRemixPool.map((l) => l.id)
+        : selectRemixLessons(themeRemixPool, 0.5, REMIX_MAX_LESSONS).map((l) => l.id),
     // Randomized on purpose (weighted sampling) — recompute only when the pool itself changes, same as remixKeys above.
-    [themeRemixPool],
+    [themeRemixPool, pickedLessonIds],
   );
   const themeRemixIsEmpty = themeRemixReady && themeRemixPool.length === 0;
 
@@ -226,9 +235,11 @@ function LessonPageContent() {
     return (
       <div className={styles.done}>
         <h1>Nothing to repack here yet</h1>
-        <p>The topics you picked don't have any practice Parsles in your current course version.</p>
+        <p>The {pickedLessonIds.length > 0 ? "Parsles" : "topics"} you picked don't have any practice Parsles in your current course version.</p>
         <div className={styles.doneActions}>
-          <Button onClick={() => navigate("/theme-remix")}>Pick other topics</Button>
+          <Button onClick={() => navigate(pickedLessonIds.length > 0 ? "/repack-builder" : "/theme-remix")}>
+            {pickedLessonIds.length > 0 ? "Pick other Parsles" : "Pick other topics"}
+          </Button>
         </div>
       </div>
     );
@@ -261,7 +272,7 @@ function LessonPageContent() {
         }}
         emptyMessage={remixChoiceEmpty ? "This Repack has none of those right now — pick something else." : null}
         backLabel="Back to browsing"
-        onBack={() => navigate(isThemeRemixRoute ? "/theme-remix" : "/themes")}
+        onBack={() => navigate(isThemeRemixRoute ? (pickedLessonIds.length > 0 ? "/repack-builder" : "/theme-remix") : "/themes")}
       />
     );
   }
