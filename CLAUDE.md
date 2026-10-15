@@ -19,4 +19,4 @@ User-facing copy (visible text, aria-labels, titles, alt text) uses these terms.
 
 - **Parsle**: a lesson inside a unit on the journey (a play on parcels). Also covers a custom grouping of lessons made in Repack; a constructed Repack is itself a custom Parsle. Capitalised as a proper term; plural "Parsles".
 - **Repack**: the former "Remix". The planned timed mode is the "Repack race".
-- The recap card has no "Lesson complete" heading; result-specific titles ("Perfect Parsle!", "Not passed yet") stay.
+- The recap card has no "Lesson complete" heading; result-specific titles ("Perfect Delivery!", "Not passed yet") stay.
