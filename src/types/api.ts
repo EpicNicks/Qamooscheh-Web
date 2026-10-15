@@ -339,6 +339,15 @@ export interface FriendRefResponse {
   since: string;
 }
 
+/** GET /v1/friends/{userId}/stats (API_SPEC.md §2.6). `league` is null when they aren't in the caller's current cohort. */
+export interface FriendStatsResponse {
+  userId: string;
+  displayName: string | null;
+  username: string | null;
+  since: string;
+  league: { rank: number; points: number } | null;
+}
+
 /** The caller's side of a pair (API_SPEC.md §2.6 "Relationship state"). */
 export type FriendRelationship = "none" | "request_sent" | "request_received" | "friends";
 

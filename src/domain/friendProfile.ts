@@ -1,27 +1,9 @@
-// Friend profile page data: only what GET /v1/friends and the learner's own
-// league standings already return. There is no friend-stats endpoint.
-import type { CurrentLeagueResponse, FriendRefResponse } from "../types/api";
+// Friend profile page helpers: pure formatting over GET /v1/friends/{id}/stats.
+import type { FriendStatsResponse } from "../types/api";
 
-export interface FriendLeagueStanding {
-  rank: number;
-  points: number;
-}
-
-export type FriendProfileResolution =
-  | { status: "unknown" }
-  | { status: "found"; friend: FriendRefResponse; league: FriendLeagueStanding | null };
-
-/** `league` is null when the learner has none; rank is the 1-based standings position, as on LeaguesPage. */
-export function resolveFriendProfile(
-  userId: string | undefined,
-  friends: readonly FriendRefResponse[],
-  league: CurrentLeagueResponse | null | undefined,
-): FriendProfileResolution {
-  const friend = userId ? friends.find((f) => f.userId === userId) : undefined;
-  if (!friend) return { status: "unknown" };
-  const index = league?.standings.findIndex((row) => row.userId === friend.userId) ?? -1;
-  if (!league || index < 0) return { status: "found", friend, league: null };
-  return { status: "found", friend, league: { rank: index + 1, points: league.standings[index].points } };
+/** The league row exists only when the friend is in the caller's current cohort. */
+export function leagueRowOrNull(stats: Pick<FriendStatsResponse, "league">): { rank: number; points: number } | null {
+  return stats.league ?? null;
 }
 
 /** Existing theme tokens only, so every theme gets its own avatar palette. */
@@ -46,9 +28,9 @@ export function avatarInitial(displayName: string | null): string {
   return first ? first.toUpperCase() : "?";
 }
 
-/** "Friends since March 2026"; null when the timestamp doesn't parse. */
+/** "March 2026"; null when the timestamp doesn't parse. */
 export function friendsSinceLabel(since: string): string | null {
   const date = new Date(since);
   if (Number.isNaN(date.getTime())) return null;
-  return `Friends since ${date.toLocaleDateString(undefined, { month: "long", year: "numeric" })}`;
+  return date.toLocaleDateString(undefined, { month: "long", year: "numeric" });
 }

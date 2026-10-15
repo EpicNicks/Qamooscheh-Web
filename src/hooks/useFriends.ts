@@ -1,5 +1,6 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import * as friendsApi from "../api/friends";
+import { ApiError } from "../api/httpClient";
 import { usernameFormatProblem } from "../domain/username";
 
 export function useFriends() {
@@ -51,4 +52,37 @@ export function useDeclineFriendRequest() {
     mutationFn: (otherUserId: string) => friendsApi.declineFriendRequest(otherUserId),
     onSuccess: invalidate,
   });
+}
+
+export const friendStatsKey = (userId: string) => ["friendStats", userId] as const;
+
+/** A 4xx (404 not friends, 429 over budget) is an answer, not a blip: surface it instead of retrying. */
+export function shouldRetryFriendStats(failureCount: number, error: unknown): boolean {
+  if (error instanceof ApiError && error.status >= 400 && error.status < 500) return false;
+  return failureCount < 2;
+}
+
+export function useFriendStats(userId: string | undefined) {
+  return useQuery({
+    queryKey: friendStatsKey(userId ?? ""),
+    queryFn: () => friendsApi.getFriendStats(userId as string),
+    enabled: !!userId,
+    retry: shouldRetryFriendStats,
+  });
+}
+
+/** Separate from the hook so it can be exercised without a React renderer. */
+export function unfriendMutationOptions(queryClient: QueryClient) {
+  return {
+    mutationFn: (userId: string) => friendsApi.unfriend(userId),
+    onSuccess: (_data: void, userId: string) => {
+      // Drop the stats entry rather than refetch it: it would only 404 now.
+      queryClient.removeQueries({ queryKey: friendStatsKey(userId) });
+      queryClient.invalidateQueries({ queryKey: ["friends"] });
+    },
+  };
+}
+
+export function useUnfriend() {
+  return useMutation(unfriendMutationOptions(useQueryClient()));
 }
