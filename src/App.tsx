@@ -22,6 +22,7 @@ import { CheckpointPage } from "./pages/CheckpointPage";
 import { ThemesPage } from "./pages/ThemesPage";
 import { ThemeBrowsePage } from "./pages/ThemeBrowsePage";
 import { ThemeRemixPage } from "./pages/ThemeRemixPage";
+import { RepackBuilderPage } from "./pages/RepackBuilderPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { SettingsPage } from "./pages/settings/SettingsPage";
 import { HelpPage } from "./pages/HelpPage";
@@ -88,6 +89,8 @@ export default function App() {
         {/* Its own top-level path, not /themes/remix — that would be shadowed
             by /themes/:themeId (and make a theme named "remix" unreachable). */}
         <Route path="/theme-remix" element={<ThemeRemixPage />} />
+        {/* Pick single Parsles into a box instead of topics; GO! starts the same lesson-less remix route. */}
+        <Route path="/repack-builder" element={<RepackBuilderPage />} />
         {/* The screens that grade answers wait for the published grader (RequireGrader). */}
         <Route element={<RequireGrader />}>
           <Route path="/saved-practice" element={<SavedPracticePage />} />

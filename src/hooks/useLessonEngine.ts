@@ -144,7 +144,10 @@ export function useLessonEngine(
   deepDiveLessonKeys?: string[],
   selectedSkillKey?: string | null,
   remixContents?: RemixContents | null,
+  /** A hand-picked Repack (the builder) keeps every due exercise of its Parsles instead of the usual REMIX_MAX_EXERCISES cap. */
+  uncapped = false,
 ) {
+  const maxExercises = uncapped ? Infinity : REMIX_MAX_EXERCISES;
   const { userId } = useAuth();
   const queryClient = useQueryClient();
   // The ARRAY'S PRESENCE selects the mode, not its length — an empty array
@@ -335,7 +338,7 @@ export function useLessonEngine(
   const initialQueue = useMemo<LessonExerciseInstance[]>(() => {
     if (!skillsReady || !plan.data || !userId) return [];
     if (!isRemix) return buildInstances(lessonSkills(plan.data.skills), null);
-    return filterRemixExercises(remixBuilt, remixContents ?? "all", REMIX_MAX_EXERCISES);
+    return filterRemixExercises(remixBuilt, remixContents ?? "all", maxExercises);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [skillsReady, plan.data, userId, isRemix, selectedSkillKey, remixBuilt, remixContents]);
 
@@ -345,7 +348,7 @@ export function useLessonEngine(
 
   /** How many exercises a remix would hold with `contents` — 0 means that choice leaves nothing. */
   function remixCount(contents: RemixContents): number {
-    return filterRemixExercises(remixBuilt, contents, REMIX_MAX_EXERCISES).length;
+    return filterRemixExercises(remixBuilt, contents, maxExercises).length;
   }
 
   const [queue, setQueue] = useState<LessonExerciseInstance[] | null>(null);
@@ -480,7 +483,7 @@ export function useLessonEngine(
     const refs = plan.data.skills.length > 0 ? lessonSkills(plan.data.skills) : positionRef ? [positionRef] : [];
     if (refs.length === 0) return;
     const built = buildInstances(refs, null);
-    const instances = isRemix ? filterRemixExercises(built, remixContents ?? "all", REMIX_MAX_EXERCISES) : built;
+    const instances = isRemix ? filterRemixExercises(built, remixContents ?? "all", maxExercises) : built;
     if (instances.length === 0) return;
     // The nothing-due screen seeded an empty session, so this round is what
     // replay() and the recap's Next lesson have to go on.
@@ -508,7 +511,7 @@ export function useLessonEngine(
   function replay() {
     if (sessionSkillRefs.length === 0) return;
     const built = buildInstances(sessionSkillRefs, null, sessionArtifacts);
-    restart(isRemix ? filterRemixExercises(built, remixContents ?? "all", REMIX_MAX_EXERCISES) : built, true);
+    restart(isRemix ? filterRemixExercises(built, remixContents ?? "all", maxExercises) : built, true);
   }
 
   function restart(instances: LessonExerciseInstance[], practice: boolean) {

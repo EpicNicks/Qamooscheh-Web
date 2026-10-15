@@ -1,0 +1,50 @@
+/* Placeholder animations for the Repack builder (see repackAnimations.tsx).
+   Each is a plain transform tween driven by an inline animation-duration. */
+
+.dropChip {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 28px;
+  height: 20px;
+  margin-left: -14px;
+  border-radius: var(--radius-sm);
+  background: var(--color-primary);
+  animation: drop ease-in both;
+}
+
+@keyframes drop {
+  from {
+    transform: translateY(-80px);
+    opacity: 0.4;
+  }
+  to {
+    transform: translateY(60px);
+    opacity: 1;
+  }
+}
+
+/* The shake and box-close placeholders draw nothing themselves: the page
+   styles the box while they are mounted. They are a mount point for a real asset. */
+.marker {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.fade {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: var(--color-bg);
+  animation: fadeIn linear both;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
