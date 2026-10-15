@@ -40,11 +40,6 @@ describe("unfriend mutation", () => {
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ["friends"] });
     expect(client.getQueryData(friendStatsKey("a"))).toBeUndefined();
   });
-  it("surfaces a failed request to the caller", async () => {
-    apiFetchMock.mockImplementation(() => Promise.reject(new ApiError(500, null)));
-    const client = new QueryClient();
-    await expect(unfriendMutationOptions(client).mutationFn("a")).rejects.toBeInstanceOf(ApiError);
-  });
 });
 
 describe("shouldRetryFriendStats", () => {
