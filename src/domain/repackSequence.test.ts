@@ -44,6 +44,17 @@ describe("sequences", () => {
     await done;
     expect(log).toEqual(["start"]);
   });
+
+  it("does not start once cancelled (page left mid-sequence)", async () => {
+    const { log, play } = recorder();
+    let cancelled = false;
+    const wrapped: PlayAnimation = async (name) => {
+      await play(name);
+      if (name === "boxClose") cancelled = true;
+    };
+    await runGoSequence(wrapped, () => log.push("start"), () => cancelled);
+    expect(log).toEqual(["boxClose"]);
+  });
 });
 
 describe("createAnimationPlayer", () => {

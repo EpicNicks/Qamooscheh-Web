@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { SkillArtifact, ThemeIndexArtifact } from "../types/content";
 import { refKey } from "./skillRefKey";
 import {
+  focusIndexAfterRemove,
   addToBox,
   buildCandidates,
   buildPickedPool,
@@ -50,6 +51,14 @@ describe("candidates and search", () => {
   it("returns nothing for an empty query and hides what is already in the box", () => {
     expect(searchCandidates(candidates, "  ", [])).toEqual([]);
     expect(searchCandidates(candidates, "a", ["a"]).map((c) => c.id)).not.toContain("a");
+  });
+});
+
+describe("focusIndexAfterRemove", () => {
+  it("focuses the row that took its place, else the last, else none", () => {
+    expect(focusIndexAfterRemove(3, 0)).toBe(0);
+    expect(focusIndexAfterRemove(3, 2)).toBe(1);
+    expect(focusIndexAfterRemove(1, 0)).toBe(-1);
   });
 });
 

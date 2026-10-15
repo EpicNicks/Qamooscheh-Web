@@ -160,6 +160,7 @@ function LessonPageContent() {
     isThemeRemixRoute ? themeRemixKeys : isRemixRoute ? remixKeys : isDeepDive && lessonKey ? [lessonKey] : undefined,
     searchParams.get("skill"),
     remixContents,
+    isThemeRemixRoute && pickedLessonIds.length > 0,
   );
   const session = useExerciseSession<LessonExerciseInstance, SubmitAnswerResult>(engine.course);
   const { confirmation } = session;

@@ -13,10 +13,12 @@ export async function runDropSequence(play: PlayAnimation): Promise<void> {
   await play("shake");
 }
 
-/** GO!: the box closes, the screen fades to the theme colour, then the Repack starts. */
-export async function runGoSequence(play: PlayAnimation, start: () => void): Promise<void> {
+/** GO!: the box closes, the screen fades to the theme colour, then the Repack starts. Stops quietly once `isCancelled()` (the page was left). */
+export async function runGoSequence(play: PlayAnimation, start: () => void, isCancelled: () => boolean = () => false): Promise<void> {
   await play("boxClose");
+  if (isCancelled()) return;
   await play("fadeToTheme");
+  if (isCancelled()) return;
   start();
 }
 

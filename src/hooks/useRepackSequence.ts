@@ -45,7 +45,9 @@ export function useRepackSequence() {
   const complete = useCallback(() => {
     const resolve = resolveRef.current;
     resolveRef.current = null;
-    setActive(null);
+    // The fade is the last step: leave its overlay up so the builder never
+    // flashes back before the Repack screen replaces it.
+    setActive((current) => (current?.name === "fadeToTheme" ? current : null));
     resolve?.();
   }, []);
 

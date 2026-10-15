@@ -164,3 +164,9 @@ export function comboboxKeyAction(state: ComboboxState, key: string): ComboboxAc
       return { type: "none" };
   }
 }
+
+/** Which chosen row should take focus after removing row `removed` of `count` (the row now in its place, else the last), or -1 when the list is empty. */
+export function focusIndexAfterRemove(count: number, removed: number): number {
+  const remaining = count - 1;
+  return remaining <= 0 ? -1 : Math.min(removed, remaining - 1);
+}

@@ -17,6 +17,7 @@ import {
   addToBox,
   buildCandidates,
   comboboxKeyAction,
+  focusIndexAfterRemove,
   removeFromBox,
   repackStartUrl,
   searchCandidates,
@@ -52,7 +53,11 @@ export function RepackBuilderPage() {
   const [box, setBox] = useState<string[]>([]);
   const [query, setQuery] = useState("");
   const [highlight, setHighlight] = useState(-1);
-  const [announcement, setAnnouncement] = useState("");
+  const [announcement, setAnnouncement] = useState({ text: "", n: 0 });
+  const alive = useRef(true);
+  const inputRef = useRef<HTMLInputElement>(null);
+  // Row index to focus once a removal has re-rendered the list.
+  const pendingFocus = useRef<number | null>(null);
   const [going, setGoing] = useState(false);
   const listboxId = useId();
 
@@ -70,6 +75,22 @@ export function RepackBuilderPage() {
   const activeIndex = listOpen ? Math.min(highlight, results.length - 1) : -1;
   const chosenRef = useRef<HTMLOListElement>(null);
   const prevCount = useRef(0);
+
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
+
+  // After a removal, keep keyboard focus in the list (or back in the search).
+  useEffect(() => {
+    const index = pendingFocus.current;
+    if (index == null) return;
+    pendingFocus.current = null;
+    const buttons = chosenRef.current?.querySelectorAll("button");
+    (index >= 0 ? buttons?.[index] : inputRef.current)?.focus();
+  }, [box]);
 
   // Scroll a newly added Parsle into view inside the bounded list.
   useEffect(() => {
@@ -97,12 +118,15 @@ export function RepackBuilderPage() {
     return byId.get(id)?.title ?? id;
   }
 
+  // The counter makes repeated identical text change the live region again.
+  function announce(text: string) {
+    setAnnouncement((prev) => ({ text, n: prev.n + 1 }));
+  }
+
   function choose(candidate: RepackCandidate) {
     if (going) return;
     setBox((prev) => addToBox(prev, candidate.id));
-    setAnnouncement(
-      `${candidate.title} added to the box. ${box.length + 1} in the box.`,
-    );
+    announce(`${candidate.title} added to the box. ${box.length + 1} in the box.`);
     setQuery("");
     setHighlight(-1);
     void runDropSequence(play);
@@ -110,16 +134,19 @@ export function RepackBuilderPage() {
 
   function remove(id: string) {
     if (going) return;
+    pendingFocus.current = focusIndexAfterRemove(box.length, box.indexOf(id));
     setBox((prev) => removeFromBox(prev, id));
-    setAnnouncement(
-      `${titleOf(id)} removed from the box. ${box.length - 1} in the box.`,
-    );
+    announce(`${titleOf(id)} removed from the box. ${box.length - 1} in the box.`);
   }
 
   function go() {
     if (box.length === 0 || going) return;
     setGoing(true);
-    void runGoSequence(play, () => navigate(repackStartUrl(box)));
+    void runGoSequence(
+      play,
+      () => navigate(repackStartUrl(box)),
+      () => !alive.current,
+    );
   }
 
   function onKeyDown(event: ReactKeyboardEvent<HTMLInputElement>) {
@@ -165,6 +192,7 @@ export function RepackBuilderPage() {
       <div className={styles.search}>
         <input
           type="text"
+          ref={inputRef}
           className={styles.searchInput}
           placeholder="Search by title, unit or topic…"
           value={query}
@@ -284,7 +312,8 @@ export function RepackBuilderPage() {
       </div>
 
       <div className={styles.srOnly} role="status" aria-live="polite">
-        {announcement}
+        {announcement.text}
+        {announcement.n % 2 === 0 ? "" : " "}
       </div>
     </div>
   );
