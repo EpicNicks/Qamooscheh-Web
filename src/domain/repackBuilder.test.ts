@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import type { SkillArtifact, ThemeIndexArtifact } from "../types/content";
 import { refKey } from "./skillRefKey";
 import {
-  MAX_BOX_PARSLES,
   addToBox,
   buildCandidates,
   buildPickedPool,
@@ -55,10 +54,10 @@ describe("candidates and search", () => {
 });
 
 describe("box", () => {
-  it("adds in order without duplicates and caps at the limit", () => {
+  it("adds in order without duplicates and has no size limit", () => {
     expect(addToBox(addToBox([], "a"), "a")).toEqual(["a"]);
-    const full = Array.from({ length: MAX_BOX_PARSLES }, (_, i) => `l${i}`);
-    expect(addToBox(full, "extra")).toEqual(full);
+    const many = Array.from({ length: 50 }, (_, i) => `l${i}`);
+    expect(addToBox(many, "extra")).toEqual([...many, "extra"]);
     expect(removeFromBox(["a", "b"], "a")).toEqual(["b"]);
   });
   it("builds the existing remix route url and parses it back", () => {

@@ -6,9 +6,6 @@
 import type { SkillArtifact, ThemeIndexArtifact, ThemeLessonRef } from "../types/content";
 import { refKey } from "./skillRefKey";
 
-/** How many Parsles the box holds. The plan sets no limit; this keeps the list and the session a sane size. */
-export const MAX_BOX_PARSLES = 8;
-
 /** Most results the autocomplete dropdown shows at once. */
 export const MAX_RESULTS = 8;
 
@@ -89,9 +86,9 @@ export function searchCandidates(
   return [...matches.filter(inTitle), ...matches.filter((c) => !inTitle(c))].slice(0, limit);
 }
 
-/** Adds `id` to the end of the box unless it is already there or the box is full. */
+/** Adds `id` to the end of the box unless it is already there. The box has no size limit. */
 export function addToBox(box: readonly string[], id: string): string[] {
-  if (box.includes(id) || box.length >= MAX_BOX_PARSLES) return [...box];
+  if (box.includes(id)) return [...box];
   return [...box, id];
 }
 
