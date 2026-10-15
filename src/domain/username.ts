@@ -83,3 +83,20 @@ export function renameErrorCopy(status: number | null, reason: string | undefine
       return "Couldn't change your username. Please try again.";
   }
 }
+
+/** Copy for an availability result that isn't "available" (reason invalid|reserved|taken|held), or a failed check. */
+export function availabilityCopy(status: number | null, reason: string | null | undefined): string {
+  if (status === 429) return "Checking too fast. Wait a moment and try again.";
+  switch (reason) {
+    case "invalid":
+      return "That isn't a valid username. Use 3-20 lowercase letters, numbers, underscores or dots.";
+    case "reserved":
+      return "That username isn't allowed. Try another.";
+    case "taken":
+      return "Someone already has that username.";
+    case "held":
+      return "That username was recently given up and is held for 30 days for its previous owner.";
+    default:
+      return "Couldn't check that username. You can still try to save it.";
+  }
+}

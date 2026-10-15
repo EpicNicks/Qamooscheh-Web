@@ -51,7 +51,7 @@ function isOtherTextField(target: EventTarget | null, except: HTMLElement | null
  * this component asks for — see keyboard/scriptEngines.tsx. Adding a new
  * keyboard kind means writing one engine there; nothing here changes.
  */
-export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keyboardMode, autoplayAudio, hintMap, textSettings, advance, reviewedAnswer, retype }: ExerciseProps) {
+export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keyboardMode, autoplayAudio, hintMap, textSettings, advance, reviewedAnswer, retype, promptSlot }: ExerciseProps) {
   // Retyping (issue #44) starts from an empty field under the checked answer.
   const initialText = retype ? "" : (reviewedAnswer?.text ?? "");
   const [text, setText] = useState(initialText);
@@ -347,18 +347,20 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
 
   return (
     <div className={styles.wrap}>
-      <ExercisePrompt
-        text={exercise.prompt}
-        audio={exercise.promptAudio}
-        speaker={exercise.speaker}
-        tags={exercise.tags}
-        onHintReveal={() => setUsedHint(true)}
-        romanization={exercise.promptRomanization}
-        courseCode={courseCode}
-        autoplayAudio={autoplayAudio}
-        hintMap={hintMap}
-        textSettings={textSettings}
-      />
+      {promptSlot ?? (
+        <ExercisePrompt
+          text={exercise.prompt}
+          audio={exercise.promptAudio}
+          speaker={exercise.speaker}
+          tags={exercise.tags}
+          onHintReveal={() => setUsedHint(true)}
+          romanization={exercise.promptRomanization}
+          courseCode={courseCode}
+          autoplayAudio={autoplayAudio}
+          hintMap={hintMap}
+          textSettings={textSettings}
+        />
+      )}
       {reviewedAnswer && missingWords.length > 0 && (
         <p className={styles.missingNote}>
           Close. Missing words: <bdi>{missingWords.join(" ")}</bdi>

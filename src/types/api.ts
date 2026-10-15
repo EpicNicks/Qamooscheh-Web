@@ -552,10 +552,13 @@ export interface BatchSetStarredRequest {
 // v1/flashcards (Flashcards/FlashcardContracts.cs). Flashcards never touch
 // review scheduling; they only earn XP — 5 a card for a correct translation
 // card, and for a known self-rated card only inside a saved-words remix —
-// counted only for saved tags, once each per round, up to a daily cap.
+// counted only for saved tags, once each per round, up to a daily cap. A cloze
+// (fill in the blank) round is the exception: any learned word pays, 5/3/1 XP
+// by attempt, under a per-word daily cooldown instead of the cap, and it also
+// counts as a review.
 // ---------------------------------------------------------------------------
 
-export type FlashcardKind = "self_rated" | "translation";
+export type FlashcardKind = "self_rated" | "translation" | "cloze";
 
 export interface SubmitFlashcardsRequest {
   /** Client-generated; a retry with the same id answers with the first award. */
@@ -563,7 +566,10 @@ export interface SubmitFlashcardsRequest {
   courseCode: string;
   occurredAt: string;
   inRemix: boolean;
-  cards: { tag: string; kind: FlashcardKind; correct: boolean }[];
+  /** Cloze rounds only: the round had no typo tolerance. */
+  hardcore?: boolean;
+  /** A cloze round is all cloze cards. `attempt` is the one the card ended on (1-50), `correct: false` a give-up, `elapsedMs` the client-timed answer (0-600000). */
+  cards: { tag: string; kind: FlashcardKind; correct: boolean; attempt?: number; elapsedMs?: number }[];
 }
 
 export interface SubmitFlashcardsResponse {

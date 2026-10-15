@@ -1,0 +1,61 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.sentence {
+  margin: 0;
+  font-size: 1.5rem;
+  line-height: 2.2;
+  overflow-wrap: anywhere;
+}
+
+.gap {
+  display: inline-block;
+  min-width: 4rem;
+  padding: 0 var(--space-2);
+  margin: 0 var(--space-1);
+  border-bottom: 2px dashed var(--color-text-muted);
+  font-size: 1rem;
+  line-height: 1.6;
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+.gapRight,
+.gapWrong {
+  border-bottom-style: solid;
+  font-size: inherit;
+  font-weight: 600;
+}
+
+.gapRight {
+  border-bottom-color: var(--color-success, #2e8b57);
+  color: var(--color-success, #2e8b57);
+}
+
+.gapWrong {
+  border-bottom-color: var(--color-danger, #c0392b);
+  color: var(--color-danger, #c0392b);
+}
+
+.english {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.status {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.worth {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+
+.giveUp {
+  align-self: flex-start;
+}

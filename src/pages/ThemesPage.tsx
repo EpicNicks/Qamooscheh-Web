@@ -57,6 +57,9 @@ export function ThemesPage() {
         <Button variant="deepDive" onClick={() => navigate("/theme-remix")}>
           Repack
         </Button>
+        <Button variant="secondary" onClick={() => navigate("/repack-builder")}>
+          Build a Repack
+        </Button>
       </div>
       <div className={styles.grid}>
         {roots.map((theme) => {
