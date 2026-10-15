@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { SeparatorMarks } from "../../domain/answerFeedback";
 import type { ExerciseType, KeyboardMode } from "../../domain/enums";
 import type { TextDisplaySettings, WordHint } from "../../domain/romanization";
@@ -65,6 +66,8 @@ export interface ExerciseProps {
    * it, and it's expected to render enabled while this is set.
    */
   retype?: { matches: (text: string) => boolean; onMatched: (text: string) => number };
+  /** TypeInExercise only: shown in place of the exercise's prompt — a fill-in-the-blank card draws its own sentence, gap included. */
+  promptSlot?: ReactNode;
 }
 
 /** Renders the exercise inside its ExerciseVoiceScope, so a shuffled voice holds for everything heard in it (hooks/exerciseVoiceScope.ts). */
@@ -95,6 +98,7 @@ function ExerciseByType({
   advance,
   reviewedAnswer,
   retype,
+  promptSlot,
 }: ExerciseProps & { renderType: ExerciseType }) {
   switch (renderType) {
     case "word_bank":
@@ -125,6 +129,7 @@ function ExerciseByType({
           advance={advance}
           reviewedAnswer={reviewedAnswer}
           retype={retype}
+          promptSlot={promptSlot}
         />
       );
     case "match":

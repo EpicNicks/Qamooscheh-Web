@@ -6,6 +6,7 @@ import { useLexemeIndex } from "../hooks/useCourseContent";
 import { useStarredLexemes } from "../hooks/useStarredLexemes";
 import { flashcardWords, type FlashcardWord } from "../domain/flashcards";
 import { submitFlashcards } from "../api/flashcards";
+import { ClozeRound } from "../components/flashcards/ClozeRound";
 import { Flashcard } from "../components/flashcards/Flashcard";
 import { SessionProgressBar } from "../components/lesson/SessionProgressBar";
 import { LessonResults } from "../components/lesson/LessonResults";
@@ -26,7 +27,9 @@ type XpState = { status: "idle" } | { status: "saving" } | { status: "saved"; xp
  * "Flip" (self-rated) earns nothing on its own — a flip only earns XP inside
  * a saved-words Repack — and "Type" (translation) earns 5 XP per right
  * meaning, submitted once when the round ends. Neither touches review
- * scheduling.
+ * scheduling. "Fill in the blank" (issue #87) is a cloze round of its own
+ * (ClozeRound): sentences from Parsles with a saved word taken out, which
+ * the server counts as reviews.
  */
 export function FlashcardsPage() {
   const navigate = useNavigate();
@@ -37,6 +40,8 @@ export function FlashcardsPage() {
   const saved = useStarredLexemes(course?.code);
 
   const [kind, setKind] = useState<FlashcardKind>("translation");
+  const [hardcore, setHardcore] = useState(false);
+  const [clozeStarted, setClozeStarted] = useState(false);
   const [deck, setDeck] = useState<FlashcardWord[] | null>(null);
   const [results, setResults] = useState<{ tag: string; correct: boolean }[]>([]);
   const [xp, setXp] = useState<XpState>({ status: "idle" });
@@ -84,6 +89,10 @@ export function FlashcardsPage() {
     }
   }
 
+  if (clozeStarted && course) {
+    return <ClozeRound course={course} hardcore={hardcore} onExit={() => setClozeStarted(false)} />;
+  }
+
   if (deck === null || words.length === 0) {
     return (
       <div className={styles.wrap}>
@@ -104,6 +113,7 @@ export function FlashcardsPage() {
               options={[
                 { value: "translation" as const, label: "Type the meaning" },
                 { value: "self_rated" as const, label: "Flip cards" },
+                { value: "cloze" as const, label: "Fill in the blank" },
               ]}
               value={kind}
               onChange={setKind}
@@ -111,12 +121,24 @@ export function FlashcardsPage() {
             <p className={styles.note}>
               {kind === "translation"
                 ? "Each meaning you get right earns 5 XP."
-                : "Flipping cards is practice only. It earns XP inside a saved-words Repack."}{" "}
-              Flashcards don't change your review schedule.
+                : kind === "cloze"
+                  ? "A saved word is taken out of a sentence from a Parsle you've done, with its meaning in the gap. Type the word: 5 XP on the first try, 3 on the second, 1 on the third. A word pays less if you've practised it a lot today, and each answer counts as a review."
+                  : "Flipping cards is practice only. It earns XP inside a saved-words Repack."}{" "}
+              {kind !== "cloze" && "Flashcards don't change your review schedule."}
             </p>
-            <Button onClick={start}>
-              Start {Math.min(words.length, ROUND_SIZE)} card{Math.min(words.length, ROUND_SIZE) === 1 ? "" : "s"}
-            </Button>
+            {kind === "cloze" && (
+              <label className={styles.note}>
+                <input type="checkbox" checked={hardcore} onChange={(event) => setHardcore(event.target.checked)} /> Hardcore: no typos
+                forgiven (otherwise one wrong letter in a word of four or more is let through)
+              </label>
+            )}
+            {kind === "cloze" ? (
+              <Button onClick={() => setClozeStarted(true)}>Start</Button>
+            ) : (
+              <Button onClick={start}>
+                Start {Math.min(words.length, ROUND_SIZE)} card{Math.min(words.length, ROUND_SIZE) === 1 ? "" : "s"}
+              </Button>
+            )}
           </>
         )}
       </div>
