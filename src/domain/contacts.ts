@@ -44,3 +44,29 @@ export function contactsErrorCopy(status: number | null, retryAt?: string): stri
   if (status === 400) return "Those addresses couldn't be checked. Make sure each one is a valid email.";
   return "Something went wrong. Please try again.";
 }
+
+// Contact Picker API (Chrome on Android). Not in TypeScript's DOM lib.
+interface PickedContact {
+  email?: string[];
+}
+interface ContactsManager {
+  select(properties: string[], options?: { multiple?: boolean }): Promise<PickedContact[]>;
+}
+
+/** Feature-detected rather than sniffed from the user agent: the API is what we need, and it can appear in other browsers. */
+export function contactPickerSupported(): boolean {
+  return typeof navigator !== "undefined" && "contacts" in navigator && "ContactsManager" in window;
+}
+
+/** Opens the system contact picker for email addresses. Must be called from a user gesture; rejects if the learner dismisses it. */
+export async function pickContactEmails(): Promise<string[]> {
+  const picked = await (navigator as Navigator & { contacts: ContactsManager }).contacts.select(["email"], {
+    multiple: true,
+  });
+  return emailsFromPicked(picked);
+}
+
+/** Every distinct, well-formed email from a picker result, normalized like `parseEmails`. */
+export function emailsFromPicked(contacts: PickedContact[]): string[] {
+  return parseEmails(contacts.flatMap((c) => c.email ?? []).join("\n"));
+}

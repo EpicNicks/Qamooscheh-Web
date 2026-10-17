@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { chunk, contactsErrorCopy, hashEmail, parseEmails } from "./contacts";
+import { chunk, contactsErrorCopy, emailsFromPicked, hashEmail, parseEmails } from "./contacts";
 
 describe("parseEmails", () => {
   it("splits on newlines, commas and semicolons, lower-cases and de-duplicates", () => {
@@ -38,5 +38,14 @@ describe("contactsErrorCopy", () => {
   it("explains a 429 with or without a retry time", () => {
     expect(contactsErrorCopy(429)).toMatch(/later/);
     expect(contactsErrorCopy(429, "2026-10-18T10:00:00Z")).toMatch(/Try again after/);
+  });
+});
+
+describe("emailsFromPicked", () => {
+  it("flattens every address of every contact, normalized and de-duplicated", () => {
+    expect(emailsFromPicked([{ email: ["A@x.com", "a2@x.com"] }, { email: ["a@X.com"] }, {}, { email: ["junk"] }])).toEqual([
+      "a@x.com",
+      "a2@x.com",
+    ]);
   });
 });
