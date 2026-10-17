@@ -364,6 +364,23 @@ export interface UserSearchResultResponse {
 }
 
 // ---------------------------------------------------------------------------
+// v1/contacts (Contacts/ContactsController.cs; API_SPEC.md §2.6 "Contacts matching")
+// ---------------------------------------------------------------------------
+
+export interface ContactsFindableResponse {
+  /** The caller's own opt-in switch; off by default. */
+  findable: boolean;
+  /** False for an account with no password credential (Google-only): matching is by email, so it can never be found. */
+  canBeFound: boolean;
+}
+
+export interface ContactMatchResponse {
+  userId: string;
+  displayName: string;
+  relationship: FriendRelationship;
+}
+
+// ---------------------------------------------------------------------------
 // v1/username (Usernames/UsernameController.cs)
 // ---------------------------------------------------------------------------
 
