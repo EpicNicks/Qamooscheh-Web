@@ -4,7 +4,7 @@ import { ApiError } from "../../api/httpClient";
 import { useContactsFindable, useMatchContacts, useSetContactsFindable } from "../../hooks/useContacts";
 import { useAcceptFriendRequest, useRequestFriendship } from "../../hooks/useFriends";
 import { actionForRelationship, FRIEND_ACTION_LABEL } from "../../domain/username";
-import { contactsErrorCopy, parseEmails } from "../../domain/contacts";
+import { contactPickerSupported, contactsErrorCopy, parseEmails, pickContactEmails } from "../../domain/contacts";
 import { Button } from "../common/Button";
 import { ErrorBanner } from "../common/ErrorBanner";
 import { errorMessage } from "../../lib/errors";
@@ -34,6 +34,16 @@ export function ContactsCard() {
   const [busyUserId, setBusyUserId] = useState<string | null>(null);
 
   const emails = parseEmails(text);
+  const canPick = contactPickerSupported();
+
+  async function pickFromContacts() {
+    try {
+      const picked = await pickContactEmails();
+      if (picked.length > 0) setText((prev) => [prev.trim(), ...picked].filter(Boolean).join("\n"));
+    } catch {
+      // Dismissed, or permission denied: nothing to add, and pasting still works.
+    }
+  }
 
   function search(e: React.FormEvent) {
     e.preventDefault();
@@ -112,7 +122,12 @@ export function ContactsCard() {
           Your addresses are scrambled on this device before they&apos;re sent, and the server doesn&apos;t keep them.
           Only people who turned on &ldquo;find me by email&rdquo; can show up.
         </p>
-        <div>
+        <div className={styles.actions}>
+          {canPick && (
+            <Button type="button" variant="secondary" onClick={pickFromContacts}>
+              Choose from contacts
+            </Button>
+          )}
           <Button type="submit" disabled={match.isPending || emails.length === 0}>
             {match.isPending ? "Checking…" : `Find friends (${emails.length})`}
           </Button>
