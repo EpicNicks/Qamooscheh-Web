@@ -13,6 +13,7 @@ import { ErrorBanner } from "../components/common/ErrorBanner";
 import { errorMessage } from "../lib/errors";
 import { Button } from "../components/common/Button";
 import { UsernameCard } from "../components/friends/UsernameCard";
+import { ContactsCard } from "../components/friends/ContactsCard";
 import { ApiError } from "../api/httpClient";
 import {
   actionForRelationship,
@@ -119,6 +120,8 @@ export function FriendsPage() {
           </ul>
         )}
       </section>
+
+      <ContactsCard />
 
       <section>
         <h2>Pending requests</h2>
