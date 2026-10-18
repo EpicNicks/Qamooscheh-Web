@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, type ComponentType, useCallback, useEffect, useRef, useState } from "react";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import { chooseBackend, clampSpeed, settleDelayMs, type ActorDefinition, type ActorProps } from "./actor";
 import type { RiveBackendProps } from "./RiveBackend";
@@ -11,7 +11,7 @@ function ChunkFailed({ onFail }: RiveBackendProps<string>) {
 }
 
 // Lazy so the Rive runtime is its own chunk, and failure-tolerant (ChunkFailed).
-const RiveBackend = lazy(() => import("./RiveBackend").catch(() => ({ default: ChunkFailed })));
+const RiveBackend = lazy<ComponentType<RiveBackendProps<string>>>(() => import("./RiveBackend").catch(() => ({ default: ChunkFailed })));
 
 const NO_SLOTS: Readonly<Record<string, string>> = {};
 
