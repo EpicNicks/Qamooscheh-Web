@@ -150,6 +150,27 @@ export function buildClozeDeck(
   return deck;
 }
 
+/**
+ * The sources for a Repack's cloze round (issue #105): one per word, in the
+ * order `tags` give, each with the exercises that use it. A word no exercise
+ * uses is left out here; a word with exercises but no usable blank is left
+ * out by buildClozeDeck.
+ */
+export function clozeSourcesForTags(tags: readonly string[], exercises: readonly ExerciseArtifact[]): ClozeSource[] {
+  const seen = new Set<string>();
+  const sources: ClozeSource[] = [];
+  for (const tag of tags) {
+    if (seen.has(tag)) continue;
+    seen.add(tag);
+    const using = exercises.filter((exercise) => exercise.tags.includes(tag));
+    if (using.length > 0) sources.push({ tag, exercises: [...using] });
+  }
+  return sources;
+}
+
+/** Cards in one Repack cloze round, at most (the size of a Repack's exercises). */
+export const CLOZE_ROUND_WORDS = 20;
+
 export interface ClozeResult {
   tag: string;
   /** False when the learner gave up on the card. */

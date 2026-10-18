@@ -36,6 +36,7 @@ import { loadGate, pinFirst } from "../domain/lessonPin";
 import type { Grader } from "../grader/types";
 import { resolveExerciseType } from "../domain/exerciseResolution";
 import { LESSON_PASS_THRESHOLD, verdictWeight } from "../domain/lessonScore";
+import { clozeSourcesForTags } from "../domain/cloze";
 import { filterRemixExercises, type RemixContents } from "../domain/remixContents";
 import { MAX_CREDITED_RETYPES, needsRetype } from "../domain/retype";
 import type { SessionPlanResponse, SkillRef, SubmittedItem, SubmittedSession, SubmittedSessionResponse } from "../types/api";
@@ -350,6 +351,23 @@ export function useLessonEngine(
   function remixCount(contents: RemixContents): number {
     return filterRemixExercises(remixBuilt, contents, maxExercises).length;
   }
+
+  /**
+   * The words a fill-in-the-blank Repack (issue #105) can cut cards from: the
+   * remix's due words, those due for review first, each with the remix's
+   * exercises that use it. Which of them yield a usable blank is the page's
+   * call (buildClozeDeck).
+   */
+  const remixClozeSources = useMemo(
+    () =>
+      isRemix
+        ? clozeSourcesForTags(
+            [...(plan.data?.reviewTags ?? []), ...(plan.data?.newTags ?? [])],
+            remixBuilt.map((instance) => instance.exercise),
+          )
+        : [],
+    [isRemix, plan.data, remixBuilt],
+  );
 
   const [queue, setQueue] = useState<LessonExerciseInstance[] | null>(null);
   const [totalCount, setTotalCount] = useState(0);
@@ -820,6 +838,9 @@ export function useLessonEngine(
     /** A multi-lesson remix — the only kind that offers a contents choice (status "choosing"). */
     isRemix,
     remixCount,
+    remixClozeSources,
+    /** The most cards (or exercises) a Repack holds: REMIX_MAX_EXERCISES, or no limit for a hand-picked one. */
+    remixMaxCards: maxExercises,
     submitAnswer,
     recordRetype,
     settleAnswer,

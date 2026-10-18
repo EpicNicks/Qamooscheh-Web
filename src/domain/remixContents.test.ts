@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ExerciseType } from "./enums";
-import { filterRemixExercises, includesExercise, includesFlashcards, initialRemixContents, remixContentsOptions } from "./remixContents";
+import { filterRemixExercises, includesExercise, includesFlashcards, initialRemixContents, isClozeContents, remixContentsOptions } from "./remixContents";
 
 function exercises(...types: ExerciseType[]) {
   return types.map((renderType, index) => ({ id: index, renderType }));
@@ -36,8 +36,9 @@ describe("filterRemixExercises", () => {
 
 describe("remix contents options", () => {
   it("offers the flashcard choices only when the remix has flashcards", () => {
-    expect(remixContentsOptions(false)).toEqual(["all", "type_in", "word_bank"]);
-    expect(remixContentsOptions(true)).toHaveLength(5);
+    expect(remixContentsOptions(false)).toEqual(["all", "type_in", "word_bank", "cloze"]);
+    expect(remixContentsOptions(true)).toHaveLength(6);
+    expect(remixContentsOptions(true)).toContain("cloze");
   });
 
   it("falls back when the remembered choice isn't offered", () => {
@@ -51,5 +52,14 @@ describe("remix contents options", () => {
     expect(includesFlashcards("all")).toBe(false);
     expect(includesExercise("type_in", "match")).toBe(false);
     expect(includesExercise("all", "speak")).toBe(true);
+  });
+});
+
+describe("cloze contents", () => {
+  it("holds no exercises or flashcards of its own", () => {
+    expect(filterRemixExercises(exercises("type_in", "word_bank"), "cloze")).toEqual([]);
+    expect(includesFlashcards("cloze")).toBe(false);
+    expect(isClozeContents("cloze")).toBe(true);
+    expect(isClozeContents("all")).toBe(false);
   });
 });
