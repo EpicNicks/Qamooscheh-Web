@@ -5,14 +5,16 @@ import { useLessonEngine, type SubmitAnswerResult, type LessonExerciseInstance }
 import { useExerciseSession } from "../hooks/useExerciseSession";
 import { useBootstrap } from "../hooks/useBootstrap";
 import { useAuth } from "../auth/useAuth";
-import { useCoursePath, useAllThemeSkillArtifacts, useThemeIndex, refKey } from "../hooks/useCourseContent";
+import { useCoursePath, useAllThemeSkillArtifacts, useLexemeIndex, useThemeIndex, refKey } from "../hooks/useCourseContent";
 import { findLessonAfter, isFirstStandardPosition } from "../domain/pathProgress";
 import { rootThemesForLesson } from "../domain/themeTree";
 import { buildRemixPool, computeMasteryScore, selectRemixLessons, REMIX_MAX_LESSONS } from "../domain/deepDiveRemix";
 import { buildPickedPool, parseLessonIds } from "../domain/repackBuilder";
-import { initialRemixContents, remixContentsOptions, type RemixContents } from "../domain/remixContents";
+import { buildClozeDeck, type ClozeCard } from "../domain/cloze";
+import { initialRemixContents, isClozeContents, remixContentsOptions, type RemixContents } from "../domain/remixContents";
 import { loadCardStates } from "../lib/cardStateStore";
 import { useLocalAppPref } from "../hooks/useLocalAppPref";
+import { ClozeDeckRound } from "../components/flashcards/ClozeDeckRound";
 import { RemixContentsPicker } from "../components/lesson/RemixContentsPicker";
 import { ExerciseSessionScreen } from "../components/lesson/ExerciseSessionScreen";
 import { RealLessonOverlay } from "../components/tutorial/RealLessonOverlay";
@@ -164,6 +166,24 @@ function LessonPageContent() {
   );
   const session = useExerciseSession<LessonExerciseInstance, SubmitAnswerResult>(engine.course);
   const { confirmation } = session;
+
+  // Fill in the blank (issue #105): a cloze Repack never starts the engine's
+  // queue; it runs its own round over cards cut from the remix's due words,
+  // and the engine stays on its contents choice behind it.
+  const lexemeIndex = useLexemeIndex(engine.course);
+  const [clozeSeed] = useState(() => Math.random());
+  const clozeDeck = useMemo<ClozeCard[]>(
+    () =>
+      lexemeIndex.data == null
+        ? []
+        : buildClozeDeck(engine.remixClozeSources, session.courseHintMap, lexemeIndex.data, (count) => Math.floor(clozeSeed * count)).slice(
+            0,
+            engine.remixMaxCards,
+          ),
+    [engine.remixClozeSources, engine.remixMaxCards, session.courseHintMap, lexemeIndex.data, clozeSeed],
+  );
+  const [hardcore, setHardcore] = useState(false);
+  const [clozeRound, setClozeRound] = useState<ClozeCard[] | null>(null);
   const [lastUsedHint, setLastUsedHint] = useState(false);
   const [forceShowTutorial, setForceShowTutorial] = useState(false);
 
@@ -254,6 +274,22 @@ function LessonPageContent() {
     return <ErrorBanner message="Couldn't load your next Parsle." />;
   }
 
+  const backToBrowsing = () => navigate(isThemeRemixRoute ? (pickedLessonIds.length > 0 ? "/repack-builder" : "/theme-remix") : "/themes");
+
+  if (clozeRound && engine.course) {
+    return (
+      <ClozeDeckRound
+        course={engine.course}
+        deck={clozeRound}
+        hardcore={hardcore}
+        inRemix
+        exitLabel="Back to path"
+        onExit={() => navigate("/path")}
+        secondaryExit={{ label: "Back to browsing", onExit: backToBrowsing }}
+      />
+    );
+  }
+
   if (engine.status === "choosing") {
     return (
       <RemixContentsPicker
@@ -263,7 +299,18 @@ function LessonPageContent() {
           setChosenContents(next);
           setRemixChoiceEmpty(false);
         }}
+        hardcore={hardcore}
+        onHardcoreChange={setHardcore}
         onStart={() => {
+          if (isClozeContents(chosenContents)) {
+            if (clozeDeck.length === 0) {
+              setRemixChoiceEmpty(true);
+              return;
+            }
+            setRememberedContents({ ...rememberedContents, lesson: chosenContents });
+            setClozeRound(clozeDeck);
+            return;
+          }
           if (engine.remixCount(chosenContents) === 0) {
             setRemixChoiceEmpty(true);
             return;
@@ -273,7 +320,7 @@ function LessonPageContent() {
         }}
         emptyMessage={remixChoiceEmpty ? "This Repack has none of those right now — pick something else." : null}
         backLabel="Back to browsing"
-        onBack={() => navigate(isThemeRemixRoute ? (pickedLessonIds.length > 0 ? "/repack-builder" : "/theme-remix") : "/themes")}
+        onBack={backToBrowsing}
       />
     );
   }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { attemptWorth, buildClozeCard, buildClozeDeck, clozeResultLines, clozeXp, gapLabel, gradeCloze, summarizeCloze } from "./cloze";
+import { attemptWorth, buildClozeCard, buildClozeDeck, clozeResultLines, clozeSourcesForTags, clozeXp, gapLabel, gradeCloze, summarizeCloze } from "./cloze";
 import { buildLexemeHintMap } from "./romanization";
 import type { ExerciseArtifact, LexemeIndex, LexemeIndexEntry } from "../types/content";
 
@@ -143,6 +143,16 @@ describe("buildClozeDeck", () => {
     expect(first).toHaveLength(1);
     expect(first[0].english).toBe("I'm thirsty, I want water.");
     expect(buildClozeDeck(sources, hintMap, lexemes, (count) => count - 1)[0].english).toBe("Water!");
+  });
+});
+
+describe("clozeSourcesForTags", () => {
+  it("groups exercises by word in the order given, once per word, skipping words no exercise uses", () => {
+    const water = exercise({ prompt: "Water!", answer: ["آب!"], tags: ["آب<n>"] });
+    const sources = clozeSourcesForTags(["آب<n>", "من<pron>", "آب<n>", "خونه<n><spoken>"], [thirsty, water]);
+    expect(sources.map((s) => s.tag)).toEqual(["آب<n>", "من<pron>"]);
+    expect(sources[0].exercises).toEqual([thirsty, water]);
+    expect(sources[1].exercises).toEqual([thirsty]);
   });
 });
 

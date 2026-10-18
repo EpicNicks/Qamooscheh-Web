@@ -1,4 +1,4 @@
-import { REMIX_CONTENTS_LABELS, type RemixContents } from "../../domain/remixContents";
+import { isClozeContents, REMIX_CONTENTS_LABELS, type RemixContents } from "../../domain/remixContents";
 import { Button } from "../common/Button";
 import styles from "./RemixContentsPicker.module.css";
 
@@ -7,6 +7,9 @@ interface RemixContentsPickerProps {
   value: RemixContents;
   onChange: (next: RemixContents) => void;
   onStart: () => void;
+  /** The hardcore switch, offered only while fill in the blank is chosen (it is the one kind with typo tolerance to turn off). */
+  hardcore: boolean;
+  onHardcoreChange: (next: boolean) => void;
   /** Set when the last Start found nothing of the chosen kind — the picker stays up so another choice can be made. */
   emptyMessage: string | null;
   backLabel: string;
@@ -14,7 +17,7 @@ interface RemixContentsPickerProps {
 }
 
 /** The step before a remix starts (issue #45): which kinds of exercise, and whether flashcards, it holds. See domain/remixContents.ts. */
-export function RemixContentsPicker({ options, value, onChange, onStart, emptyMessage, backLabel, onBack }: RemixContentsPickerProps) {
+export function RemixContentsPicker({ options, value, onChange, onStart, hardcore, onHardcoreChange, emptyMessage, backLabel, onBack }: RemixContentsPickerProps) {
   return (
     <div className={styles.picker}>
       <h1>What should this Repack hold?</h1>
@@ -32,6 +35,12 @@ export function RemixContentsPicker({ options, value, onChange, onStart, emptyMe
           </button>
         ))}
       </div>
+      {isClozeContents(value) && (
+        <label className={styles.hardcore}>
+          <input type="checkbox" checked={hardcore} onChange={(event) => onHardcoreChange(event.target.checked)} /> Hardcore: no typos forgiven
+          (otherwise one wrong letter in a word of four or more is let through)
+        </label>
+      )}
       {emptyMessage && (
         <p className={styles.empty} role="status">
           {emptyMessage}

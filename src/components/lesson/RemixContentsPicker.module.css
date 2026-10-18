@@ -34,6 +34,12 @@
   background: color-mix(in srgb, var(--color-primary) 10%, var(--color-bg));
 }
 
+.hardcore {
+  max-width: 320px;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+
 .empty {
   margin: 0;
   font-size: 0.9rem;
