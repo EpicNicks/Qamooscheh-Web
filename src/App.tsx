@@ -17,6 +17,8 @@ import { LessonPage } from "./pages/LessonPage";
 import { StoryPage } from "./pages/StoryPage";
 import { PracticePage } from "./pages/PracticePage";
 import { FlashcardsPage } from "./pages/FlashcardsPage";
+import { RacePage } from "./pages/RacePage";
+import { RaceBoardsPage } from "./pages/RaceBoardsPage";
 import { SavedPracticePage } from "./pages/SavedPracticePage";
 import { CheckpointPage } from "./pages/CheckpointPage";
 import { ThemesPage } from "./pages/ThemesPage";
@@ -84,6 +86,8 @@ export default function App() {
         <Route path="/vocabulary/:unitKey" element={<VocabularyReviewPage />} />
         <Route path="/vocabulary/:unitKey/:skillKey" element={<VocabularyReviewPage />} />
         <Route path="/flashcards" element={<FlashcardsPage />} />
+        <Route path="/race" element={<RacePage />} />
+        <Route path="/race/boards" element={<RaceBoardsPage />} />
         <Route path="/themes" element={<ThemesPage />} />
         <Route path="/themes/:themeId" element={<ThemeBrowsePage />} />
         {/* Its own top-level path, not /themes/remix — that would be shadowed

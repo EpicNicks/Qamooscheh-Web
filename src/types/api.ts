@@ -605,6 +605,80 @@ export interface SubmitFlashcardsResponse {
 }
 
 // ---------------------------------------------------------------------------
+// v1/race (Race/RaceContracts.cs, API_SPEC §2.8b). The device builds and grades
+// the cloze cards; the server starts and finishes the run, times it, issues the
+// FSRS weights and holds implausible runs off the boards.
+// ---------------------------------------------------------------------------
+
+export type RaceMode = "perfect_delivery" | "endless_practice";
+export type RaceDeviceClass = "touch" | "keyboard";
+export type RaceScope = "global" | "country" | "weekly" | "friends";
+
+export interface StartRaceRequest {
+  courseCode: string;
+  mode: RaceMode;
+  hardcore: boolean;
+  deviceClass: RaceDeviceClass;
+  /** The lexeme tags of the deck the device built. */
+  tags: string[];
+}
+
+export interface StartRaceResponse {
+  runId: string;
+  serverStartedAt: string;
+  /** Each learned tag's weight, `1 + min(1 - R, 0.9)`. A tag missing from it is not a learned word and must not be dealt. */
+  weights: Record<string, number>;
+}
+
+export interface RaceAnswer {
+  tag: string;
+  attempt: number;
+  correct: boolean;
+  elapsedMs?: number | null;
+}
+
+export interface FinishRaceRequest {
+  answers: RaceAnswer[];
+  /** The deck ran out. */
+  deckDone: boolean;
+}
+
+export interface RacePersonalBest {
+  score: number;
+  timeMs: number;
+}
+
+export interface FinishRaceResponse {
+  score: number;
+  timeMs: number;
+  solved: number;
+  strikes: number;
+  endReason: "third_strike" | "deck_done" | "stopped" | string;
+  xp: number;
+  /** A speed check kept the run off the boards; `heldReason` names it. */
+  held: boolean;
+  heldReason: string | null;
+  /** Place on the global board, only for a ranked, unheld run that solved a card. */
+  rank: number | null;
+  personalBest: RacePersonalBest | null;
+  alreadyFinished: boolean;
+}
+
+export interface RaceBoardEntry {
+  rank: number;
+  userId: string;
+  displayName: string | null;
+  country: string | null;
+  score: number;
+  timeMs: number;
+  isYou: boolean;
+}
+
+export interface RaceBoardResponse {
+  entries: RaceBoardEntry[];
+}
+
+// ---------------------------------------------------------------------------
 // v1/onboarding (Onboarding/OnboardingContracts.cs). One endpoint, one field.
 // ---------------------------------------------------------------------------
 
