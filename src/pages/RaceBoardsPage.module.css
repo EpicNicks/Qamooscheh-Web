@@ -1,0 +1,48 @@
+.board {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.you {
+  background: var(--color-border);
+}
+
+.rank {
+  color: var(--color-text-muted);
+  min-width: 3ch;
+}
+
+.name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.country {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+.result {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-variant-numeric: tabular-nums;
+}
+
+.time {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}

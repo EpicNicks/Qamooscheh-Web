@@ -133,7 +133,12 @@ export function FlashcardsPage() {
               </label>
             )}
             {kind === "cloze" ? (
-              <Button onClick={() => setClozeStarted(true)}>Start</Button>
+              <div className={styles.actions}>
+                <Button onClick={() => setClozeStarted(true)}>Start</Button>
+                <Button variant="secondary" onClick={() => navigate("/race")}>
+                  Race the clock
+                </Button>
+              </div>
             ) : (
               <Button onClick={start}>
                 Start {Math.min(words.length, ROUND_SIZE)} card{Math.min(words.length, ROUND_SIZE) === 1 ? "" : "s"}

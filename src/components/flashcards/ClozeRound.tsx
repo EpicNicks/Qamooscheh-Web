@@ -1,15 +1,10 @@
-import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { getStarredPractice } from "../../api/vocab";
-import { useExerciseSession } from "../../hooks/useExerciseSession";
-import { refKey, useLexemeIndex, useSkillArtifactsForRefs } from "../../hooks/useCourseContent";
-import { buildClozeDeck, type ClozeSource } from "../../domain/cloze";
+import { useSavedClozeDeck } from "../../hooks/useSavedClozeDeck";
 import { ClozeDeckRound } from "./ClozeDeckRound";
 import { Spinner } from "../common/Spinner";
 import { ErrorBanner } from "../common/ErrorBanner";
 import { Button } from "../common/Button";
-import type { CourseRef, SkillRef } from "../../types/api";
+import type { CourseRef } from "../../types/api";
 import styles from "../../pages/FlashcardsPage.module.css";
 
 /** Saved words in one round, at most. */
@@ -32,43 +27,9 @@ interface ClozeRoundProps {
  */
 export function ClozeRound({ course, hardcore, onExit }: ClozeRoundProps) {
   const navigate = useNavigate();
-  const session = useExerciseSession<unknown, unknown>(course);
-  const lexemeIndex = useLexemeIndex(course);
-  const practice = useQuery({
-    queryKey: ["vocab", "cloze-practice"],
-    queryFn: () => getStarredPractice(ROUND_WORDS),
-    // Picked fresh each round, and not again mid-round.
-    gcTime: 0,
-    staleTime: Infinity,
-    refetchOnWindowFocus: false,
-  });
+  const { deck, isError } = useSavedClozeDeck(course, ROUND_WORDS, "cloze-practice");
 
-  const refs = useMemo<SkillRef[]>(() => {
-    const byKey = new Map<string, SkillRef>();
-    for (const word of practice.data?.words ?? []) {
-      for (const { unitKey, skillKey } of word.exercises) byKey.set(refKey({ unitKey, skillKey }), { unitKey, skillKey });
-    }
-    return [...byKey.values()];
-  }, [practice.data]);
-  const content = useSkillArtifactsForRefs(course, refs);
-
-  // Which of a word's sentences each card uses, fixed for the round.
-  const [seed] = useState(() => Math.random());
-
-  const ready = practice.data != null && lexemeIndex.data != null && refs.every((ref) => content.skills.has(refKey(ref)));
-  const deck = useMemo(() => {
-    if (!ready) return null;
-    const sources: ClozeSource[] = practice.data!.words.map((word) => ({
-      tag: word.tag,
-      exercises: word.exercises.flatMap(({ unitKey, skillKey, ordinal }) => {
-        const exercise = content.skills.get(refKey({ unitKey, skillKey }))?.exercises[ordinal];
-        return exercise ? [exercise] : [];
-      }),
-    }));
-    return buildClozeDeck(sources, session.courseHintMap, lexemeIndex.data!, (count) => Math.floor(seed * count));
-  }, [ready, practice.data, content.skills, lexemeIndex.data, session.courseHintMap, seed]);
-
-  if (practice.isError || lexemeIndex.isError || content.isError) return <ErrorBanner message="Couldn't put together your fill-in-the-blank round." />;
+  if (isError) return <ErrorBanner message="Couldn't put together your fill-in-the-blank round." />;
   if (deck === null) return <Spinner label="Finding sentences for your saved words…" />;
 
   if (deck.length === 0) {
