@@ -19,6 +19,9 @@ import type { BootstrapResponse } from "../types/api";
  * sit in their own cache entries and a switch back re-reads them for free.
  */
 function adoptBootstrap(queryClient: QueryClient, response: BootstrapResponse) {
+  // A bootstrap fetch already in flight describes the course just left; if it
+  // landed after this it would put that course back.
+  void queryClient.cancelQueries({ queryKey: ["bootstrap"] });
   queryClient.setQueryData(["bootstrap"], response);
   queryClient.invalidateQueries({ queryKey: ["prefs"] });
   queryClient.invalidateQueries({ queryKey: ["sessionPlan"] });
