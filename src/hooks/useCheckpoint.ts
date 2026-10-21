@@ -3,7 +3,7 @@
 // one sitting, submit once. No client-only retry queue here — unlike an
 // ordinary lesson (§2.5), a checkpoint is one attempt at one target; a wrong
 // answer is just a wrong answer, not something to requeue for a second try.
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getCheckpointPlan, submitCheckpoint } from "../api/checkpoint";
 import { useSkillArtifactsForRefs } from "./useCourseContent";
@@ -102,8 +102,17 @@ export function useCheckpoint(targetUnitKey: string, targetSkillKey: string) {
     setIndex((i) => i + 1);
   }
 
+  // Fixed by the first submit and reused by every retry: if a request reached
+  // the server but its response was lost, the retry must carry the same ids so
+  // the server replays it instead of grading a second attempt.
+  const attempt = useRef<{ submissionId: string; occurredAt: string } | null>(null);
+  const submitting = useRef(false);
+
   async function submit() {
-    if (!plan.data) return;
+    if (!plan.data || submitting.current) return;
+    submitting.current = true;
+    attempt.current ??= { submissionId: crypto.randomUUID(), occurredAt: new Date().toISOString() };
+    const { submissionId, occurredAt } = attempt.current;
     setIsSubmitting(true);
     setSubmitError(null);
     try {
@@ -133,11 +142,11 @@ export function useCheckpoint(targetUnitKey: string, targetSkillKey: string) {
       });
 
       const response = await submitCheckpoint({
-        submissionId: crypto.randomUUID(),
+        submissionId,
         targetUnitKey,
         targetSkillKey,
         courseVersion: plan.data.courseVersion,
-        occurredAt: new Date().toISOString(),
+        occurredAt,
         skills,
       });
 
@@ -151,6 +160,7 @@ export function useCheckpoint(targetUnitKey: string, targetSkillKey: string) {
     } catch {
       setSubmitError("Couldn't submit your checkpoint. Check your connection and try again.");
     } finally {
+      submitting.current = false;
       setIsSubmitting(false);
     }
   }

@@ -401,6 +401,11 @@ export function useLessonEngine(
   // against, and how many times each exercise (by instance key) was retyped
   // this run: the server credits two retypes per exercise
   // (MAX_CREDITED_RETYPES), so a later one is practice.
+  // A round's identity, fixed the first time it finishes: submission ids per
+  // skill plus occurredAt, reused if the same round is sent again so a retry
+  // after a lost response is a replay, not a second submission. Reset when a
+  // new round starts (restart).
+  const roundIdentity = useRef<{ occurredAt: string; ids: Map<string, string> } | null>(null);
   const lastAnswer = useRef<{ instance: LessonExerciseInstance; attempt: number } | null>(null);
   const retypeCounts = useRef(new Map<string, number>());
   // The last answer's score while its submit waits for the review to close —
@@ -538,6 +543,7 @@ export function useLessonEngine(
     setLessonCompleted(null);
     setSessionXp(null);
     lastAnswer.current = null;
+    roundIdentity.current = null;
     retypeCounts.current = new Map();
     pendingFinish.current = null;
     setItems([]);
@@ -690,14 +696,20 @@ export function useLessonEngine(
     // several skills (§2.2), and grading an item under a skill it doesn't
     // belong to would corrupt that skill's FSRS state.
     const courseVersion = plan.data.courseVersion;
-    const occurredAt = new Date().toISOString();
+    const identity = (roundIdentity.current ??= { occurredAt: new Date().toISOString(), ids: new Map() });
+    const occurredAt = identity.occurredAt;
     const bySkill = new Map<string, SubmittedSession>();
     for (const recorded of finalItems) {
       const key = `${recorded.unitKey ?? "_"}/${recorded.skillKey}`;
       let session = bySkill.get(key);
       if (!session) {
+        let submissionId = identity.ids.get(key);
+        if (!submissionId) {
+          submissionId = crypto.randomUUID();
+          identity.ids.set(key, submissionId);
+        }
         session = {
-          submissionId: crypto.randomUUID(),
+          submissionId,
           unitKey: recorded.unitKey,
           skillKey: recorded.skillKey,
           courseCode,
