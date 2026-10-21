@@ -17,6 +17,19 @@ import type { SyncRejection } from "./syncRejections";
  */
 export const OFFLINE_QUEUE_CHANGED_EVENT = "qamooscheh:offline-queue-changed";
 
+/** How long a claim by a live page protects its entries from the flush. */
+export const CLAIM_TTL_MS = 2 * 60 * 1000;
+
+/** Identifies this page load; a claim made by another page load (or a dead one) is not live. */
+export const PAGE_ID: string = crypto.randomUUID();
+
+/**
+ * A queued session, optionally claimed by the page that is sending it right
+ * now (write-ahead: saved before the request so a reload or tab close during
+ * submit can't lose it). The claim fields never go on the wire.
+ */
+export type QueuedSession = SubmittedSession & { claimedBy?: string; claimedAt?: number };
+
 function storageKey(userId: string): string {
   return `qamooscheh.offlineQueue.${userId}`;
 }
@@ -26,19 +39,19 @@ function notifyChanged(): void {
 }
 
 /** Filters out anything that isn't at least session-shaped, e.g. corrupted or foreign JSON. */
-function normalizeEntry(entry: unknown): SubmittedSession | null {
+function normalizeEntry(entry: unknown): QueuedSession | null {
   if (!entry || typeof entry !== "object") return null;
-  const candidate = entry as Partial<SubmittedSession>;
-  return typeof candidate.submissionId === "string" ? (candidate as SubmittedSession) : null;
+  const candidate = entry as Partial<QueuedSession>;
+  return typeof candidate.submissionId === "string" ? (candidate as QueuedSession) : null;
 }
 
-export function loadQueue(userId: string): SubmittedSession[] {
+export function loadQueue(userId: string): QueuedSession[] {
   const raw = safeStorage.getItem(storageKey(userId));
   if (!raw) return [];
   try {
     const parsed = JSON.parse(raw) as unknown;
     if (!Array.isArray(parsed)) return [];
-    return parsed.map(normalizeEntry).filter((entry): entry is SubmittedSession => entry !== null);
+    return parsed.map(normalizeEntry).filter((entry): entry is QueuedSession => entry !== null);
   } catch {
     return [];
   }
@@ -51,8 +64,37 @@ export function enqueue(userId: string, session: SubmittedSession): void {
   notifyChanged();
 }
 
+/** Write-ahead: queue `session` claimed by this page before sending it. Replaces any entry with the same id. */
+export function enqueueClaimed(userId: string, session: SubmittedSession, pageId: string = PAGE_ID): void {
+  const queue = loadQueue(userId).filter((entry) => entry.submissionId !== session.submissionId);
+  queue.push({ ...session, claimedBy: pageId, claimedAt: Date.now() });
+  safeStorage.setItem(storageKey(userId), JSON.stringify(queue));
+  notifyChanged();
+}
+
+/** Drops the claim on these ids so the flush may retry them (the send failed or went unanswered). */
+export function releaseClaims(userId: string, submissionIds: string[]): void {
+  const queue = loadQueue(userId).map((entry) => {
+    if (!submissionIds.includes(entry.submissionId)) return entry;
+    const { claimedBy: _by, claimedAt: _at, ...rest } = entry;
+    return rest;
+  });
+  safeStorage.setItem(storageKey(userId), JSON.stringify(queue));
+  notifyChanged();
+}
+
+/** True while `pageId` itself is mid-send on `entry`: claimed by it, and recently enough that the page can still be alive. */
+export function isClaimLive(entry: QueuedSession, pageId: string, now: number): boolean {
+  return entry.claimedBy === pageId && typeof entry.claimedAt === "number" && now - entry.claimedAt < CLAIM_TTL_MS;
+}
+
+/** Entries the flush may send: everything not live-claimed by this page. */
+export function flushable(queue: QueuedSession[], pageId: string, now: number): QueuedSession[] {
+  return queue.filter((entry) => !isClaimLive(entry, pageId, now));
+}
+
 /** True when `queue` holds a submission id that isn't in `knownIds` — i.e. something was enqueued since that snapshot and still needs a flush pass. */
-export function hasUnknownSubmissions(queue: SubmittedSession[], knownIds: Set<string>): boolean {
+export function hasUnknownSubmissions(queue: QueuedSession[], knownIds: Set<string>): boolean {
   return queue.some((session) => !knownIds.has(session.submissionId));
 }
 

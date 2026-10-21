@@ -5,7 +5,7 @@
 // grouping inline, alongside its lesson-completion bookkeeping.
 import { submitSessions } from "../api/sessionSubmit";
 import { mergeCardStates } from "./cardStateStore";
-import { enqueue as enqueueOffline } from "./offlineQueue";
+import { enqueueClaimed, releaseClaims, removeFromQueue } from "./offlineQueue";
 import type { SubmittedItem, SubmittedSession } from "../types/api";
 
 export interface RecordedAnswer {
@@ -56,21 +56,27 @@ export async function submitRecordedAnswers(params: {
   const sessions = [...bySkill.values()];
   if (sessions.length === 0) return "saved";
 
+  // Write-ahead: saved (claimed by this page) before the request, so a reload
+  // or tab close mid-submit leaves it for the flush instead of losing it.
+  for (const session of sessions) enqueueClaimed(userId, session);
+
   try {
     const response = await submitSessions(sessions, { keepalive, asUserId: userId });
     for (const result of response.sessions) {
       if (result.outcome !== "Rejected") mergeCardStates(userId, result.cards);
     }
-    // A session the response doesn't mention wasn't refused, just not
-    // answered for — queue it like a network failure.
+    // Whatever the server answered for is settled; a session it doesn't
+    // mention wasn't refused, just not answered for — release the claim so
+    // the flush retries it like a network failure.
     const answered = new Set(response.sessions.map((s) => s.submissionId));
     const missing = sessions.filter((s) => !answered.has(s.submissionId));
-    for (const session of missing) enqueueOffline(userId, session);
+    removeFromQueue(userId, [...answered]);
+    if (missing.length > 0) releaseClaims(userId, missing.map((s) => s.submissionId));
 
     if (response.sessions.some((s) => s.outcome === "Rejected")) return "rejected";
     return missing.length > 0 ? "queued" : "saved";
   } catch {
-    for (const session of sessions) enqueueOffline(userId, session);
+    releaseClaims(userId, sessions.map((s) => s.submissionId));
     return "queued";
   }
 }

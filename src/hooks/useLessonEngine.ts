@@ -28,7 +28,7 @@ import { submitSessions } from "../api/sessionSubmit";
 import { ApiError } from "../api/httpClient";
 import { useAuth } from "../auth/useAuth";
 import { loadCardStates, mergeCardStates } from "../lib/cardStateStore";
-import { enqueue as enqueueOffline } from "../lib/offlineQueue";
+import { enqueueClaimed, releaseClaims, removeFromQueue } from "../lib/offlineQueue";
 import { checkAnswer, type AnswerVerdict, type SeparatorMarks } from "../domain/answerFeedback";
 import { useGrader, useHoldGrader } from "../grader/useGrader";
 import { useHoldContentCache } from "./useContentCache";
@@ -745,6 +745,12 @@ export function useLessonEngine(
       return;
     }
 
+    // Write-ahead: saved (claimed by this page) before the request, so a reload
+    // or tab close mid-submit leaves it for the flush instead of losing it.
+    if (userId) {
+      for (const session of sessions) enqueueClaimed(userId, session);
+    }
+
     try {
       const response = await submitSessions(sessions, { keepalive, asUserId: userId ?? undefined });
       // Cards come back per session; every one of them needs merging. `result`
@@ -786,8 +792,11 @@ export function useLessonEngine(
       // a delivery problem, not a rejection: requeue it exactly like a
       // network failure would, instead of discarding it as unrecoverable.
       const missing = sessions.filter((s) => !answered.has(s.submissionId));
-      if (missing.length > 0 && userId) {
-        for (const session of missing) enqueueOffline(userId, session);
+      if (userId) {
+        // Answered (including Rejected, which the end screen reports itself)
+        // is settled; the unanswered stay queued with their claim released.
+        removeFromQueue(userId, [...answered]);
+        if (missing.length > 0) releaseClaims(userId, missing.map((s) => s.submissionId));
       }
 
       if (rejected.length > 0) {
@@ -804,9 +813,7 @@ export function useLessonEngine(
       // same as a network failure, so it's fair to call the lesson done.
       setStatus("done");
     } catch {
-      if (userId) {
-        for (const session of sessions) enqueueOffline(userId, session);
-      }
+      if (userId) releaseClaims(userId, sessions.map((s) => s.submissionId));
       setStatus("done"); // queued locally; will sync on next successful flush
     }
   }

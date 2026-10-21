@@ -10,7 +10,16 @@
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { submitSessions } from "../api/sessionSubmit";
-import { OFFLINE_QUEUE_CHANGED_EVENT, hasUnknownSubmissions, loadQueue, removeFromQueue, settleFlush } from "../lib/offlineQueue";
+import {
+  CLAIM_TTL_MS,
+  OFFLINE_QUEUE_CHANGED_EVENT,
+  PAGE_ID,
+  flushable,
+  hasUnknownSubmissions,
+  loadQueue,
+  removeFromQueue,
+  settleFlush,
+} from "../lib/offlineQueue";
 import {
   SYNC_REJECTIONS_CHANGED_EVENT,
   addRejections,
@@ -47,8 +56,12 @@ export function useOfflineQueueFlush() {
       rerunRef.current = true;
       return;
     }
-    const queued = loadQueue(currentUserId);
-    setPendingCount(queued.length);
+    // Entries this page is mid-send on (write-ahead claims) count as pending
+    // but aren't ours to send; their own request settles them, or the claim
+    // goes stale and the re-check below picks them up.
+    const all = loadQueue(currentUserId);
+    const queued = flushable(all, PAGE_ID, Date.now());
+    setPendingCount(all.length);
     if (queued.length === 0) return;
 
     // Anything enqueued after this snapshot arrived mid-flush; its
@@ -110,7 +123,9 @@ export function useOfflineQueueFlush() {
         // this pass knew about ignores our own removeFromQueue event, so this
         // can't spin; a failed pass still only retries because something asked
         // it to, never blindly.
-        const shouldRerun = rerunRef.current || (delivered && hasUnknownSubmissions(remaining, knownIds));
+        // Live claims are another sender's business, not new work for a rerun.
+        const remainingFlushable = flushable(remaining, PAGE_ID, Date.now());
+        const shouldRerun = rerunRef.current || (delivered && hasUnknownSubmissions(remainingFlushable, knownIds));
         rerunRef.current = false;
         if (shouldRerun) void flush(currentUserId);
       }
@@ -137,10 +152,19 @@ export function useOfflineQueueFlush() {
     function handleRejectionsChanged() {
       setRejections(loadRejections(uid));
     }
+    // A claim goes stale if its page died mid-send; nothing else would wake the
+    // flush for it, so re-check on a timer and when the tab comes back.
+    function handleVisible() {
+      if (document.visibilityState === "visible") void flush(uid);
+    }
+    const staleTimer = window.setInterval(handleWake, CLAIM_TTL_MS / 2);
+    document.addEventListener("visibilitychange", handleVisible);
     window.addEventListener("online", handleWake);
     window.addEventListener(OFFLINE_QUEUE_CHANGED_EVENT, handleWake);
     window.addEventListener(SYNC_REJECTIONS_CHANGED_EVENT, handleRejectionsChanged);
     return () => {
+      window.clearInterval(staleTimer);
+      document.removeEventListener("visibilitychange", handleVisible);
       activeUserRef.current = null;
       setRejections([]);
       window.removeEventListener("online", handleWake);
