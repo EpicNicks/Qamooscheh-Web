@@ -29,7 +29,7 @@ import { useGrader, useHoldGrader } from "../grader/useGrader";
 import { useHoldContentCache } from "./useContentCache";
 import type { Grader } from "../grader/types";
 import { mergeCardStates } from "../lib/cardStateStore";
-import { enqueue as enqueueOffline } from "../lib/offlineQueue";
+import { enqueueClaimed, releaseClaims, removeFromQueue } from "../lib/offlineQueue";
 import { checkAnswer, type SeparatorMarks } from "../domain/answerFeedback";
 import { resolveExerciseType } from "../domain/exerciseResolution";
 import { loadGate, pinFirst } from "../domain/lessonPin";
@@ -184,11 +184,19 @@ export function useSkillWalkthrough(unitKey: string, skillKey: string, options: 
       items: finalItems,
     };
 
+    // Write-ahead: saved (claimed by this page) before the request.
+    if (userId) enqueueClaimed(userId, session);
+
     try {
-      const response = await submitSessions([session]);
+      const response = await submitSessions([session], { asUserId: userId ?? undefined });
       const sessionResult = response.sessions[0];
+      if (userId) {
+        if (sessionResult) removeFromQueue(userId, [session.submissionId]);
+        else releaseClaims(userId, [session.submissionId]);
+      }
       setResult(sessionResult ?? null);
-      if (userId && sessionResult) mergeCardStates(userId, sessionResult.cards);
+      // A rejected session was never graded, so its cards are not worth merging.
+      if (userId && sessionResult && sessionResult.outcome !== "Rejected") mergeCardStates(userId, sessionResult.cards);
       queryClient.invalidateQueries({ queryKey: ["bootstrap"] });
       // A pass here can complete a lesson (a fork alternate's first attempt),
       // so the path's completion marks and the cursor's plan must refetch.
@@ -198,7 +206,7 @@ export function useSkillWalkthrough(unitKey: string, skillKey: string, options: 
       queryClient.invalidateQueries({ queryKey: ["activity"] });
       setStatus("done");
     } catch {
-      if (userId) enqueueOffline(userId, session);
+      if (userId) releaseClaims(userId, [session.submissionId]);
       setStatus("done"); // queued locally; will sync on next successful flush
     }
   }

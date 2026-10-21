@@ -7,15 +7,39 @@
 // truth — see PUT /v1/vocab/starred/batch's doc for why a diff-based
 // reconcile, not a replay of individual toggles, is the right shape for a
 // migration (or any future offline-buffered catch-up write).
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { batchSetStarred, getStarredVocab, setStarred } from "../api/vocab";
+import { createStarredWriter, type StarredWriter } from "../lib/starredWrites";
+import { queryClient as appQueryClient } from "../queryClient";
 import { clearStarredLexemes, loadStarredLexemes } from "../lib/starredLexemeStore";
 import { useAuth } from "../auth/useAuth";
 import { ApiError } from "../api/httpClient";
 import type { StarredVocabResponse } from "../types/api";
 
 const QUERY_KEY = ["vocab", "starred"];
+
+// One writer per account, shared by every component using this hook, so star
+// and unstar requests are serialized app-wide (lib/starredWrites.ts).
+const writers = new Map<string, StarredWriter>();
+
+function writerFor(userId: string): StarredWriter {
+  let writer = writers.get(userId);
+  if (!writer) {
+    writer = createStarredWriter({
+      send: (request) => setStarred(request, { asUserId: userId }),
+      onList: (tags, reply) =>
+        appQueryClient.setQueryData<StarredVocabResponse>(QUERY_KEY, (current) => ({
+          tags,
+          limit: reply?.limit ?? current?.limit ?? 0,
+          refused: [],
+        })),
+      limitMessageFor: (error) => (error instanceof ApiError && error.status === 409 ? error.message : null),
+    });
+    writers.set(userId, writer);
+  }
+  return writer;
+}
 
 export interface StarredLexemes {
   /** Every saved tag, in any course, most recently saved first. */
@@ -33,37 +57,17 @@ export function useStarredLexemes(courseCode: string | null | undefined): Starre
   const { userId } = useAuth();
   const queryClient = useQueryClient();
   const migrated = useRef(false);
-  const [limitMessage, setLimitMessage] = useState<string | null>(null);
 
   const query = useQuery({
     queryKey: QUERY_KEY,
     queryFn: getStarredVocab,
   });
 
-  const setMutation = useMutation({
-    mutationFn: setStarred,
-    onMutate: async (request) => {
-      await queryClient.cancelQueries({ queryKey: QUERY_KEY });
-      const previous = queryClient.getQueryData<StarredVocabResponse>(QUERY_KEY);
-      queryClient.setQueryData<StarredVocabResponse>(QUERY_KEY, (current) => {
-        const rest = (current?.tags ?? []).filter((tag) => tag !== request.tag);
-        return {
-          tags: request.starred ? [request.tag, ...rest] : rest,
-          limit: current?.limit ?? 0,
-          refused: [],
-        };
-      });
-      return { previous };
-    },
-    onError: (error, _request, context) => {
-      if (context?.previous) queryClient.setQueryData(QUERY_KEY, context.previous);
-      if (error instanceof ApiError && error.status === 409) setLimitMessage(error.message);
-    },
-    onSuccess: (response) => {
-      queryClient.setQueryData(QUERY_KEY, response);
-      setLimitMessage(null);
-    },
-  });
+  const writer = userId ? writerFor(userId) : null;
+  const limitMessage = useSyncExternalStore(
+    (listener) => writer?.subscribe(listener) ?? (() => undefined),
+    () => writer?.limitMessage ?? null,
+  );
 
   const migrationMutation = useMutation({ mutationFn: batchSetStarred });
 
@@ -108,7 +112,12 @@ export function useStarredLexemes(courseCode: string | null | undefined): Starre
     tags: tagList,
     limit: query.data?.limit ?? null,
     isStarred: (tag) => tags.has(tag),
-    toggle: (tag) => setMutation.mutate({ tag, starred: !tags.has(tag) }),
+    toggle: (tag) => {
+      if (!writer) return;
+      const shown = queryClient.getQueryData<StarredVocabResponse>(QUERY_KEY);
+      const next = writer.set(tag, !tags.has(tag), shown?.tags ?? []);
+      queryClient.setQueryData<StarredVocabResponse>(QUERY_KEY, { tags: next, limit: shown?.limit ?? 0, refused: [] });
+    },
     limitMessage,
   };
 }

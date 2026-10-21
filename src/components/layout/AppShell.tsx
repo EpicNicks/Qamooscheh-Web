@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation, useNavigationType } from "react-router-do
 import { useAuth } from "../../auth/useAuth";
 import { useBootstrap } from "../../hooks/useBootstrap";
 import { usePruneContentCaches } from "../../hooks/useContentCache";
+import { SyncRejectionBanner } from "./SyncRejectionBanner";
 import { useOfflineQueueFlush } from "../../hooks/useOfflineQueueFlush";
 import { useIsMobile } from "../../hooks/useMediaQuery";
 import { useMobileDrawer } from "../../hooks/useMobileDrawer";
@@ -36,7 +37,7 @@ const LESSON_MODE_PATH = /^\/(lesson|story|practice|checkpoint)(\/|$)/;
 
 export function AppShell() {
   const { logout } = useAuth();
-  const { pendingCount, isFlushing } = useOfflineQueueFlush();
+  const { pendingCount, isFlushing, rejections, dismissRejections } = useOfflineQueueFlush();
   const bootstrap = useBootstrap();
   usePruneContentCaches(bootstrap.data?.course);
   const location = useLocation();
@@ -156,6 +157,7 @@ export function AppShell() {
           ))}
         <main className={styles.main}>
           <div className={styles.mainInner}>
+            {!isLessonMode && <SyncRejectionBanner rejections={rejections} onDismiss={dismissRejections} />}
             <Outlet />
           </div>
         </main>

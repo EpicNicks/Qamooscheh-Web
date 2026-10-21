@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { graderGate, loadGate, pinFirst } from "./lessonPin";
+import { graderGate, loadGate, pinFirst, versionMismatch } from "./lessonPin";
 
 describe("pinFirst", () => {
   it("takes the live value until something is pinned", () => {
@@ -39,5 +39,14 @@ describe("graderGate", () => {
   it("never unmounts a lesson that holds its pinned grader, whatever the provider reports", () => {
     expect(graderGate("loading", true)).toBe("open");
     expect(graderGate("unavailable", true)).toBe("open");
+  });
+});
+
+describe("versionMismatch", () => {
+  it("flags only two known, different versions", () => {
+    expect(versionMismatch(4, 3)).toBe(true);
+    expect(versionMismatch(3, 3)).toBe(false);
+    expect(versionMismatch(undefined, 3)).toBe(false);
+    expect(versionMismatch(3, undefined)).toBe(false);
   });
 });

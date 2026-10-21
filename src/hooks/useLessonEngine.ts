@@ -28,11 +28,11 @@ import { submitSessions } from "../api/sessionSubmit";
 import { ApiError } from "../api/httpClient";
 import { useAuth } from "../auth/useAuth";
 import { loadCardStates, mergeCardStates } from "../lib/cardStateStore";
-import { enqueue as enqueueOffline } from "../lib/offlineQueue";
+import { enqueueClaimed, releaseClaims, removeFromQueue } from "../lib/offlineQueue";
 import { checkAnswer, type AnswerVerdict, type SeparatorMarks } from "../domain/answerFeedback";
 import { useGrader, useHoldGrader } from "../grader/useGrader";
 import { useHoldContentCache } from "./useContentCache";
-import { loadGate, pinFirst } from "../domain/lessonPin";
+import { loadGate, pinFirst, versionMismatch } from "../domain/lessonPin";
 import type { Grader } from "../grader/types";
 import { resolveExerciseType } from "../domain/exerciseResolution";
 import { LESSON_PASS_THRESHOLD, verdictWeight } from "../domain/lessonScore";
@@ -66,7 +66,7 @@ export interface LessonExerciseInstance {
   attempt: number;
 }
 
-export type LessonStatus = "loading" | "choosing" | "empty" | "ready" | "submitting" | "done" | "rejected" | "error" | "unavailable";
+export type LessonStatus = "loading" | "choosing" | "empty" | "ready" | "submitting" | "done" | "rejected" | "error" | "unavailable" | "outdated";
 
 /**
  * A submission the server answered 200 to but explicitly refused — one or
@@ -401,6 +401,11 @@ export function useLessonEngine(
   // against, and how many times each exercise (by instance key) was retyped
   // this run: the server credits two retypes per exercise
   // (MAX_CREDITED_RETYPES), so a later one is practice.
+  // A round's identity, fixed the first time it finishes: submission ids per
+  // skill plus occurredAt, reused if the same round is sent again so a retry
+  // after a lost response is a replay, not a second submission. Reset when a
+  // new round starts (restart).
+  const roundIdentity = useRef<{ occurredAt: string; ids: Map<string, string> } | null>(null);
   const lastAnswer = useRef<{ instance: LessonExerciseInstance; attempt: number } | null>(null);
   const retypeCounts = useRef(new Map<string, number>());
   // The last answer's score while its submit waits for the review to close —
@@ -464,7 +469,14 @@ export function useLessonEngine(
   // of useEffect entirely, which matters here because re-seeding on every
   // background refetch of `plan`/`skillArtifacts` would blow away in-progress
   // answers.
-  if (queue === null && skillsReady && plan.data && !awaitingRemixContents) {
+  const outdated = started.current == null && versionMismatch(plan.data?.courseVersion, liveCourse?.version);
+  // The stale side is usually the cached bootstrap; re-reading it once may
+  // settle the mismatch without the learner doing anything.
+  const refetchBootstrap = bootstrap.refetch;
+  useEffect(() => {
+    if (outdated) void refetchBootstrap();
+  }, [outdated, refetchBootstrap]);
+  if (queue === null && skillsReady && plan.data && !awaitingRemixContents && !outdated) {
     started.current = { course: liveCourse, plan: plan.data };
     setQueue(initialQueue);
     setTotalCount(initialQueue.length);
@@ -538,6 +550,7 @@ export function useLessonEngine(
     setLessonCompleted(null);
     setSessionXp(null);
     lastAnswer.current = null;
+    roundIdentity.current = null;
     retypeCounts.current = new Map();
     pendingFinish.current = null;
     setItems([]);
@@ -689,15 +702,23 @@ export function useLessonEngine(
     // One session per skill the items actually came from — a plan may list
     // several skills (§2.2), and grading an item under a skill it doesn't
     // belong to would corrupt that skill's FSRS state.
-    const courseVersion = plan.data.courseVersion;
-    const occurredAt = new Date().toISOString();
+    // The version the exercises on screen were loaded under, not whatever a
+    // later plan refetch names.
+    const courseVersion = course?.version ?? plan.data.courseVersion;
+    const identity = (roundIdentity.current ??= { occurredAt: new Date().toISOString(), ids: new Map() });
+    const occurredAt = identity.occurredAt;
     const bySkill = new Map<string, SubmittedSession>();
     for (const recorded of finalItems) {
       const key = `${recorded.unitKey ?? "_"}/${recorded.skillKey}`;
       let session = bySkill.get(key);
       if (!session) {
+        let submissionId = identity.ids.get(key);
+        if (!submissionId) {
+          submissionId = crypto.randomUUID();
+          identity.ids.set(key, submissionId);
+        }
         session = {
-          submissionId: crypto.randomUUID(),
+          submissionId,
           unitKey: recorded.unitKey,
           skillKey: recorded.skillKey,
           courseCode,
@@ -724,8 +745,14 @@ export function useLessonEngine(
       return;
     }
 
+    // Write-ahead: saved (claimed by this page) before the request, so a reload
+    // or tab close mid-submit leaves it for the flush instead of losing it.
+    if (userId) {
+      for (const session of sessions) enqueueClaimed(userId, session);
+    }
+
     try {
-      const response = await submitSessions(sessions, { keepalive });
+      const response = await submitSessions(sessions, { keepalive, asUserId: userId ?? undefined });
       // Cards come back per session; every one of them needs merging. `result`
       // only drives the recap's "Already recorded." line, so the first
       // response stands in for the batch.
@@ -765,8 +792,11 @@ export function useLessonEngine(
       // a delivery problem, not a rejection: requeue it exactly like a
       // network failure would, instead of discarding it as unrecoverable.
       const missing = sessions.filter((s) => !answered.has(s.submissionId));
-      if (missing.length > 0 && userId) {
-        for (const session of missing) enqueueOffline(userId, session);
+      if (userId) {
+        // Answered (including Rejected, which the end screen reports itself)
+        // is settled; the unanswered stay queued with their claim released.
+        removeFromQueue(userId, [...answered]);
+        if (missing.length > 0) releaseClaims(userId, missing.map((s) => s.submissionId));
       }
 
       if (rejected.length > 0) {
@@ -783,9 +813,7 @@ export function useLessonEngine(
       // same as a network failure, so it's fair to call the lesson done.
       setStatus("done");
     } catch {
-      if (userId) {
-        for (const session of sessions) enqueueOffline(userId, session);
-      }
+      if (userId) releaseClaims(userId, sessions.map((s) => s.submissionId));
       setStatus("done"); // queued locally; will sync on next successful flush
     }
   }
@@ -800,7 +828,9 @@ export function useLessonEngine(
       ? status
       : isLessonNotFound
         ? "unavailable"
-        : gate === "loading"
+        : outdated
+          ? "outdated"
+          : gate === "loading"
           ? "loading"
           : gate === "error"
             ? "error"

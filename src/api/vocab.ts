@@ -9,8 +9,8 @@ export function getStarredVocab(): Promise<StarredVocabResponse> {
   return apiFetch<StarredVocabResponse>("/v1/vocab/starred");
 }
 
-export function setStarred(request: SetStarredRequest): Promise<StarredVocabResponse> {
-  return apiFetch<StarredVocabResponse>("/v1/vocab/starred", { method: "PUT", body: request });
+export function setStarred(request: SetStarredRequest, options?: { asUserId?: string }): Promise<StarredVocabResponse> {
+  return apiFetch<StarredVocabResponse>("/v1/vocab/starred", { method: "PUT", body: request, asUserId: options?.asUserId });
 }
 
 export function batchSetStarred(request: BatchSetStarredRequest): Promise<StarredVocabResponse> {

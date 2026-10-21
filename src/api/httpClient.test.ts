@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ApiError, SessionExpiredError, StaleRefreshError, apiFetch } from "./httpClient";
+import { AccountChangedError, ApiError, SessionExpiredError, StaleRefreshError, apiFetch } from "./httpClient";
 import { clearSession, loadSession, saveSession, type StoredSession } from "../lib/storage";
 
 function session(userId: string, n: number, expiresAt: string): StoredSession {
@@ -221,5 +221,46 @@ describe("ApiError messages", () => {
     const error = await apiFetch("/v1/auth/login", { method: "POST", body: {}, anonymous: true }).catch((e: unknown) => e);
 
     expect((error as ApiError).message).toBe("Too many attempts. Wait a moment and try again.");
+  });
+});
+
+describe("httpClient account guard", () => {
+  beforeEach(() => {
+    const store = new Map<string, string>();
+    vi.stubGlobal("localStorage", {
+      getItem: (key: string) => store.get(key) ?? null,
+      setItem: (key: string, value: string) => store.set(key, value),
+      removeItem: (key: string) => store.delete(key),
+    });
+    clearSession();
+  });
+
+  afterEach(() => {
+    clearSession();
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it("does not send a request meant for another account", async () => {
+    saveSession(session("b", 1, FUTURE));
+    const fetchMock = vi.fn(async () => json(200, {}));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(apiFetch("/v1/x", { asUserId: "a" })).rejects.toBeInstanceOf(AccountChangedError);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("does not retry a 401 under an account that signed in mid-flight", async () => {
+    saveSession(session("a", 1, FUTURE));
+    const fetchMock = vi.fn(async () => {
+      // The 401 lands after account b has signed in.
+      saveSession(session("b", 1, FUTURE));
+      return json(401, {});
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(apiFetch("/v1/x", { asUserId: "a" })).rejects.toBeInstanceOf(AccountChangedError);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(loadSession()?.userId).toBe("b");
   });
 });

@@ -61,6 +61,27 @@ export function CheckpointPage() {
     );
   }
 
+  // An earlier submit never got an answer (reload, dropped connection): the
+  // hook re-sends it on load, so there's nothing to re-answer — just show
+  // that, with a retry if the automatic send failed too.
+  if (checkpoint.hasPendingAttempt) {
+    return (
+      <div className={styles.done}>
+        <h1>Finishing your submission</h1>
+        <p>Your answers are saved. We're sending them now.</p>
+        {checkpoint.submitError && <ErrorBanner message={checkpoint.submitError} />}
+        <div className={styles.doneActions}>
+          <Button variant="secondary" onClick={() => navigate("/path")}>
+            Back to path
+          </Button>
+          <Button onClick={() => void checkpoint.submit()} disabled={checkpoint.isSubmitting}>
+            {checkpoint.isSubmitting ? "Submitting…" : "Try again"}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   // requiresTest: false means every skipped position is already satisfied
   // some other way — instances comes back naturally empty (those positions
   // are excluded from exercise sampling), and submit() accepts the resulting

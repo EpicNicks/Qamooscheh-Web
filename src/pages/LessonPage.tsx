@@ -6,6 +6,7 @@ import { useExerciseSession } from "../hooks/useExerciseSession";
 import { useBootstrap } from "../hooks/useBootstrap";
 import { useAuth } from "../auth/useAuth";
 import { useCoursePath, useAllThemeSkillArtifacts, useLexemeIndex, useThemeIndex, refKey } from "../hooks/useCourseContent";
+import { describeRejectionReason } from "../domain/rejectionReason";
 import { findLessonAfter, isFirstStandardPosition } from "../domain/pathProgress";
 import { rootThemesForLesson } from "../domain/themeTree";
 import { buildRemixPool, computeMasteryScore, selectRemixLessons, REMIX_MAX_LESSONS } from "../domain/deepDiveRemix";
@@ -341,6 +342,23 @@ function LessonPageContent() {
     );
   }
 
+  // The plan was resolved under a newer (or older) course version than the
+  // content in hand; nothing was shown, so reopening costs the learner nothing.
+  if (engine.status === "outdated") {
+    return (
+      <div className={styles.done}>
+        <h1>This Parsle was updated</h1>
+        <p>A newer version came out while it was opening. Reopen it to get the latest.</p>
+        <div className={styles.doneActions}>
+          <Button variant="secondary" onClick={() => navigate(isDeepDive ? "/themes" : "/path")}>
+            {isDeepDive ? "Back to browsing" : "Back to path"}
+          </Button>
+          <Button onClick={() => window.location.reload()}>Reopen Parsle</Button>
+        </div>
+      </div>
+    );
+  }
+
   if (engine.status === "empty") {
     return (
       <div className={styles.done}>
@@ -378,7 +396,7 @@ function LessonPageContent() {
         <div className={styles.done}>
           <h1>{partial ? "Only part of this Parsle was saved" : "This Parsle wasn't saved"}</h1>
           <p>
-            {engine.rejection?.reason ??
+            {describeRejectionReason(engine.rejection?.reason) ??
               "The server didn't record this session, so it won't count toward your review schedule."}
           </p>
           <LessonResults correct={engine.score.correct} total={engine.score.total} />
