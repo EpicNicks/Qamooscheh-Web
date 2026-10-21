@@ -185,10 +185,11 @@ export function useSkillWalkthrough(unitKey: string, skillKey: string, options: 
     };
 
     try {
-      const response = await submitSessions([session]);
+      const response = await submitSessions([session], { asUserId: userId ?? undefined });
       const sessionResult = response.sessions[0];
       setResult(sessionResult ?? null);
-      if (userId && sessionResult) mergeCardStates(userId, sessionResult.cards);
+      // A rejected session was never graded, so its cards are not worth merging.
+      if (userId && sessionResult && sessionResult.outcome !== "Rejected") mergeCardStates(userId, sessionResult.cards);
       queryClient.invalidateQueries({ queryKey: ["bootstrap"] });
       // A pass here can complete a lesson (a fork alternate's first attempt),
       // so the path's completion marks and the cursor's plan must refetch.

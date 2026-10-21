@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { OFFLINE_QUEUE_CHANGED_EVENT, enqueue, hasUnknownSubmissions, loadQueue, removeFromQueue } from "./offlineQueue";
+import { OFFLINE_QUEUE_CHANGED_EVENT, enqueue, hasUnknownSubmissions, loadQueue, removeFromQueue, settleFlush } from "./offlineQueue";
 import { safeStorage } from "./safeStorage";
 import type { SubmittedSession } from "../types/api";
 
@@ -91,5 +91,33 @@ describe("hasUnknownSubmissions", () => {
     const knownIds = new Set(["fa-1", "ja-1"]);
     const remaining = [session("ja-1", "ja")];
     expect(hasUnknownSubmissions(remaining, knownIds)).toBe(false);
+  });
+});
+
+describe("settleFlush", () => {
+  const card = { lexemeTag: "w", stability: 1, difficulty: 1, lastReviewedAt: null, dueAt: null, reviewCount: 1, lapseCount: 0 };
+  const reply = (submissionId: string, outcome: "Processed" | "AlreadyProcessed" | "Rejected", reason: string | null = null) => ({
+    submissionId,
+    outcome,
+    rejectionReason: reason,
+    cards: [card],
+  });
+
+  it("keeps rejected sessions with their reason and merges cards only from the others", () => {
+    const result = settleFlush([session("a"), session("b"), session("c")], {
+      sessions: [reply("a", "Processed"), reply("b", "Rejected", "unresolvable_course_version")],
+    });
+    expect(result.settledIds).toEqual(["a", "b"]);
+    expect(result.rejections).toEqual([
+      {
+        submissionId: "b",
+        courseCode: "fa",
+        unitKey: "u1",
+        skillKey: "s1",
+        occurredAt: "2026-09-15T10:00:00Z",
+        reason: "unresolvable_course_version",
+      },
+    ]);
+    expect(result.cards).toHaveLength(1);
   });
 });

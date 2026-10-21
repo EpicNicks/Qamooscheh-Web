@@ -7,7 +7,8 @@
 // regardless of which course is active when the flush actually runs — the
 // server grades each session against the course it names.
 import { safeStorage } from "./safeStorage";
-import type { SubmittedSession } from "../types/api";
+import type { CardState, SubmittedSession, SubmitSessionsResponse } from "../types/api";
+import type { SyncRejection } from "./syncRejections";
 
 /**
  * Fired on every enqueue/dequeue, same-tab only (the native `storage` event
@@ -60,4 +61,39 @@ export function removeFromQueue(userId: string, submissionIds: string[]): void {
   const remaining = loadQueue(userId).filter((session) => !submissionIds.includes(session.submissionId));
   safeStorage.setItem(storageKey(userId), JSON.stringify(remaining));
   notifyChanged();
+}
+
+export interface FlushSettlement {
+  /** Every queued session the server answered for — done retrying, whatever the outcome. */
+  settledIds: string[];
+  /** The refused ones, to keep and show the learner. */
+  rejections: SyncRejection[];
+  /** Card states worth merging locally: never from a rejected session, which was not graded. */
+  cards: CardState[][];
+}
+
+/** Sorts a flush response against the sessions it was sent for. Sessions the response doesn't mention stay queued. */
+export function settleFlush(queued: SubmittedSession[], response: SubmitSessionsResponse): FlushSettlement {
+  const byId = new Map(queued.map((session) => [session.submissionId, session]));
+  const settledIds: string[] = [];
+  const rejections: SyncRejection[] = [];
+  const cards: CardState[][] = [];
+  for (const result of response.sessions) {
+    const session = byId.get(result.submissionId);
+    if (!session) continue;
+    settledIds.push(result.submissionId);
+    if (result.outcome === "Rejected") {
+      rejections.push({
+        submissionId: session.submissionId,
+        courseCode: session.courseCode,
+        unitKey: session.unitKey ?? null,
+        skillKey: session.skillKey,
+        occurredAt: session.occurredAt,
+        reason: result.rejectionReason,
+      });
+    } else if (result.cards.length > 0) {
+      cards.push(result.cards);
+    }
+  }
+  return { settledIds, rejections, cards };
 }

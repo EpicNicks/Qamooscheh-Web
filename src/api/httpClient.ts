@@ -64,6 +64,18 @@ export class StaleRefreshError extends Error {
 }
 
 /**
+ * A request meant for one account found another signed in (or nobody). It was
+ * never sent, or its 401 was not retried, under the new account's token, so
+ * callers can queue or drop it under the account it belonged to.
+ */
+export class AccountChangedError extends Error {
+  constructor() {
+    super("The signed-in account changed before the request could be sent.");
+    this.name = "AccountChangedError";
+  }
+}
+
+/**
  * How close to `accessTokenExpiresAt` a stored token has to be before a
  * request refreshes it up front instead of spending a guaranteed 401 +
  * refresh + retry round trip on it. Wide enough to cover clock skew between
@@ -154,6 +166,8 @@ export interface ApiFetchOptions {
   signal?: AbortSignal;
   /** Let the request outlive the page (fetch's `keepalive`) — for a submit started as the tab closes. Bodies over 64 KB then fail outright. */
   keepalive?: boolean;
+  /** The account this request belongs to. If another account is signed in, it fails with AccountChangedError instead of going out under that account's token. */
+  asUserId?: string;
 }
 
 /** The device's IANA zone ("America/New_York"), or null where Intl can't say. */
@@ -203,12 +217,16 @@ async function parseErrorBody(response: Response): Promise<ApiErrorBody | null> 
 
 export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
   const session = options.anonymous ? null : loadSession();
+  if (options.asUserId !== undefined && !options.anonymous && session?.userId !== options.asUserId) {
+    throw new AccountChangedError();
+  }
 
   // Refresh BEFORE sending when the stored token is spent: the 401 path below
   // would arrive at the same place, one wasted round trip later.
   let accessToken = session?.accessToken ?? null;
   if (session && isExpiringSoon(session.accessTokenExpiresAt)) {
     accessToken = await refreshAccessToken();
+    if (session && loadSession()?.userId !== session.userId) throw new AccountChangedError();
   }
 
   let response = await doFetch(path, options, accessToken);
@@ -218,9 +236,13 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
     // its 401 was already decided against the token it left with. Refreshing
     // again would rotate a token that's perfectly good, so only refresh when
     // storage still holds the same token this request actually used.
-    const currentAccessToken = loadSession()?.accessToken ?? null;
+    const current = loadSession();
+    // Never retry with a token that belongs to someone else.
+    if (current?.userId !== session.userId) throw new AccountChangedError();
+    const currentAccessToken = current.accessToken;
     const retryToken =
       currentAccessToken && currentAccessToken !== accessToken ? currentAccessToken : await refreshAccessToken();
+    if (loadSession()?.userId !== session.userId) throw new AccountChangedError();
     response = await doFetch(path, options, retryToken);
   }
 

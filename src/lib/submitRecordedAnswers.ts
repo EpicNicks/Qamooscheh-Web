@@ -57,7 +57,7 @@ export async function submitRecordedAnswers(params: {
   if (sessions.length === 0) return "saved";
 
   try {
-    const response = await submitSessions(sessions, { keepalive });
+    const response = await submitSessions(sessions, { keepalive, asUserId: userId });
     for (const result of response.sessions) {
       if (result.outcome !== "Rejected") mergeCardStates(userId, result.cards);
     }

@@ -725,7 +725,7 @@ export function useLessonEngine(
     }
 
     try {
-      const response = await submitSessions(sessions, { keepalive });
+      const response = await submitSessions(sessions, { keepalive, asUserId: userId ?? undefined });
       // Cards come back per session; every one of them needs merging. `result`
       // only drives the recap's "Already recorded." line, so the first
       // response stands in for the batch.

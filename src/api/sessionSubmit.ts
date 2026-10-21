@@ -4,10 +4,11 @@
 import { apiFetch } from "./httpClient";
 import type { SubmittedSession, SubmitSessionsResponse } from "../types/api";
 
-export function submitSessions(sessions: SubmittedSession[], options?: { keepalive?: boolean }): Promise<SubmitSessionsResponse> {
+export function submitSessions(sessions: SubmittedSession[], options?: { keepalive?: boolean; asUserId?: string }): Promise<SubmitSessionsResponse> {
   return apiFetch<SubmitSessionsResponse>("/v1/sessions/submit", {
     method: "POST",
     body: { sessions },
     keepalive: options?.keepalive,
+    asUserId: options?.asUserId,
   });
 }

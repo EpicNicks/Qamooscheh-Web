@@ -6,6 +6,7 @@ import { useExerciseSession } from "../hooks/useExerciseSession";
 import { useBootstrap } from "../hooks/useBootstrap";
 import { useAuth } from "../auth/useAuth";
 import { useCoursePath, useAllThemeSkillArtifacts, useLexemeIndex, useThemeIndex, refKey } from "../hooks/useCourseContent";
+import { describeRejectionReason } from "../domain/rejectionReason";
 import { findLessonAfter, isFirstStandardPosition } from "../domain/pathProgress";
 import { rootThemesForLesson } from "../domain/themeTree";
 import { buildRemixPool, computeMasteryScore, selectRemixLessons, REMIX_MAX_LESSONS } from "../domain/deepDiveRemix";
@@ -378,7 +379,7 @@ function LessonPageContent() {
         <div className={styles.done}>
           <h1>{partial ? "Only part of this Parsle was saved" : "This Parsle wasn't saved"}</h1>
           <p>
-            {engine.rejection?.reason ??
+            {describeRejectionReason(engine.rejection?.reason) ??
               "The server didn't record this session, so it won't count toward your review schedule."}
           </p>
           <LessonResults correct={engine.score.correct} total={engine.score.total} />
