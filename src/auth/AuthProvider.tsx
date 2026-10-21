@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import * as authApi from "../api/auth";
 import { clearSession, loadSession, onSessionCleared, saveSession, type StoredSession } from "../lib/storage";
+import { clearCheckpointAttempts } from "../lib/checkpointAttempt";
 import { clearRejections } from "../lib/syncRejections";
 import { queryClient } from "../queryClient";
 import type { AuthResponse } from "../types/api";
@@ -68,6 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(null);
     if (current) {
       clearRejections(current.userId);
+      clearCheckpointAttempts(current.userId);
       // Best-effort: an already-expired or already-revoked refresh token
       // shouldn't block the local sign-out the user just asked for.
       await authApi.logout(current.refreshToken).catch(() => undefined);
