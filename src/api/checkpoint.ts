@@ -10,9 +10,13 @@ export function getCheckpointPlan(targetUnitKey: string, targetSkillKey: string)
   );
 }
 
-export function submitCheckpoint(request: SubmitCheckpointRequest): Promise<CheckpointSubmitResponse> {
+export function submitCheckpoint(
+  request: SubmitCheckpointRequest,
+  options?: { asUserId?: string },
+): Promise<CheckpointSubmitResponse> {
   return apiFetch<CheckpointSubmitResponse>("/v1/checkpoint/submit", {
     method: "POST",
     body: request,
+    asUserId: options?.asUserId,
   });
 }
