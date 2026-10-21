@@ -342,6 +342,23 @@ function LessonPageContent() {
     );
   }
 
+  // The plan was resolved under a newer (or older) course version than the
+  // content in hand; nothing was shown, so reopening costs the learner nothing.
+  if (engine.status === "outdated") {
+    return (
+      <div className={styles.done}>
+        <h1>This Parsle was updated</h1>
+        <p>A newer version came out while it was opening. Reopen it to get the latest.</p>
+        <div className={styles.doneActions}>
+          <Button variant="secondary" onClick={() => navigate(isDeepDive ? "/themes" : "/path")}>
+            {isDeepDive ? "Back to browsing" : "Back to path"}
+          </Button>
+          <Button onClick={() => window.location.reload()}>Reopen Parsle</Button>
+        </div>
+      </div>
+    );
+  }
+
   if (engine.status === "empty") {
     return (
       <div className={styles.done}>

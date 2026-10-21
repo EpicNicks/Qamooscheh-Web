@@ -32,7 +32,7 @@ import { enqueue as enqueueOffline } from "../lib/offlineQueue";
 import { checkAnswer, type AnswerVerdict, type SeparatorMarks } from "../domain/answerFeedback";
 import { useGrader, useHoldGrader } from "../grader/useGrader";
 import { useHoldContentCache } from "./useContentCache";
-import { loadGate, pinFirst } from "../domain/lessonPin";
+import { loadGate, pinFirst, versionMismatch } from "../domain/lessonPin";
 import type { Grader } from "../grader/types";
 import { resolveExerciseType } from "../domain/exerciseResolution";
 import { LESSON_PASS_THRESHOLD, verdictWeight } from "../domain/lessonScore";
@@ -66,7 +66,7 @@ export interface LessonExerciseInstance {
   attempt: number;
 }
 
-export type LessonStatus = "loading" | "choosing" | "empty" | "ready" | "submitting" | "done" | "rejected" | "error" | "unavailable";
+export type LessonStatus = "loading" | "choosing" | "empty" | "ready" | "submitting" | "done" | "rejected" | "error" | "unavailable" | "outdated";
 
 /**
  * A submission the server answered 200 to but explicitly refused — one or
@@ -469,7 +469,14 @@ export function useLessonEngine(
   // of useEffect entirely, which matters here because re-seeding on every
   // background refetch of `plan`/`skillArtifacts` would blow away in-progress
   // answers.
-  if (queue === null && skillsReady && plan.data && !awaitingRemixContents) {
+  const outdated = started.current == null && versionMismatch(plan.data?.courseVersion, liveCourse?.version);
+  // The stale side is usually the cached bootstrap; re-reading it once may
+  // settle the mismatch without the learner doing anything.
+  const refetchBootstrap = bootstrap.refetch;
+  useEffect(() => {
+    if (outdated) void refetchBootstrap();
+  }, [outdated, refetchBootstrap]);
+  if (queue === null && skillsReady && plan.data && !awaitingRemixContents && !outdated) {
     started.current = { course: liveCourse, plan: plan.data };
     setQueue(initialQueue);
     setTotalCount(initialQueue.length);
@@ -695,7 +702,9 @@ export function useLessonEngine(
     // One session per skill the items actually came from — a plan may list
     // several skills (§2.2), and grading an item under a skill it doesn't
     // belong to would corrupt that skill's FSRS state.
-    const courseVersion = plan.data.courseVersion;
+    // The version the exercises on screen were loaded under, not whatever a
+    // later plan refetch names.
+    const courseVersion = course?.version ?? plan.data.courseVersion;
     const identity = (roundIdentity.current ??= { occurredAt: new Date().toISOString(), ids: new Map() });
     const occurredAt = identity.occurredAt;
     const bySkill = new Map<string, SubmittedSession>();
@@ -812,7 +821,9 @@ export function useLessonEngine(
       ? status
       : isLessonNotFound
         ? "unavailable"
-        : gate === "loading"
+        : outdated
+          ? "outdated"
+          : gate === "loading"
           ? "loading"
           : gate === "error"
             ? "error"
