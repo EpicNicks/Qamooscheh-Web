@@ -29,6 +29,19 @@ export function shownAnswerVariant(exercise: VariantExercise, submittedText: str
   return { index: Math.max(exercise.answer.indexOf(text), 0), text };
 }
 
+/**
+ * Every accepted answer as a display string, the one closest to the submission
+ * first (the one `shownAnswerVariant` and the audio use) and all the others
+ * after it, so "Also accepted" lists each of them. word_bank/match orders are
+ * their tokens joined with spaces; identical strings collapse to one line.
+ */
+export function revealedAnswers(exercise: VariantExercise, submittedText: string | undefined): string[] {
+  if (!isTokenized(exercise)) return closestAnswerFirst(submittedText ?? "", exercise.answer);
+  const first = revealedTileOrder(exercise, submittedText);
+  const orders = [first, ...acceptedTileOrders(exercise).filter((order) => order !== first)];
+  return [...new Set(orders.map((order) => order.join(" ")))];
+}
+
 /** The recording of variant `index`, falling back to `answerAudio` when the field or that entry is missing, null or holds no takes. */
 export function variantAudio(exercise: Pick<ExerciseArtifact, "answerAudio" | "answerVariantAudio">, index: number): AudioMap | null {
   const entry = exercise.answerVariantAudio?.[index];

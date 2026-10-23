@@ -33,6 +33,9 @@ export interface VerbRow {
   written: string;
   /** Null where the course authors no spoken stems for this verb (and always, for the future). */
   spoken: string | null;
+  /** Romanizations of `written` and `spoken`, for a hover; null where the publisher emits none. */
+  writtenRomanization: string | null;
+  spokenRomanization: string | null;
 }
 
 /** One tense as table rows, in person order, for the affirmative or the negative. Persons the tense lacks (the imperative has two) are left out. */
@@ -41,7 +44,16 @@ export function verbRows(entry: VerbIndexEntry, tense: VerbTense, negative: bool
   return VERB_PERSONS.flatMap(({ person, label }) => {
     const cell: VerbCell | undefined = cells[person];
     if (!cell) return [];
-    return [{ person, label, written: negative ? cell.negative : cell.written, spoken: negative ? cell.negativeSpoken : cell.spoken }];
+    return [
+      {
+        person,
+        label,
+        written: negative ? cell.negative : cell.written,
+        spoken: negative ? cell.negativeSpoken : cell.spoken,
+        writtenRomanization: (negative ? cell.negativeRomanization : cell.writtenRomanization) ?? null,
+        spokenRomanization: (negative ? cell.negativeSpokenRomanization : cell.spokenRomanization) ?? null,
+      },
+    ];
   });
 }
 
