@@ -24,17 +24,27 @@ export function VerbFormsTable({ entry, tense, negative }: { entry: VerbIndexEnt
           <tr key={row.person}>
             <th scope="row">{row.label}</th>
             <td className={styles.persian} dir="rtl" lang="fa">
-              {row.written}
+              <RomanizedForm text={row.written} romanization={row.writtenRomanization} />
             </td>
             {spoken && (
               <td className={styles.persian} dir="rtl" lang="fa">
-                {row.spoken ?? row.written}
+                <RomanizedForm text={row.spoken ?? row.written} romanization={row.spoken ? row.spokenRomanization : row.writtenRomanization} />
               </td>
             )}
           </tr>
         ))}
       </tbody>
     </table>
+  );
+}
+
+/** A form, with its romanization as a hover (and keyboard-focus) title when the course has one. */
+function RomanizedForm({ text, romanization }: { text: string; romanization: string | null }) {
+  if (!romanization) return <>{text}</>;
+  return (
+    <span className={styles.romanized} title={romanization} tabIndex={0}>
+      {text}
+    </span>
   );
 }
 

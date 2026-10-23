@@ -10,7 +10,7 @@ import { ExerciseRenderer } from "./ExerciseRenderer";
 import { SessionProgressBar } from "./SessionProgressBar";
 import { AnswerFeedback } from "./AnswerFeedback";
 import { ReportIssue } from "./ReportIssue";
-import { closestAnswerFirst } from "../../domain/answerFeedback";
+import { revealedAnswers } from "../../domain/answerVariants";
 import { AnnotatedText } from "./AnnotatedText";
 import { SentenceRomanization } from "./SentenceRomanization";
 import { SkipLessonModal } from "./SkipLessonModal";
@@ -177,12 +177,7 @@ export function StoryTranscript({
                   key={confirmation.submissionCount}
                   correct={feedback.correct}
                   note={feedback.note}
-                  answer={
-                    answerIsTokenized
-                      ? revealedTileOrder(answeredItem.exercise, feedback.submittedText)
-                      : closestAnswerFirst(feedback.submittedText, answeredItem.exercise.answer)
-                  }
-                  answerIsTokenized={answerIsTokenized}
+                  answer={revealedAnswers(answeredItem.exercise, feedback.submittedText)}
                   // A type-in or word-bank answer stays visible in the (red/green)
                   // exercise below, so the feedback box shows only the correct answer.
                   submittedText={answeredItem.renderType === "type_in" || answeredItem.renderType === "word_bank" ? undefined : feedback.submittedText}

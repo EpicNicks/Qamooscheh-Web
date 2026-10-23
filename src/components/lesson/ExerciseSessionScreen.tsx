@@ -20,7 +20,7 @@ import { SessionProgressBar } from "./SessionProgressBar";
 import { AnswerFeedback } from "./AnswerFeedback";
 import { describeAnswerRegister } from "../../domain/answerRegister";
 import { ReportIssue } from "./ReportIssue";
-import { closestAnswerFirst } from "../../domain/answerFeedback";
+import { revealedAnswers } from "../../domain/answerVariants";
 import { needsRetype, retypeMatches } from "../../domain/retype";
 import { useGrader } from "../../grader/useGrader";
 import { SaveWordsRow } from "../vocabulary/SaveWordsRow";
@@ -33,7 +33,6 @@ import { useExerciseReportContext } from "../../hooks/useExerciseReportContext";
 import { ExerciseVoiceScope } from "../../hooks/exerciseVoiceScope";
 import type { ExerciseSession } from "../../hooks/useExerciseSession";
 import type { ExerciseType } from "../../domain/enums";
-import { revealedTileOrder } from "../../domain/wordBankOrders";
 import type { ExerciseArtifact } from "../../types/content";
 import styles from "./ExerciseSessionScreen.module.css";
 
@@ -158,12 +157,7 @@ export function ExerciseSessionScreen<TItem extends ExerciseSessionItem, TFeedba
             answerAudio={answerAudio}
             note={feedback.note}
             xp={feedbackXp?.(feedback)}
-            answer={
-              answerIsTokenized
-                ? revealedTileOrder(answeredItem.exercise, feedback.submittedText)
-                : closestAnswerFirst(feedback.submittedText, answeredItem.exercise.answer)
-            }
-            answerIsTokenized={answerIsTokenized}
+            answer={revealedAnswers(answeredItem.exercise, feedback.submittedText)}
             // A type-in or word-bank answer stays visible in the (red/green)
             // exercise below, so the feedback box shows only the correct answer.
             submittedText={answeredItem.renderType === "type_in" || answeredItem.renderType === "word_bank" ? undefined : feedback.submittedText}
