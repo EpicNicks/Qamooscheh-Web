@@ -53,6 +53,8 @@ interface LessonStartPopoverProps {
   onSkip?: () => void;
   /** Omitted by the placement variant: a locked future unit's node offers only the one placement-test action, not Start/Practice/Review-vocab. */
   onReviewVocabulary?: () => void;
+  /** Opens the Stow dialogs: offered only for a lesson in bootstrap's `stowableLessonKeys`, and always last. */
+  onStow?: () => void;
   /** A line of explanatory copy above the buttons — the placement variant's only use, since jumping past a whole unit on one attempt (no retries) deserves a beat of "here's what happens" before the tap that starts it. */
   description?: string;
   onClose: () => void;
@@ -85,6 +87,7 @@ export function LessonStartPopover({
   onDeepDive,
   onSkip,
   onReviewVocabulary,
+  onStow,
   description,
   onClose,
 }: LessonStartPopoverProps) {
@@ -217,6 +220,11 @@ export function LessonStartPopover({
       {onReviewVocabulary && (
         <Button variant="secondary" onClick={onReviewVocabulary}>
           Review vocabulary
+        </Button>
+      )}
+      {onStow && (
+        <Button variant="secondary" onClick={onStow} title="Move on and come back to this Parsle later">
+          Stow
         </Button>
       )}
     </div>,

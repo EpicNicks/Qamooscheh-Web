@@ -218,6 +218,15 @@ export interface LocalAppPrefs {
   remixContents: { lesson: RemixContents; saved: RemixContents };
   /** True once the learner has dismissed the one-time "change your username?" prompt (Friends page). Local, per user, like suppressSkipWarning. */
   usernamePromptDismissed: boolean;
+  /**
+   * Whether the Stow reminder modal (components/path/StowReminderModal.tsx)
+   * may come up on this device. Local, not a synced user_prefs column: the
+   * server decides when a stowed Parsle is due (API_SPEC.md §2.18), this only
+   * decides whether this device interrupts for it. It gates the modal and
+   * nothing else — the Stow action stays available, and the modal's X (a
+   * synced mute) neither reads nor changes it. Defaults on.
+   */
+  stowReminders: boolean;
 }
 
 const DEFAULTS: LocalAppPrefs = {
@@ -251,6 +260,7 @@ const DEFAULTS: LocalAppPrefs = {
   smoulderingStreak: true,
   remixContents: { lesson: "all", saved: "flashcards_and_all" },
   usernamePromptDismissed: false,
+  stowReminders: true,
 };
 
 function storageKey(userId: string): string {

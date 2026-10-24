@@ -7,6 +7,8 @@ import { getAudioIndex, getCourseManifest, getLexemeIndex, getSkillArtifact, get
 import { computePathProgress, splitUnitPositions, type PathSkillInput, type PathUnit, type PositionKey } from "../domain/pathProgress";
 import type { UnitVocab } from "../domain/courseVocabulary";
 import { refKey } from "../domain/skillRefKey";
+import { stowedRefs } from "../domain/stowage";
+import { useBootstrap } from "./useBootstrap";
 import { useCompletedLessons } from "./useCompletedLessons";
 import type { CourseRef, SkillRef } from "../types/api";
 import type { CourseManifest, ManifestRef, SkillArtifact, ThemeIndexArtifact, UnitArtifact } from "../types/content";
@@ -245,6 +247,9 @@ export function useCoursePath(
   // pending fetch just means nothing is marked yet.
   const completedKeys = useCompletedLessons(course?.code).data?.completedLessonKeys;
   const completedSignature = completedKeys ? [...completedKeys].sort().join("|") : "";
+  // The Stowage rides on bootstrap (API_SPEC.md §2.18); drawn from it, never from the cursor.
+  const stowedKeys = stowedRefs(useBootstrap().data?.stowage);
+  const stowedSignature = [...stowedKeys].sort().join("|");
 
   // Content artifacts are immutable per course version (staleTime: Infinity),
   // so the course, the loaded unit/skill ids and the cursor fully determine
@@ -261,6 +266,7 @@ export function useCoursePath(
         manifestOrderedUnits.map((unit) => unit.id),
         skillKeys,
         completedSignature,
+        stowedSignature,
       ])
     : "";
 
@@ -291,6 +297,7 @@ export function useCoursePath(
       }),
       position ?? null,
       new Set(completedKeys),
+      stowedKeys,
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps -- pathSignature stands in for the render-unstable inputs above.
   }, [pathSignature]);

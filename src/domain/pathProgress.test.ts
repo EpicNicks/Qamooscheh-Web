@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computePathProgress, findLessonAfter, storyRoadStatus, positionBranches, findNextStandardTarget, findNextUnitEntryTarget, groupByArc, isFirstStandardPosition } from "./pathProgress";
+import { computePathProgress, findLessonAfter, storyRoadStatus, positionBranches, findNextStandardTarget, findNextUnitEntryTarget, groupByArc, isFirstStandardPosition, findPathSkill } from "./pathProgress";
 import type { PathUnitInput, SkillStatus } from "./pathProgress";
 
 function standard(skillKey: string) {
@@ -357,5 +357,79 @@ describe("story road status", () => {
     expect(storyRoadStatus(0, 0, 3, 3, false, true)).toBe("unlocked");
     expect(storyRoadStatus(0, 0, 3, 3, false, false)).toBe("locked");
     expect(storyRoadStatus(1, 0, 3, 3, true, true)).toBe("locked");
+  });
+});
+
+describe("stowed lessons", () => {
+  const stowedB1 = new Set(["u1/b1"]);
+
+  it("marks a stowed lesson behind the cursor, leaving its status unlocked", () => {
+    const path = computePathProgress(courseFixture(), { unitKey: "u1", skillKey: "c1" }, new Set(["a1"]), new Set(["u1/b1"]));
+    const fork = path[0].standardPositions[1];
+    expect(fork.skills.map((s) => [s.skillKey, s.stowed])).toEqual([
+      ["b1", true],
+      ["b2", false],
+    ]);
+    expect(fork.status).toBe("unlocked");
+    expect(statusGrid(path)).toEqual([
+      ["unlocked", "unlocked", "current"],
+      ["locked", "locked"],
+    ]);
+  });
+
+  it("is simply done once the pass clears it from the Stowage", () => {
+    const path = computePathProgress(courseFixture(), { unitKey: "u1", skillKey: "c1" }, new Set(["b1"]), new Set());
+    const b1 = path[0].standardPositions[1].skills[0];
+    expect(b1.stowed).toBe(false);
+    expect(b1.completed).toBe(true);
+  });
+
+  it("does not draw a lesson passed elsewhere as stowed while the Stowage catches up", () => {
+    const path = computePathProgress(courseFixture(), { unitKey: "u1", skillKey: "c1" }, new Set(["b1"]), stowedB1);
+    expect(path[0].standardPositions[1].skills[0].stowed).toBe(false);
+  });
+
+  it("defers a unit with a live stowed lesson, and only that unit", () => {
+    const path = computePathProgress(courseFixture(), { unitKey: "u2", skillKey: "d1" }, new Set(), stowedB1);
+    expect(path.map((u) => u.deferred)).toEqual([true, false]);
+  });
+
+  it("is not deferred when nothing is stowed", () => {
+    const path = computePathProgress(courseFixture(), { unitKey: "u2", skillKey: "d1" });
+    expect(path.every((u) => !u.deferred)).toBe(true);
+  });
+
+  it("keeps the stowed last lesson on the cursor's position, still stowed", () => {
+    const path = computePathProgress(courseFixture(), { unitKey: "u2", skillKey: "e1" }, new Set(), new Set(["u2/e1"]));
+    const last = path[1].standardPositions[1];
+    expect(last.status).toBe("current");
+    expect(last.skills[0].stowed).toBe(true);
+    expect(path[1].deferred).toBe(true);
+  });
+
+  it("matches a lesson key in the right unit only", () => {
+    const path = computePathProgress(courseFixture(), { unitKey: "u2", skillKey: "d1" }, new Set(), new Set(["u2/b1"]));
+    expect(path.every((u) => !u.deferred)).toBe(true);
+  });
+
+  it("never stows a story", () => {
+    const path = computePathProgress(courseFixture(), { unitKey: "u1", skillKey: "a1" }, new Set(), new Set(["u1/s1"]));
+    expect(path[0].otherSkills[0].stowed).toBe(false);
+  });
+});
+
+describe("findPathSkill", () => {
+  it("returns the skill with its position's alternates", () => {
+    const path = computePathProgress(courseFixture(), { unitKey: "u1", skillKey: "a1" });
+    const found = findPathSkill(path, "u1", "b2");
+    expect(found?.skill.skillKey).toBe("b2");
+    expect(found?.siblings.map((s) => s.skillKey)).toEqual(["b1", "b2"]);
+  });
+
+  it("is null for an unknown unit, an unknown lesson, or a story", () => {
+    const path = computePathProgress(courseFixture(), { unitKey: "u1", skillKey: "a1" });
+    expect(findPathSkill(path, "nope", "a1")).toBeNull();
+    expect(findPathSkill(path, "u1", "zzz")).toBeNull();
+    expect(findPathSkill(path, "u1", "s1")).toBeNull();
   });
 });

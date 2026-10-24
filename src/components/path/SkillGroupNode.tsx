@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { mainTagSymbol } from "../../domain/mainTag";
 import { positionBranches, type PathPosition, type PositionKey } from "../../domain/pathProgress";
 import { usePathTheme } from "../../theme/PathThemeContext";
@@ -6,6 +7,9 @@ import { useBootstrap } from "../../hooks/useBootstrap";
 import { useThemeIndex } from "../../hooks/useCourseContent";
 import { SkillGroupModal } from "./SkillGroupModal";
 import { DeepDiveChooserModal } from "./DeepDiveChooserModal";
+import { StowFlow } from "./StowFlow";
+import { StowedMark } from "./StowedMark";
+import { skillStartRoute } from "../../domain/skillRoute";
 import nodeStyles from "./SkillNode.module.css";
 import styles from "./SkillGroupNode.module.css";
 
@@ -27,6 +31,8 @@ export function SkillGroupNode({ position, nextSkipTarget }: { position: PathPos
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [deepDiveLessonKey, setDeepDiveLessonKey] = useState<string | null>(null);
+  const [stowLessonKey, setStowLessonKey] = useState<string | null>(null);
+  const navigate = useNavigate();
   const bootstrap = useBootstrap();
   const themeIndex = useThemeIndex(bootstrap.data?.course ?? null);
   const branches = positionBranches(position);
@@ -52,6 +58,7 @@ export function SkillGroupNode({ position, nextSkipTarget }: { position: PathPos
           {theme.icons.standard != null && <span className={nodeStyles.icon}>{theme.icons.standard}</span>}
           {tagSymbol != null && <span className={nodeStyles.tagSymbol} aria-hidden="true">{tagSymbol}</span>}
           <span className={nodeStyles.title}>{position.skills.length} Parsles</span>
+          {position.skills.some((s) => s.stowed) && <StowedMark />}
           <span className={styles.countPill}>{position.skills.length}</span>
           {branches && branches.done > 0 && (
             <span className={styles.doneCount} aria-hidden="true">
@@ -70,7 +77,21 @@ export function SkillGroupNode({ position, nextSkipTarget }: { position: PathPos
             setModalOpen(false);
             setDeepDiveLessonKey(skillKey);
           }}
+          onStow={(skillKey) => {
+            setModalOpen(false);
+            setStowLessonKey(skillKey);
+          }}
           themeIndex={themeIndex.data}
+        />
+      )}
+      {stowLessonKey && (
+        <StowFlow
+          lessonKey={stowLessonKey}
+          onRetry={() => {
+            const skill = position.skills.find((s) => s.skillKey === stowLessonKey);
+            if (skill) navigate(skillStartRoute(skill, position.skills));
+          }}
+          onClose={() => setStowLessonKey(null)}
         />
       )}
       {deepDiveLessonKey && (
