@@ -17,6 +17,8 @@ export interface AnswerFeedbackProps {
   note: string | null;
   /** Cosmetic per-answer XP (the grader's, domain/answerFeedback.ts) — 0/omitted renders no burst. */
   xp?: number;
+  /** Why `xp` is lower than a full award (domain/xpReason.ts), shown under the verdict so a reduced amount never looks arbitrary. */
+  xpNote?: string | null;
   /** The accepted answer(s) — only ever read when `!correct`, to back "Reveal Answer?". The first is shown and the rest sit behind "Also accepted", so order them closest to the submission first and include every accepted one (domain/answerVariants.ts's revealedAnswers). Omit to hide that control (e.g. no exercise context available). */
   answer?: string[];
   /** What the learner actually submitted, exactly as handed to the grader — shown as "Your answer" alongside the revealed correct answer, so a mismatched word-bank tile order (say) is visible rather than just "wrong". */
@@ -48,6 +50,7 @@ export function AnswerFeedback({
   correct,
   note,
   xp = 0,
+  xpNote,
   answer,
   submittedText,
   hintMap = EMPTY_HINT_MAP,
@@ -88,6 +91,7 @@ export function AnswerFeedback({
               Also: {alternative} ({label})
             </span>
           ))}
+          {xp > 0 && xpNote && <span className={styles.note}>{xpNote}</span>}
           <XpBurst amount={xp} />
           {answerAudio && (
             <span className={styles.play}>

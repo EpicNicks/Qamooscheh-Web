@@ -41,6 +41,8 @@ interface AnnotatedWordProps {
   focusable?: boolean;
   /** Called each time the tooltip is shown — how an English word's hint marks its exercise as hinted (EnglishAnnotatedText). */
   onReveal?: () => void;
+  /** Set while revealing the hint still needs the learner's go-ahead (the XP warning): hover, focus or a press hands `proceed` here instead of opening the tooltip, and the caller runs it once they agree. */
+  gate?: (proceed: () => void) => void;
   /**
    * Off for a copy moved under a CSS transform (WordBankExercise's drag
    * overlay): a transformed ancestor becomes what `position: fixed` is
@@ -103,6 +105,7 @@ export function AnnotatedWord({
   settings,
   focusable = true,
   onReveal,
+  gate,
   tooltip = true,
   speech,
   toggle = false,
@@ -176,6 +179,14 @@ export function AnnotatedWord({
   );
   useEffect(() => () => verbFormsCloser.close(), [verbFormsCloser]);
   const flipPinned = () => {
+    if (!pinned && gate) {
+      gate(() => {
+        reveal();
+        setPinned(true);
+        setDismissed(false);
+      });
+      return;
+    }
     if (!pinned) reveal();
     setPinned(!pinned);
     setDismissed(pinned);
@@ -337,6 +348,15 @@ export function AnnotatedWord({
         onPointerEnter={(event) => {
           // A touch's pointer "enters" for the length of the tap; the tap itself pins.
           if (event.pointerType === "touch") return;
+          if (gate && !open) {
+            // Only if the pointer is still on the word once they've agreed.
+            gate(() => {
+              if (!wrapRef.current?.matches(":hover")) return;
+              reveal();
+              hoverCloser.enter();
+            });
+            return;
+          }
           if (!open) reveal();
           hoverCloser.enter();
           if (verbFormsOpen) verbFormsCloser.enter();
@@ -350,7 +370,10 @@ export function AnnotatedWord({
         onMouseLeave={unspeak}
         onFocus={(event) => {
           // Only keyboard focus opens it: a click or tap focuses the word too.
-          if (!focused && event.target.matches(":focus-visible")) show();
+          if (!focused && event.target.matches(":focus-visible")) {
+            if (gate) gate(show);
+            else show();
+          }
           speak();
         }}
         onBlur={(event) => {
@@ -513,12 +536,14 @@ export function EnglishAnnotatedText({
   hintMap,
   settings,
   onReveal,
+  gate,
 }: {
   text: string;
   tags: readonly string[];
   hintMap: ReadonlyMap<string, WordHint>;
   settings: TextDisplaySettings;
   onReveal?: () => void;
+  gate?: (proceed: () => void) => void;
 }) {
   const wordSettings: TextDisplaySettings = {
     ...settings,
@@ -541,6 +566,7 @@ export function EnglishAnnotatedText({
             }}
             settings={wordSettings}
             onReveal={onReveal}
+            gate={gate}
             speech={speech}
           />
         ) : segment.isWord && speech ? (

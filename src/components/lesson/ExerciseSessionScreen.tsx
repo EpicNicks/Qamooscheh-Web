@@ -55,6 +55,8 @@ export interface ExerciseSessionFeedback {
   submittedText: string;
   /** The grader's separator edits when a half-space or space was off but the answer was accepted — the review marks where (domain/typedAnswerMarks.ts). */
   separators?: SeparatorMarks | null;
+  /** Why the answer's XP is below the full award (domain/xpReason.ts), shown beside the XP. */
+  xpNote?: string | null;
 }
 
 interface ExerciseSessionScreenProps<TItem extends ExerciseSessionItem, TFeedback extends ExerciseSessionFeedback> {
@@ -157,6 +159,7 @@ export function ExerciseSessionScreen<TItem extends ExerciseSessionItem, TFeedba
             answerAudio={answerAudio}
             note={feedback.note}
             xp={feedbackXp?.(feedback)}
+            xpNote={feedback.xpNote}
             answer={revealedAnswers(answeredItem.exercise, feedback.submittedText)}
             // A type-in or word-bank answer stays visible in the (red/green)
             // exercise below, so the feedback box shows only the correct answer.

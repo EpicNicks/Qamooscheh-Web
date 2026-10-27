@@ -41,19 +41,24 @@ describe("checkAnswer's request", () => {
     expect(grader.requests[0]).toMatchObject({ retype: true, retypeNumber: 2 });
     expect(feedback.xp).toBe(2);
   });
+
+  it("explains a hint-halved award from the grader's reasons", () => {
+    const grader = fakeGrader(() => ({ ...correct("x", 5), xpBase: 10, xpReasons: ["first_try", "hint_halved"] }));
+    expect(checkAnswer(grader, "fa", exercise("type_in", ["x"]), "x", { usedHint: true }).xpNote).toBe("Hint used: half of the 10 XP for a first try.");
+  });
 });
 
 describe("checkAnswer's verdict and XP", () => {
   const typeIn = exercise("type_in", ["x"]);
 
   it("takes both from the grader's response", () => {
-    expect(checkAnswer(fakeGrader(() => correct("x", 10)), "fa", typeIn, "x")).toEqual({ verdict: "correct", note: null, xp: 10, separators: null });
+    expect(checkAnswer(fakeGrader(() => correct("x", 10)), "fa", typeIn, "x")).toEqual({ verdict: "correct", note: null, xp: 10, xpNote: null, separators: null });
     expect(checkAnswer(fakeGrader(() => accepted("x", [])), "fa", typeIn, "x")).toMatchObject({ verdict: "accepted_with_correction", xp: 7 });
-    expect(checkAnswer(fakeGrader(() => ({})), "fa", typeIn, "y")).toEqual({ verdict: "incorrect", note: null, xp: 0, separators: null });
+    expect(checkAnswer(fakeGrader(() => ({})), "fa", typeIn, "y")).toEqual({ verdict: "incorrect", note: null, xp: 0, xpNote: null, separators: null });
   });
 
   it("falls back to an exact match, with no XP, without a grader", () => {
-    expect(checkAnswer(null, "fa", typeIn, " X ")).toEqual({ verdict: "correct", note: null, xp: 0, separators: null });
+    expect(checkAnswer(null, "fa", typeIn, " X ")).toEqual({ verdict: "correct", note: null, xp: 0, xpNote: null, separators: null });
     expect(checkAnswer(null, "fa", typeIn, "y").verdict).toBe("incorrect");
     const wordBank = { ...exercise("word_bank", ["من", "کتاب"]), alternativeAnswers: [["کتاب", "من"]] };
     expect(checkAnswer(null, "fa", wordBank, "کتاب من").verdict).toBe("correct");
@@ -62,7 +67,7 @@ describe("checkAnswer's verdict and XP", () => {
 
   it("falls back the same way when the grader can't interpret the request", () => {
     const grader = fakeGrader(() => ({ verdict: null, error: "unknown exerciseType 'Nope'." }));
-    expect(checkAnswer(grader, "fa", typeIn, "x")).toEqual({ verdict: "correct", note: null, xp: 0, separators: null });
+    expect(checkAnswer(grader, "fa", typeIn, "x")).toEqual({ verdict: "correct", note: null, xp: 0, xpNote: null, separators: null });
   });
 });
 

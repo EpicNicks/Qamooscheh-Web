@@ -39,6 +39,8 @@ export type ColorVision = "default" | "red-green" | "blue-yellow";
 export interface LocalAppPrefs {
   /** True once the learner has ticked "Don't ask me again" on the skip confirmation. */
   suppressSkipWarning: boolean;
+  /** True once the learner has ticked "Don't ask again" on the warning that a hint halves the answer's XP. Local per device, like suppressSkipWarning. */
+  suppressHintWarning: boolean;
   /** Per-language virtual keyboard mode (see components/lesson/keyboard/). fa defaults to the standard ISIRI layout, ja defaults to phonetic (romaji IME) — matching what most learners already expect from each language. */
   keyboardInputMethod: KeyboardInputMethod;
   /**
@@ -222,6 +224,7 @@ export interface LocalAppPrefs {
 
 const DEFAULTS: LocalAppPrefs = {
   suppressSkipWarning: false,
+  suppressHintWarning: false,
   keyboardInputMethod: { fa: "layout", ja: "phonetic" },
   showFurigana: true,
   showRomanizationHints: true,
