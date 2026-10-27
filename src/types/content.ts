@@ -68,6 +68,12 @@ export interface SkillArtifact {
    * symbol is drawn from it). Optional because older artifacts may omit it.
    */
   themes?: string[];
+  /**
+   * A glossary path (`time/days`, the ids of domain/glossaryContent.ts joined
+   * by `/`) whose page would help before this lesson, or absent. The backend
+   * checks only its shape; whether the page exists is this client's to resolve.
+   */
+  glossaryRef?: string | null;
   exercises: ExerciseArtifact[];
 }
 

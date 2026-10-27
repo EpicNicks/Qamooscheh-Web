@@ -227,6 +227,23 @@ const TIME_EXPRESSIONS_ENTRY: GlossaryEntry = {
   ],
 };
 
+// Persian counts the days from Saturday, the first day of the week: every name
+// after Saturday is a number plus "shanbe" (yek-shanbe is "one-shanbe").
+const DAYS_ENTRY: GlossaryEntry = {
+  id: "days",
+  title: "Days of the Week",
+  note: "The week starts on Saturday (shanbe). The next five days are named by counting: a number plus shanbe, so Sunday is \"one-shanbe\", Monday \"two-shanbe\" and so on up to Thursday. Friday, the weekend day, has its own name.",
+  terms: [
+    { term: "شنبه", romanization: "shanbe", definition: "Saturday" },
+    { term: "یک‌شنبه", romanization: "yek-shanbe", definition: "Sunday (one + shanbe)" },
+    { term: "دوشنبه", romanization: "do-shanbe", definition: "Monday (two + shanbe)" },
+    { term: "سه‌شنبه", romanization: "se-shanbe", definition: "Tuesday (three + shanbe)" },
+    { term: "چهارشنبه", romanization: "chahār-shanbe", definition: "Wednesday (four + shanbe)" },
+    { term: "پنجشنبه", romanization: "panj-shanbe", definition: "Thursday (five + shanbe)" },
+    { term: "جمعه", romanization: "jom'e", definition: "Friday" },
+  ],
+};
+
 const RELATIVE_TIME_ENTRY: GlossaryEntry = {
   id: "relative-time",
   title: "Relative Time",
@@ -317,7 +334,7 @@ const GLOSSARY_BY_COURSE: Record<string, GlossaryEntry[]> = {
     {
       id: "time",
       title: "Time",
-      children: [HOURS_MINUTES_ENTRY, TIME_EXPRESSIONS_ENTRY, RELATIVE_TIME_ENTRY],
+      children: [HOURS_MINUTES_ENTRY, TIME_EXPRESSIONS_ENTRY, DAYS_ENTRY, RELATIVE_TIME_ENTRY],
     },
     COLORS_ENTRY,
     EZAFE_ENTRY,
@@ -338,4 +355,11 @@ export function findGlossaryEntry(entries: GlossaryEntry[], path: string[]): Glo
   if (!match) return null;
   if (rest.length === 0) return match;
   return match.children ? findGlossaryEntry(match.children, rest) : null;
+}
+
+/** The leaf page a skill's `glossaryRef` ("time/days") points at, or null when the course has no such page, so a ref the glossary can't resolve just shows nothing. */
+export function findGlossaryByRef(entries: GlossaryEntry[], ref: string | null | undefined): GlossaryEntry | null {
+  if (!ref) return null;
+  const entry = findGlossaryEntry(entries, ref.split("/").filter(Boolean));
+  return entry && !entry.children?.length ? entry : null;
 }
