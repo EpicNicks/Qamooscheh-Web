@@ -3,8 +3,14 @@
 // no separate mapping table to drift from the backend's
 // [JsonStringEnumMemberName(...)] attributes.
 
-/** Qamooscheh.Domain.ExerciseType */
-export type ExerciseType = "word_bank" | "type_in" | "match" | "speak" | "listen_type";
+/** Qamooscheh.Domain.ExerciseType — every type this build can render. The type below is derived from it, so a type added to one cannot be missing from the other. */
+export const EXERCISE_TYPES = ["word_bank", "type_in", "match", "speak", "listen_type"] as const;
+export type ExerciseType = (typeof EXERCISE_TYPES)[number];
+
+/** False for a type a newer backend added that this build has never heard of (content is typed as if every exercise were known, but the wire can say otherwise). */
+export function isKnownExerciseType(type: string): type is ExerciseType {
+  return (EXERCISE_TYPES as readonly string[]).includes(type);
+}
 
 /**
  * Qamooscheh.Domain.ExerciseScriptMode — which script ONE exercise is
