@@ -1,8 +1,9 @@
 // The play counter of a listening test (API_SPEC.md §2.3 point 8): the
 // learner hears the prompt up to MAX_PLAYS times, and each play after the
-// first lowers the answer's XP. Only a play that runs to its end is one —
-// a recording that fails to load, or one cut off by pressing play again, is
-// not charged. The slowed replay counts the same as any other.
+// first lowers the answer's XP. Play is locked while a play is running, so a
+// play can't be cut off and restarted for free; only a play that runs to its
+// end is counted, and a recording that fails to load is not charged. The
+// slowed replay counts the same as any other.
 import { useEffect, useRef, useState } from "react";
 import { play as startPlayback, SLOW_RATE } from "../domain/playback";
 
@@ -14,6 +15,7 @@ export interface ListenPlays {
   completed: number;
   /** What to submit as `playsUsed`: at least 1, since answering is itself having listened. */
   playsUsed: () => number;
+  /** False once the plays are used up, and while one is still running. */
   canPlay: boolean;
   play: () => void;
   playSlow: () => void;
@@ -26,15 +28,18 @@ export function useListenPlays(audioUrl: string | null, free: boolean): ListenPl
   const completedRef = useRef(0);
   const stopRef = useRef<() => void>(() => {});
   const generationRef = useRef(0);
+  const playingRef = useRef(false);
 
   function start(rate: number) {
-    if (!audioUrl || (!free && completedRef.current >= MAX_PLAYS)) return;
+    if (!audioUrl || (!free && (completedRef.current >= MAX_PLAYS || playingRef.current))) return;
     stopRef.current();
     const generation = ++generationRef.current;
+    playingRef.current = true;
     setStatus("playing");
     // No text or language: a listening test never reads aloud in a synthetic voice.
     stopRef.current = startPlayback({ url: audioUrl, text: "", speechLang: null, rate }, (ranToEnd) => {
       if (generation !== generationRef.current) return;
+      playingRef.current = false;
       setStatus("idle");
       if (ranToEnd && !free) {
         completedRef.current += 1;
@@ -49,7 +54,7 @@ export function useListenPlays(audioUrl: string | null, free: boolean): ListenPl
     status,
     completed,
     playsUsed: () => Math.min(MAX_PLAYS, Math.max(1, completedRef.current)),
-    canPlay: !!audioUrl && (free || completed < MAX_PLAYS),
+    canPlay: !!audioUrl && (free || (completed < MAX_PLAYS && status === "idle")),
     play: () => start(1),
     playSlow: () => start(SLOW_RATE),
   };
