@@ -41,7 +41,7 @@ import { filterRemixExercises, type RemixContents } from "../domain/remixContent
 import { MAX_CREDITED_RETYPES, needsRetype } from "../domain/retype";
 import type { SessionPlanResponse, SkillRef, SubmittedItem, SubmittedSession, SubmittedSessionResponse } from "../types/api";
 import type { ExerciseArtifact, SkillArtifact } from "../types/content";
-import type { ExerciseType, SkillCategory } from "../domain/enums";
+import { isKnownExerciseType, type ExerciseType, type SkillCategory } from "../domain/enums";
 
 const RETRY_DEPTH = 3;
 // attempt < MAX_RETRIES gates the requeue in submitAnswer below — 2 means a
@@ -66,7 +66,7 @@ export interface LessonExerciseInstance {
   attempt: number;
 }
 
-export type LessonStatus = "loading" | "choosing" | "empty" | "ready" | "submitting" | "done" | "rejected" | "error" | "unavailable" | "outdated";
+export type LessonStatus = "loading" | "choosing" | "empty" | "ready" | "submitting" | "done" | "rejected" | "error" | "unavailable" | "outdated" | "needsNewerApp";
 
 /**
  * A submission the server answered 200 to but explicitly refused — one or
@@ -478,7 +478,15 @@ export function useLessonEngine(
   useEffect(() => {
     if (outdated) void refetchBootstrap();
   }, [outdated, refetchBootstrap]);
-  if (queue === null && skillsReady && plan.data && !awaitingRemixContents && !outdated) {
+  // A lesson with an exercise this build can't render is declined whole, before it
+  // starts: a submitted lesson needs an answer for every exercise, so skipping one
+  // would break the submit.
+  const needsNewerApp =
+    started.current == null &&
+    skillsReady &&
+    !!plan.data &&
+    lessonSkills(plan.data.skills).some((ref) => skillArtifacts.get(refKey(ref))?.exercises.some((exercise) => !isKnownExerciseType(exercise.type)));
+  if (queue === null && skillsReady && plan.data && !awaitingRemixContents && !outdated && !needsNewerApp) {
     started.current = { course: liveCourse, plan: plan.data };
     setQueue(initialQueue);
     setTotalCount(initialQueue.length);
@@ -839,7 +847,9 @@ export function useLessonEngine(
         ? "unavailable"
         : outdated
           ? "outdated"
-          : gate === "loading"
+          : needsNewerApp
+            ? "needsNewerApp"
+            : gate === "loading"
           ? "loading"
           : gate === "error"
             ? "error"

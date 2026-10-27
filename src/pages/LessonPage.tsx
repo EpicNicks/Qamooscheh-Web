@@ -360,6 +360,22 @@ function LessonPageContent() {
     );
   }
 
+  // The lesson has an exercise this build can't render, so it isn't opened at all.
+  if (engine.status === "needsNewerApp") {
+    return (
+      <div className={styles.done}>
+        <h1>This Parsle needs a newer version of this app</h1>
+        <p>Reload to get the latest version, then open it again.</p>
+        <div className={styles.doneActions}>
+          <Button variant="secondary" onClick={() => navigate(isDeepDive ? "/themes" : "/path")}>
+            {isDeepDive ? "Back to browsing" : "Back to path"}
+          </Button>
+          <Button onClick={() => window.location.reload()}>Reload</Button>
+        </div>
+      </div>
+    );
+  }
+
   if (engine.status === "empty") {
     return (
       <div className={styles.done}>
