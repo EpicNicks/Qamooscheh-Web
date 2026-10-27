@@ -59,6 +59,7 @@ interface RemixFeedback extends ExerciseSessionFeedback {
   usedHint: boolean;
   /** What the grader prices the answer at (a first attempt, hint included). */
   xp: number;
+  xpNote?: string | null;
 }
 
 interface Outcome {
@@ -317,7 +318,7 @@ export function SavedPracticePage() {
       ),
     ];
     setAnswers(nextAnswers);
-    confirmation.record(item, { correct, note: feedback.note, submittedText, verdict: feedback.verdict, usedHint, xp: feedback.xp, separators: feedback.separators });
+    confirmation.record(item, { correct, note: feedback.note, submittedText, verdict: feedback.verdict, usedHint, xp: feedback.xp, xpNote: feedback.xpNote, separators: feedback.separators });
     advance(nextAnswers, cards, needsRetype(item.renderType, correct));
   }
 

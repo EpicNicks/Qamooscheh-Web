@@ -106,6 +106,8 @@ export interface SubmitAnswerResult {
   attempt: number;
   /** What the grader prices this answer at (hint included): the "+N XP" pop. Not what the server credits when a session rule applies, which the pages honor themselves. */
   xp: number;
+  /** Why `xp` is below the full award (domain/xpReason.ts); null when there is nothing to say. */
+  xpNote?: string | null;
   /** What was actually graded — surfaced on the revealed-answer feedback so a learner can see exactly what the grader received (e.g. a word-bank submission whose tile order wasn't what they intended). */
   submittedText: string;
   /** The grader's separator edits when a half-space or space was off but the answer was accepted — the review marks where (domain/typedAnswerMarks.ts). */
@@ -633,7 +635,7 @@ export function useLessonEngine(
       }
     }
 
-    return { correct, requeued, note: feedback.note, verdict: feedback.verdict, attempt, xp: feedback.xp, submittedText, separators: feedback.separators };
+    return { correct, requeued, note: feedback.note, verdict: feedback.verdict, attempt, xp: feedback.xp, xpNote: feedback.xpNote, submittedText, separators: feedback.separators };
   }
 
   /**

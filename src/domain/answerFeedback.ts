@@ -12,6 +12,7 @@ import { isPersian } from "./language";
 import { foldLatinVariance, levenshteinDistance, normalizeCase } from "./persian/answerDiff";
 import { foldCodepoints, normalizeStrict, stripReadingAids, ZWNJ } from "./persian/normalize";
 import type { Grader, GraderRequest, GraderResponse, SeparatorEdit } from "../grader/types";
+import { explainXp } from "./xpReason";
 import type { ExerciseArtifact } from "../types/content";
 
 export type AnswerVerdict = "correct" | "accepted_with_correction" | "incorrect";
@@ -28,6 +29,8 @@ export interface AnswerFeedback {
   note: string | null;
   /** The XP this answer earns, as the grader prices it for the attempt/hint/retype in the AnswerContext. 0 without a grader. */
   xp: number;
+  /** Why `xp` is below the full award (domain/xpReason.ts); null when it paid in full or there is nothing to say. */
+  xpNote: string | null;
   /** The grader's separator edits for an accepted answer whose half-spaces or spaces were off; null otherwise. */
   separators: SeparatorMarks | null;
 }
@@ -154,23 +157,24 @@ export function checkAnswer(
     if (grader) console.warn("The grader couldn't interpret an answer; falling back to an exact match", response?.error);
     // Selection-based `answer`s are tiles (see graderRequest), so the plain check needs them joined.
     const accepted = selection ? acceptedTileOrders(exercise).map((order) => order.join(" ")) : exercise.answer;
-    return { verdict: looksCorrect(submittedText, accepted) ? "correct" : "incorrect", note: null, xp: 0, separators: null };
+    return { verdict: looksCorrect(submittedText, accepted) ? "correct" : "incorrect", note: null, xp: 0, xpNote: null, separators: null };
   }
 
   const verdict = verdictOf(response);
   const xp = response.xp ?? 0;
+  const xpNote = explainXp(xp, response.xpBase, response.xpReasons);
   // Selection-based: a typo is structurally impossible either way, and there is nothing typed to describe.
-  if (selection) return { verdict, note: null, xp, separators: null };
+  if (selection) return { verdict, note: null, xp, xpNote, separators: null };
 
   // An incorrect typed answer gets no note: a separator difference alone is
   // accepted with correction by the grader, so a wrong answer is wrong for
   // more than its spacing.
-  if (verdict === "incorrect") return { verdict, note: null, xp, separators: null };
+  if (verdict === "incorrect") return { verdict, note: null, xp, xpNote, separators: null };
   const romanized = exercise.scriptMode === "romanized";
   const spacingMatters = isPersian(courseCode) && !romanized;
   const edits = response.separatorEdits ?? [];
   const separators = spacingMatters && response.matchedAnswer && edits.length > 0 ? { matchedAnswer: response.matchedAnswer, edits } : null;
-  return { verdict, note: describeReasons(response, submittedText, romanized, spacingMatters), xp, separators };
+  return { verdict, note: describeReasons(response, submittedText, romanized, spacingMatters), xp, xpNote, separators };
 }
 
 /**
