@@ -487,6 +487,10 @@ export function useLessonEngine(
   }
 
   const current = queue && queue.length > 0 ? queue[0] : null;
+  // The glossary page the current exercise's lesson points at, if any (SkillArtifact.glossaryRef).
+  const currentGlossaryRef = current
+    ? ((sessionArtifacts.get(refKey(current)) ?? skillArtifacts.get(refKey(current)))?.glossaryRef ?? null)
+    : null;
 
   /**
    * Restarts the latency clock. The page owning the answer-confirmation
@@ -863,6 +867,7 @@ export function useLessonEngine(
     course,
     courseCode,
     current,
+    currentGlossaryRef,
     progress: { completed: totalCount - (queue?.length ?? totalCount), total: totalCount },
     /** `correct` counts first attempts accepted at all; `score` (0..1) is the weighted one the pass mark is measured on (domain/lessonScore.ts). */
     score: { correct: firstTryCorrect, total: totalCount, score: totalCount === 0 ? 0 : firstTryPoints / totalCount },
