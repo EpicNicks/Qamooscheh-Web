@@ -128,7 +128,7 @@ export function useSkillWalkthrough(unitKey: string, skillKey: string, options: 
   const current = queue && queue.length > 0 ? queue[0] : null;
 
   /** Synchronous for the same reason as useLessonEngine's submitAnswer: the review has to appear in the same render the queue advances in. */
-  function submitAnswer(submittedText: string, opts?: { usedHint?: boolean }): WalkthroughAnswerResult {
+  function submitAnswer(submittedText: string, opts?: { usedHint?: boolean; playsUsed?: number }): WalkthroughAnswerResult {
     if (!current || !queue) return { correct: false, note: null, submittedText };
 
     const feedback = checkAnswer(grader, course?.code, current.exercise, submittedText, { usedHint: opts?.usedHint });

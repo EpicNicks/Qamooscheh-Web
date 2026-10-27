@@ -493,7 +493,7 @@ function LessonPageContent() {
     }
   }
 
-  function handleSubmit(text: string, opts?: { usedHint?: boolean }) {
+  function handleSubmit(text: string, opts?: { usedHint?: boolean; playsUsed?: number }) {
     const answered = engine.current; // snapshot before submitAnswer advances the queue
     if (!answered) return;
     const result = engine.submitAnswer(text, opts);

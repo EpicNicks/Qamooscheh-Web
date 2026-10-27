@@ -577,11 +577,13 @@ export function useLessonEngine(
    * for a frame first, mounting it and starting its prompt's autoplay. The
    * end-of-lesson submit runs on its own (finishLesson owns its errors).
    */
-  function submitAnswer(submittedText: string, opts?: { usedHint?: boolean }): SubmitAnswerResult {
+  function submitAnswer(submittedText: string, opts?: { usedHint?: boolean; playsUsed?: number }): SubmitAnswerResult {
     if (!current || !queue) return { correct: false, requeued: false, note: null, verdict: "incorrect", attempt: 1, xp: 0, submittedText };
 
     const attempt = current.attempt + 1;
-    const feedback = checkAnswer(grader, courseCode, current.exercise, submittedText, { attempt, usedHint: opts?.usedHint });
+    // A listening test prices an answer at the later of the attempt and the plays used (API_SPEC.md §2.3 point 8).
+    const playsUsed = current.renderType === "listen_type" ? Math.min(3, Math.max(1, opts?.playsUsed ?? 1)) : undefined;
+    const feedback = checkAnswer(grader, courseCode, current.exercise, submittedText, { attempt: Math.max(attempt, playsUsed ?? 1), usedHint: opts?.usedHint });
     const correct = feedback.verdict !== "incorrect";
     const latencyMs = Math.round(performance.now() - shownAt.current);
 
@@ -606,6 +608,7 @@ export function useLessonEngine(
           usedHint: opts?.usedHint ?? false,
           latencyMs,
           attempt,
+          ...(playsUsed !== undefined && { playsUsed }),
         },
       }),
     );

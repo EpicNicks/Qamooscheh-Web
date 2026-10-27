@@ -118,3 +118,22 @@ describe("play", () => {
     expect(onEnd).toHaveBeenCalledOnce();
   });
 });
+
+describe("whether a play completed (what a listening test charges for)", () => {
+  it("is true when a recording runs to its end", () => {
+    const ends: boolean[] = [];
+    play({ url: "https://cdn/a.mp3", text: "", speechLang: null }, (completed) => ends.push(completed));
+    FakeAudio.instances[0].onended?.();
+    expect(ends).toEqual([true]);
+  });
+
+  it("is false when it is stopped, cut off by another play, or fails to load", () => {
+    const ends: boolean[] = [];
+    const first = play({ url: "https://cdn/a.mp3", text: "", speechLang: null }, (completed) => ends.push(completed));
+    first.stop();
+    play({ url: "https://cdn/b.mp3", text: "", speechLang: null }, (completed) => ends.push(completed));
+    play({ url: "https://cdn/c.mp3", text: "", speechLang: null }, (completed) => ends.push(completed));
+    FakeAudio.instances[2].onerror?.();
+    expect(ends).toEqual([false, false, false]);
+  });
+});

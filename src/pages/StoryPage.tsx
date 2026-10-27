@@ -83,7 +83,7 @@ export function StoryPage() {
     }
   }
 
-  function handleSubmit(text: string, opts?: { usedHint?: boolean }) {
+  function handleSubmit(text: string, opts?: { usedHint?: boolean; playsUsed?: number }) {
     const answered = walkthrough.current; // snapshot before submitAnswer advances the queue
     if (!answered) return;
     const result = walkthrough.submitAnswer(text, opts);

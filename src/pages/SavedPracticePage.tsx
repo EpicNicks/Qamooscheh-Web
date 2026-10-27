@@ -301,7 +301,7 @@ export function SavedPracticePage() {
     advance(answers, nextCards);
   }
 
-  function answerExercise(item: RemixExercise, submittedText: string, opts?: { usedHint?: boolean }) {
+  function answerExercise(item: RemixExercise, submittedText: string, opts?: { usedHint?: boolean; playsUsed?: number }) {
     const usedHint = opts?.usedHint ?? false;
     const feedback = checkAnswer(grader, course?.code, item.exercise, submittedText, { usedHint });
     const correct = feedback.verdict !== "incorrect";
