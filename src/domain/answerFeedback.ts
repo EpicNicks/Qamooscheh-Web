@@ -162,7 +162,7 @@ export function checkAnswer(
 
   const verdict = verdictOf(response);
   const xp = response.xp ?? 0;
-  const xpNote = explainXp(xp, response.xpBase, response.xpReasons);
+  const xpNote = explainXp(xp, response.xpBase, response.xpReasons, response.xpLines);
   // Selection-based: a typo is structurally impossible either way, and there is nothing typed to describe.
   if (selection) return { verdict, note: null, xp, xpNote, separators: null };
 
