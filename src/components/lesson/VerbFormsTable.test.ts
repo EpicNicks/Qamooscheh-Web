@@ -79,3 +79,19 @@ describe("VerbFormsHeading", () => {
     }
   });
 });
+
+describe("VerbFormsTable romanization", () => {
+  it("titles a form with its romanization when the cell has one", () => {
+    const romanized: VerbIndexEntry = {
+      ...entry,
+      table: { present: { "1s": { ...entry.table.present!["1s"]!, writtenRomanization: "kār mikonam", spokenRomanization: "kār mikonam" } } },
+    };
+    const html = renderToStaticMarkup(createElement(VerbFormsTable, { entry: romanized, tense: "present", negative: false }));
+    expect(html).toContain('title="kār mikonam"');
+  });
+
+  it("renders plain text when there is none", () => {
+    const html = renderToStaticMarkup(createElement(VerbFormsTable, { entry, tense: "present", negative: false }));
+    expect(html).not.toContain("title=");
+  });
+});

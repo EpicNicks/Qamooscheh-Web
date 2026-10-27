@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { submitFlashcards } from "../../api/flashcards";
+import { submitFlashcardsDurably } from "../../api/flashcards";
+import { useAuth } from "../../auth/useAuth";
 import { useExerciseSession } from "../../hooks/useExerciseSession";
 import { clozeResultLines, summarizeCloze, type ClozeCard as ClozeCardData, type ClozeResult } from "../../domain/cloze";
 import { ClozeCard } from "./ClozeCard";
@@ -37,6 +38,7 @@ interface ClozeDeckRoundProps {
  */
 export function ClozeDeckRound({ course, deck, hardcore, inRemix, exitLabel, onExit, secondaryExit }: ClozeDeckRoundProps) {
   const queryClient = useQueryClient();
+  const { userId } = useAuth();
   const session = useExerciseSession<unknown, unknown>(course);
   const [results, setResults] = useState<ClozeResult[]>([]);
   const [xp, setXp] = useState<XpState | null>(null);
@@ -46,10 +48,14 @@ export function ClozeDeckRound({ course, deck, hardcore, inRemix, exitLabel, onE
     const next = [...results, result];
     setResults(next);
     if (next.length < deck.length) return;
+    if (!userId) {
+      setXp({ status: "failed" });
+      return;
+    }
 
     setXp({ status: "saving" });
     try {
-      const response = await submitFlashcards({
+      const response = await submitFlashcardsDurably(userId, {
         submissionId: submissionId.current,
         courseCode: course.code,
         occurredAt: new Date().toISOString(),

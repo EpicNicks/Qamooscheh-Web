@@ -7,12 +7,13 @@ import { useGrader } from "../grader/useGrader";
 import { useLexemeIndex, useSkillArtifactsForRefs, refKey } from "../hooks/useCourseContent";
 import { useExerciseSession } from "../hooks/useExerciseSession";
 import { getStarredPractice } from "../api/vocab";
-import { submitFlashcards } from "../api/flashcards";
+import { submitFlashcardsDurably } from "../api/flashcards";
 import { checkAnswer, type AnswerVerdict } from "../domain/answerFeedback";
 import { resolveExerciseType } from "../domain/exerciseResolution";
 import { buildClozeDeck, type ClozeCard } from "../domain/cloze";
 import { flashcardWords, type FlashcardWord } from "../domain/flashcards";
 import { needsRetype } from "../domain/retype";
+import { versionMismatch } from "../domain/lessonPin";
 import {
   includesExercise,
   includesFlashcards,
@@ -116,6 +117,14 @@ export function SavedPracticePage() {
   // Set when the last answer could still be retyped: the submit waits for its
   // review to close, so a retype goes in it.
   const finishPending = useRef(false);
+
+  const outdated = versionMismatch(practice.data?.courseVersion, course?.version);
+  // The stale side is usually the cached bootstrap; re-reading it once may
+  // settle the mismatch without the learner doing anything.
+  const refetchBootstrap = bootstrap.refetch;
+  useEffect(() => {
+    if (outdated) void refetchBootstrap();
+  }, [outdated, refetchBootstrap]);
 
   const ready =
     practice.data != null && lexemeIndex.data != null && userId != null && refs.every((ref) => content.skills.has(refKey(ref)));
@@ -252,7 +261,7 @@ export function SavedPracticePage() {
     let flashcardXp: number | null = 0;
     if (finalCards.length > 0) {
       try {
-        const response = await submitFlashcards({
+        const response = await submitFlashcardsDurably(userId, {
           submissionId: crypto.randomUUID(),
           courseCode: course.code,
           occurredAt: new Date().toISOString(),
@@ -350,6 +359,24 @@ export function SavedPracticePage() {
         feedbackXp={(feedback) => feedback.xp}
         onRetype={recordRetype}
       />
+    );
+  }
+
+  // The picked words are resolved under one course version and their exercises
+  // load under the bootstrap's; when they differ the round would show one
+  // version's exercises and submit them as another's. Held back until it starts.
+  if (queue === null && !clozeRound && outdated) {
+    return (
+      <div className={styles.done}>
+        <h1>This Repack was updated</h1>
+        <p>A newer version came out while this was opening. Reopen it to get the latest.</p>
+        <div className={styles.doneActions}>
+          <Button variant="secondary" onClick={() => navigate("/vocabulary")}>
+            Back to vocabulary
+          </Button>
+          <Button onClick={() => window.location.reload()}>Reopen Repack</Button>
+        </div>
+      </div>
     );
   }
 

@@ -122,3 +122,9 @@
   display: flex;
   justify-content: flex-end;
 }
+
+.romanized {
+  text-decoration: underline dotted;
+  text-underline-offset: 0.25em;
+  cursor: help;
+}

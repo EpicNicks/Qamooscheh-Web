@@ -19,16 +19,8 @@ export interface AnswerFeedbackProps {
   xp?: number;
   /** Why `xp` is lower than a full award (domain/xpReason.ts), shown under the verdict so a reduced amount never looks arbitrary. */
   xpNote?: string | null;
-  /** The accepted answer(s) — only ever read when `!correct`, to back "Reveal Answer?". The first is shown and the rest sit behind "Also accepted", so order them closest to the submission first (domain/answerFeedback.ts's closestAnswerFirst). Omit to hide that control (e.g. no exercise context available). */
+  /** The accepted answer(s) — only ever read when `!correct`, to back "Reveal Answer?". The first is shown and the rest sit behind "Also accepted", so order them closest to the submission first and include every accepted one (domain/answerVariants.ts's revealedAnswers). Omit to hide that control (e.g. no exercise context available). */
   answer?: string[];
-  /**
-   * word_bank/match's `answer` is the ordered TOKENS of one correct
-   * selection (matching `tiles`' granularity, joined with spaces to
-   * display) — every other exercise type's `answer` is a list of
-   * alternative whole-answer strings (each shown on its own line). See
-   * domain/answerFeedback.ts's identical dispatch.
-   */
-  answerIsTokenized?: boolean;
   /** What the learner actually submitted, exactly as handed to the grader — shown as "Your answer" alongside the revealed correct answer, so a mismatched word-bank tile order (say) is visible rather than just "wrong". */
   submittedText?: string;
   /** Native word -> hover hint (domain/romanization.ts), pre-gated by the caller — see ExerciseProps.hintMap's own doc. Words with no entry render plain, so an empty/omitted map is the same as plain text. */
@@ -60,7 +52,6 @@ export function AnswerFeedback({
   xp = 0,
   xpNote,
   answer,
-  answerIsTokenized = false,
   submittedText,
   hintMap = EMPTY_HINT_MAP,
   textSettings = PLAIN_TEXT,
@@ -71,7 +62,7 @@ export function AnswerFeedback({
   answerAudio,
 }: AnswerFeedbackProps) {
   const [revealed, setRevealed] = useState(false);
-  const revealedLines = !answer ? [] : answerIsTokenized ? [answer.join(" ")] : answer;
+  const revealedLines = answer ?? [];
   const revealedLine = (line: string) => (
     <li key={line} className={styles.revealedLine} dir={displayDirection(line, textSettings.display)}>
       <SentenceRomanization
