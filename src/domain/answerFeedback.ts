@@ -127,7 +127,7 @@ function verdictOf(response: GraderResponse): AnswerVerdict {
 function graderRequest(exercise: GradedExercise, submittedText: string, context: AnswerContext): GraderRequest {
   const selection = exercise.type === "word_bank" || exercise.type === "match";
   return {
-    exerciseType: { word_bank: "WordBank", type_in: "TypeIn", match: "Match", speak: "Speak" }[exercise.type],
+    exerciseType: { word_bank: "WordBank", type_in: "TypeIn", match: "Match", speak: "Speak", listen_type: "TypeIn" }[exercise.type],
     scriptMode: exercise.scriptMode === "romanized" ? "Romanized" : "Native",
     submitted: submittedText,
     // A selection's `answer` is the ordered tiles of ONE correct selection, which the grader joins itself; the other correct orders go alongside.

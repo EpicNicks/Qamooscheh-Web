@@ -178,6 +178,8 @@ export interface SubmittedItem {
   usedHint: boolean;
   latencyMs: number | null;
   attempt: number;
+  /** listen_type only: how many times the learner heard the prompt, 1 to 3 (API_SPEC.md §2.3 point 8). The server prices the answer at attempt max(attempt, playsUsed). */
+  playsUsed?: number;
   /**
    * The correct answer retyped after this wrong typed attempt (domain/retype.ts),
    * sent only when it matched. Earns retype XP only; never changes the grade,

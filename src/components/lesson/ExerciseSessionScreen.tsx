@@ -70,7 +70,7 @@ interface ExerciseSessionScreenProps<TItem extends ExerciseSessionItem, TFeedbac
    * with its completion screen.
    */
   current: TItem | null;
-  onSubmit: (submittedText: string, opts?: { usedHint?: boolean }) => void;
+  onSubmit: (submittedText: string, opts?: { usedHint?: boolean; playsUsed?: number }) => void;
   /** Shown under the top row in both states — the chapter/lesson title Story and Practice have. A lesson is planned across skills and has no single title, so it passes none. */
   title?: string | null;
   /** Per-answer XP for the review screen's burst (the grader prices it: AnswerFeedback.xp). Omitted — by Practice — renders no burst at all. */
@@ -163,7 +163,7 @@ export function ExerciseSessionScreen<TItem extends ExerciseSessionItem, TFeedba
             answer={revealedAnswers(answeredItem.exercise, feedback.submittedText)}
             // A type-in or word-bank answer stays visible in the (red/green)
             // exercise below, so the feedback box shows only the correct answer.
-            submittedText={answeredItem.renderType === "type_in" || answeredItem.renderType === "word_bank" ? undefined : feedback.submittedText}
+            submittedText={answeredItem.renderType === "type_in" || answeredItem.renderType === "listen_type" || answeredItem.renderType === "word_bank" ? undefined : feedback.submittedText}
             hintMap={hintMap}
             textSettings={textSettings}
             answerRomanization={{

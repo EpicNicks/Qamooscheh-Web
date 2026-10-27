@@ -37,7 +37,7 @@ interface StoryTranscriptProps {
   /** This chapter's answers so far, keyed by ordinal — populated by the page at submit time, independent of `confirmation`'s single-item snapshot, so lines already confirmed can still show what was answered. */
   resultsByOrdinal: ReadonlyMap<number, WalkthroughAnswerResult>;
   title?: string | null;
-  onSubmit: (submittedText: string, opts?: { usedHint?: boolean }) => void;
+  onSubmit: (submittedText: string, opts?: { usedHint?: boolean; playsUsed?: number }) => void;
 }
 
 export function StoryTranscript({

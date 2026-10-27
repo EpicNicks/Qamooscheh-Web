@@ -4,7 +4,7 @@
 // [JsonStringEnumMemberName(...)] attributes.
 
 /** Qamooscheh.Domain.ExerciseType */
-export type ExerciseType = "word_bank" | "type_in" | "match" | "speak";
+export type ExerciseType = "word_bank" | "type_in" | "match" | "speak" | "listen_type";
 
 /**
  * Qamooscheh.Domain.ExerciseScriptMode — which script ONE exercise is
