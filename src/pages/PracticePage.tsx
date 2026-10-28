@@ -8,7 +8,11 @@ import { ExerciseSessionScreen } from "../components/lesson/ExerciseSessionScree
 import { Spinner } from "../components/common/Spinner";
 import { ErrorBanner } from "../components/common/ErrorBanner";
 import { Button } from "../components/common/Button";
-import { LessonResults } from "../components/lesson/LessonResults";
+import { LessonRecap, type RecapNote } from "../components/lesson/LessonRecap";
+import { RecapStats } from "../components/lesson/RecapStats";
+import { useCoursePath } from "../hooks/useCourseContent";
+import { findLessonAfter } from "../domain/pathProgress";
+import { shouldCelebrate } from "../domain/lessonRecap";
 import { LESSON_PASS_THRESHOLD } from "../domain/lessonScore";
 import styles from "./LessonPage.module.css";
 
@@ -53,6 +57,11 @@ function PracticeRun({ onTryAgain }: { onTryAgain: () => void }) {
   const walkthrough = useSkillWalkthrough(unitKey, skillKey, { practice: !isFirstAttempt });
   const session = useExerciseSession<WalkthroughExerciseInstance, WalkthroughAnswerResult>(walkthrough.course);
   const { confirmation } = session;
+  // "Next Parsle" on the recap (issue #134): what the Journey offers now, as
+  // on LessonPage. A run here never moves the cursor, so it's the cursor's
+  // own lesson, not whatever sits after this one behind it.
+  const { path } = useCoursePath(bootstrap.data?.course ?? null, bootstrap.data?.position ?? null);
+  const nextLesson = walkthrough.status === "done" ? findLessonAfter(path, [{ unitKey, skillKey }]) : null;
 
   if (walkthrough.status === "loading" || (graded === null && walkthrough.status !== "error")) {
     return <Spinner label="Preparing practice…" />;
@@ -95,49 +104,77 @@ function PracticeRun({ onTryAgain }: { onTryAgain: () => void }) {
       );
     }
 
+    // The same recap LessonPage ends on (issue #134): a passed-over fork
+    // alternate is a real first attempt, and a replay is still a finished Parsle.
+    const xp = walkthrough.result?.xp ?? null;
     if (walkthrough.status === "done" && walkthrough.result?.lessonCompleted === false) {
       return (
-        <div className={styles.done}>
-          <h1>Not passed yet</h1>
-          <p>
-            You need {Math.round(LESSON_PASS_THRESHOLD * 100)}% to pass this Parsle. Your answers
-            still count toward your reviews — take it again to pass.
-          </p>
-          <LessonResults
-            correct={walkthrough.score.correct}
-            total={walkthrough.score.total}
-            score={walkthrough.score.score}
-            passMark={LESSON_PASS_THRESHOLD}
-            sound="lessonFailed"
-          />
-          <div className={styles.doneActions}>
-            <Button variant="secondary" onClick={() => navigate("/path")}>
-              Back to path
-            </Button>
-            <Button onClick={onTryAgain}>Try again</Button>
-          </div>
-        </div>
+        <LessonRecap
+          correct={walkthrough.score.correct}
+          total={walkthrough.score.total}
+          score={walkthrough.score.score}
+          passMark={LESSON_PASS_THRESHOLD}
+          tone="warning"
+          celebrate={false}
+          title="Not passed yet"
+          body={
+            <>
+              You need {Math.round(LESSON_PASS_THRESHOLD * 100)}% to pass this Parsle. Your answers still count toward your
+              reviews — take it again to pass.
+            </>
+          }
+          notes={[]}
+          stats={(revealed) => <RecapStats courseCode={walkthrough.courseCode} xp={xp} withProgress={false} revealed={revealed} />}
+          actions={
+            <>
+              <Button onClick={onTryAgain}>Try again</Button>
+              <Button variant="ghost" onClick={() => navigate("/path")}>
+                Back to path
+              </Button>
+            </>
+          }
+          sound="lessonFailed"
+        />
       );
     }
 
     if (walkthrough.status === "done") {
+      const lessonCompleted = walkthrough.result?.lessonCompleted ?? null;
+      const notes: RecapNote[] = [];
+      if (walkthrough.isPracticeMode) notes.push({ tone: "muted", text: "Practice round — doesn't count toward your review schedule." });
+      else if (walkthrough.result == null) notes.push({ tone: "muted", text: "Saved on this device — it will sync when you're back online." });
+      if (walkthrough.result?.outcome === "AlreadyProcessed") notes.push({ tone: "muted", text: "Already recorded." });
       return (
-        <div className={styles.done}>
-          {walkthrough.isPracticeMode && (
-            <p className={styles.practiceNote}>Practice round — doesn't count toward your review schedule.</p>
-          )}
-          {!walkthrough.isPracticeMode && walkthrough.result == null && (
-            <p className={styles.practiceNote}>Saved on this device — it will sync when you're back online.</p>
-          )}
-          <LessonResults
-            correct={walkthrough.score.correct}
-            total={walkthrough.score.total}
-            score={walkthrough.score.score}
-            passMark={walkthrough.result?.lessonCompleted != null ? LESSON_PASS_THRESHOLD : undefined}
-            sound="lessonPassed"
-          />
-          <Button onClick={() => navigate("/path")}>Back to path</Button>
-        </div>
+        <LessonRecap
+          correct={walkthrough.score.correct}
+          total={walkthrough.score.total}
+          score={walkthrough.score.score}
+          passMark={lessonCompleted != null ? LESSON_PASS_THRESHOLD : undefined}
+          tone="success"
+          celebrate={shouldCelebrate(lessonCompleted, xp)}
+          notes={notes}
+          stats={(revealed) => <RecapStats courseCode={walkthrough.courseCode} xp={xp} withProgress={!walkthrough.isPracticeMode} revealed={revealed} />}
+          actions={
+            <>
+              <Button
+                onClick={() => (nextLesson ? navigate(`/lesson?skill=${encodeURIComponent(nextLesson.skillKey)}`) : navigate("/path"))}
+              >
+                {nextLesson ? "Next Parsle" : "Back to path"}
+              </Button>
+              <div className={styles.ghostRow}>
+                <Button variant="ghost" onClick={onTryAgain}>
+                  Replay Parsle
+                </Button>
+                {nextLesson && (
+                  <Button variant="ghost" onClick={() => navigate("/path")}>
+                    Back to path
+                  </Button>
+                )}
+              </div>
+            </>
+          }
+          sound="lessonPassed"
+        />
       );
     }
   }
