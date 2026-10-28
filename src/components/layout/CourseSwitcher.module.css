@@ -21,8 +21,10 @@
    the panel rows/catalog list below it, which are only on screen while
    actively choosing — so it gets a larger badge than .badge's default. */
 .triggerBadge {
-  min-width: 48px;
-  height: 32px;
+  /* Read by .badge/.imageBadge/.flagImage (LanguageBadge.module.css), so the
+     chip, its fixed image-variant width and the image all resize together. */
+  --badge-width: 48px;
+  --badge-height: 32px;
   font-size: 0.85rem;
 }
 

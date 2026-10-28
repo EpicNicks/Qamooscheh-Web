@@ -8,8 +8,11 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 36px;
-  height: 24px;
+  /* A custom property rather than a bare min-width so a caller (the
+     header trigger's .triggerBadge) can resize the chip in one place and the
+     image variant's fixed width below follows it. */
+  min-width: var(--badge-width, 36px);
+  height: var(--badge-height, 24px);
   padding: 0 var(--space-2);
   border-radius: var(--radius-sm);
   border: 1px solid rgba(0, 0, 0, 0.15);
@@ -34,12 +37,6 @@
 .imageBadge {
   padding: 0;
   position: relative;
-  /* Sizes the chip from min-width/height alone, never from its content. Taking
-     the image out of flow isn't enough on its own: an SVG that declares a
-     width/height (the Pahlavi flag's 512x512) still has that intrinsic size
-     leak into Safari's shrink-to-fit width, stretching the chip (and the
-     switcher wrapper) to ~530px and, via width:100%, cropping the flag. */
-  contain: size;
 }
 
 /* Out of flow on purpose: the flag SVGs carry only a viewBox, and Safari
@@ -53,8 +50,8 @@
    ratio, so `object-fit: cover` drew the 4:3 flag stretched to 2:1 and then
    cropped its sides. Full width with height:auto (which does use the viewBox
    ratio), centred vertically, covers the chip because every flag here (4:3,
-   the square Pahlavi one) is no wider than the chip's 3:2; the overflow is
-   clipped by .badge. */
+   the square Pahlavi one) is no wider than the chip's 3:2 (36x24, 48x32);
+   the overflow is clipped by .badge. */
 .flagImage {
   position: absolute;
   top: 50%;
@@ -62,4 +59,24 @@
   width: 100%;
   height: auto;
   transform: translateY(-50%);
+}
+
+/* Safari/WebKit only (`font: -apple-system-body` parses only there — desktop
+   and iOS alike; feature-detected rather than UA-sniffed). WebKit has fed the
+   flag image's intrinsic size into the chip's, and from there the <button> and
+   the switcher wrapper (~530px for the Pahlavi SVG's declared 512px), even
+   with the image out of flow. A definite width leaves no shrink-to-fit sizing
+   on the chip for anything to leak into; flex: none stops a flex parent
+   resizing it, and the image gets a pixel width (minus .badge's 1px borders,
+   box-sizing being border-box) instead of a percentage of the chip. */
+@supports (font: -apple-system-body) {
+  .imageBadge {
+    width: var(--badge-width, 36px);
+    flex: none;
+  }
+
+  .flagImage {
+    width: calc(var(--badge-width, 36px) - 2px);
+    max-width: none;
+  }
 }
