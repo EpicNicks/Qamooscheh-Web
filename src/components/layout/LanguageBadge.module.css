@@ -34,6 +34,12 @@
 .imageBadge {
   padding: 0;
   position: relative;
+  /* Sizes the chip from min-width/height alone, never from its content. Taking
+     the image out of flow isn't enough on its own: an SVG that declares a
+     width/height (the Pahlavi flag's 512x512) still has that intrinsic size
+     leak into Safari's shrink-to-fit width, stretching the chip (and the
+     switcher wrapper) to ~530px and, via width:100%, cropping the flag. */
+  contain: size;
 }
 
 /* Out of flow on purpose: the flag SVGs carry only a viewBox, and Safari
