@@ -1,0 +1,29 @@
+{
+  "name": "push-friend-requests",
+  "repo": "backend",
+  "branch": "push-friend-requests",
+  "title": "Server push foundation, first category: friend requests (device registration, per-category preferences, sender abstraction)",
+  "closes": null,
+  "issue": "Android issue #57 / Web #85 ask for friend-request notifications with a user setting to turn them on or off. No server push exists (features.yaml: push-notifications is not_yet on backend). BUILD THE BACKEND HALF, provider-neutral: (1) device registration: POST /v1/devices (platform android|ios|web, push token, optional app version/locale), idempotent upsert per (user, token), DELETE /v1/devices/{id} (sign-out / opt-out), tokens treated as secrets (never logged, never returned after registration), stale/unregistered tokens pruned when the provider reports them invalid, per-user device cap. (2) notification preferences: GET/PUT /v1/notification-preferences with a category map; first category friend_requests, default ON, stored server-side so a push is never sent when the user turned it off (the client mirrors the setting locally). Design categories so streak/league categories can be added later without a migration of the model. (3) event: when a friend request is created or becomes pending for the target (the POST /v1/friends/{id} path from PR #46), enqueue a push to the target's devices unless prefs turn it off, the pair is blocked, or it is a no-op repeat (idempotent adds must NOT re-notify; also rate limit pushes per sender-target pair). Payload minimal and non-sensitive: category, the sender's display name and @username, no email or ids beyond what the app needs to open the Friends screen; localisable. (4) sender abstraction INotificationSender with an FCM HTTP v1 implementation (Android now; iOS later via APNs through FCM; web push later) enabled only when credentials are configured (config keys documented, service-account secret read from configuration/environment, never committed) and a logging no-op sender otherwise, so the feature is inert and safe until the user provisions a Firebase project. Sending must never block or fail the friend request itself (outbox or fire-and-forget with retry/backoff and dead-letter logging). (5) Migration deploy/migrations/0023_push_devices.sql (check the highest existing number on master first), API_SPEC.md section, tests (idempotent registration, prefs off suppresses, repeat add does not re-notify, blocked suppresses, invalid token pruned, sender failure does not fail the request), features.yaml entry for friend-request notifications (backend key; web/android/ios not_yet) and update push-notifications notes. Follow AGENTS.md. LIST AS DEVIATIONS anything needing the user: the Firebase project and service-account credentials, APNs key for iOS, and any privacy decision.",
+  "allowedPaths": [
+    "^src/",
+    "^tests/",
+    "^tools/",
+    "^content/",
+    "^deploy/migrations/",
+    "^features\\\\.yaml$",
+    "^AGENTS\\\\.md$",
+    "^docs/"
+  ],
+  "acceptance": [
+    "Device registration and per-category preferences with server-side suppression",
+    "Idempotent friend-request adds never re-notify; blocked pairs never notify; sender failure never fails the request",
+    "FCM sender only when configured; inert logging sender otherwise; no secrets in the repo",
+    "API_SPEC.md, features.yaml, migration and tests; dotnet build and test green locally"
+  ],
+  "gate": "approved by the user 2026-10-14 ('build notifications')",
+  "approved": true,
+  "reviewer": "sonnet",
+  "reviewers": 2,
+  "notes": "USER DECISION 2026-10-14 (privacy): the push payload must NOT include the sender's @username. It carries the category and the sender's DISPLAY NAME only (plus whatever opaque id the app needs to open the Friends screen, no email, no username), matching GET /v1/friends/requests which withholds the username until the request is accepted. Remove senderUsername from the payload, the outbox row, tests and API_SPEC.md. Merge origin/master first; list only NEW judgement calls. Everything else in the PR stays as reviewed. Do NOT touch docker/scheduler/crontab (the user schedules the dispatch job)."
+}

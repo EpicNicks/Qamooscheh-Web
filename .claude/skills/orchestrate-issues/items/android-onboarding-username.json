@@ -1,0 +1,27 @@
+{
+  "name": "android-onboarding-username",
+  "repo": "android",
+  "branch": "onboarding-username",
+  "title": "Onboarding: choose your username (live availability check)",
+  "closes": null,
+  "issue": "USER-APPROVED onboarding username step. Backend usernames are MERGED and DEPLOYED (Qamooscheh-Backend PR #46); the contract is the usernames section of C:/Users/epicn/source/repos/Qamooscheh/src/Qamooscheh.Api/API_SPEC.md (read it first, do not guess shapes). Rules: handle 3-20 chars of lowercase letters, digits, _ and ., unique case-insensitively. Every account already has an auto-assigned handle; choosing one in onboarding is the first/auto-replacement change: it is free but STARTS the 30-day rename clock, and the UI must say so before the user confirms. BUILD an optional username step in onboarding: (1) instant local format check as the user types (trim, lowercase, optional leading @ stripped); (2) availability check about 400ms after typing stops (debounce), cancelling stale in-flight requests so an old response never overwrites a newer one; show a spinner while checking, then a tick or the specific reason (taken, held, blocked, invalid); the check shares the 30/min rate limit with search, so map 429 to friendly copy and do not fire for locally-invalid input; (3) server re-check on submit (the availability result can be stale): map any rejection to copy and keep the user on the step; (4) Skip keeps the auto-assigned handle and does not start the clock; (5) user-facing copy follows the CLAUDE.md terminology. Android: reuse the existing username repository/validation from the friends-usernames work. Debounce with a coroutine flow (debounce + mapLatest) so stale requests are cancelled. Do not touch the backend repo. Gradle: run tasks one at a time (lock contention and low memory). Android CI runs unit tests, Roborazzi verification, lint and assembleDevDebug: run the equivalent locally, add tests, record baselines only for intended visual changes. Read CLAUDE.md, README.md and docs/SPEC.md first.",
+  "allowedPaths": [
+    "^app/",
+    "^core/",
+    "^feature/",
+    "^keyboard/",
+    "^docs/",
+    "^build-logic/",
+    "^gradle/libs.versions.toml$"
+  ],
+  "acceptance": [
+    "Instant local check; ~400ms debounced availability check with stale requests cancelled",
+    "Spinner then tick or reason; server re-check on submit",
+    "Skip keeps auto-assigned handle; choosing says it starts a 30-day rename clock",
+    "Unit tests and Roborazzi baselines for the new step; CI-equivalent Gradle tasks pass locally"
+  ],
+  "reviewer": "sonnet",
+  "reviewers": 1,
+  "gate": "approved by the user 2026-10-14 (continue-session handoff: start in parallel)",
+  "approved": true
+}

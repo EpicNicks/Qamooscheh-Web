@@ -1,0 +1,26 @@
+{
+  "name": "android-cdn-hold-persist",
+  "repo": "android",
+  "branch": "cdn-hold-persist",
+  "title": "Persist the CDN open-lesson hold across process death",
+  "closes": null,
+  "issue": "The Android CDN content cache holds the content version the learner has open, so pruning (which keeps the last 3 versions) never removes a version in use. Today that hold lives only in memory, so process death drops it. Persist it using the storage the CDN cache code already uses, release it when the lesson closes, and drop stale holds on startup so a crash cannot pin versions forever. Read the CDN cache code from android-cdn-cache first (git log --grep 'CDN'). Add unit tests incl. restart-with-hold and stale-hold cleanup. Gradle: run tasks one at a time (lock contention and low memory). Android CI runs unit tests, Roborazzi verification, lint and assembleDevDebug: run the equivalent locally, add tests, record baselines only for intended visual changes. Read CLAUDE.md, README.md and docs/SPEC.md first.",
+  "allowedPaths": [
+    "^app/",
+    "^core/",
+    "^feature/",
+    "^keyboard/",
+    "^docs/",
+    "^build-logic/",
+    "^gradle/libs.versions.toml$"
+  ],
+  "acceptance": [
+    "Hold survives process death and is released on close",
+    "Stale holds cleaned on startup; pruning still keeps the last 3 versions",
+    "Unit tests; Gradle CI tasks pass locally"
+  ],
+  "reviewer": "sonnet",
+  "reviewers": 1,
+  "gate": "approved by the user 2026-10-14 (continue-session handoff: start in parallel)",
+  "approved": true
+}

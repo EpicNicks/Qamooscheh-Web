@@ -1,0 +1,21 @@
+{
+  "name": "web-perfect-delivery-copy",
+  "repo": "web",
+  "branch": "perfect-delivery-copy",
+  "title": "Copy: the flawless-lesson title is 'Perfect Delivery!'",
+  "closes": null,
+  "issue": "USER DECISION 2026-10-14: the title shown on a flawless (perfect) Parsle result is 'Perfect Delivery!' (a double entendre: Parsle/parcel), replacing 'Perfect Parsle!'. Change the user-facing string in src/components/lesson/LessonRecap.tsx (and its doc comment) and anything else user-facing that says 'Perfect Parsle' (aria-labels, share text, tests). 'Not passed yet' stays. Update the Terminology section line in CLAUDE.md: result-specific titles ('Perfect Delivery!', 'Not passed yet') stay. Do not change identifiers. Update tests/snapshots that assert the old string. Copy only; list nothing else.",
+  "allowedPaths": [
+    "^src/",
+    "^CLAUDE\\.md$"
+  ],
+  "acceptance": [
+    "No user-facing 'Perfect Parsle' remains; the flawless title is 'Perfect Delivery!'",
+    "CLAUDE.md terminology line updated",
+    "CI green"
+  ],
+  "gate": "approved by the user 2026-10-14",
+  "approved": true,
+  "reviewer": "sonnet",
+  "reviewers": 1
+}

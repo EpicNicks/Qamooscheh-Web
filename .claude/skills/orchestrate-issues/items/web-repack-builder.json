@@ -1,0 +1,24 @@
+{
+  "name": "web-repack-builder",
+  "repo": "web",
+  "branch": "repack-builder",
+  "title": "Repack builder: search, drop Parsles into the box, GO!",
+  "closes": null,
+  "issue": "USER-APPROVED Repack builder (Repack is the former Remix; a constructed Repack is itself a custom Parsle, made from smaller Parsles; read CLAUDE.md terminology: user-facing copy says Parsle/Repack, identifiers/routes/storage keep lesson/remix). BUILD ON the existing remix functionality (find it: the remix pages/hooks/API client and the remix-type-filter work); do not duplicate its session start or API calls, add the builder as the entry that composes the selection and then starts the existing remix session. FLOW: (1) a builder screen with an autocomplete text field whose dropdown searches item fields (lesson title, unit, and the other searchable fields the lesson/remix data already has: check what exists, do not invent API fields); keyboard accessible combobox (arrow keys, enter, escape, aria-activedescendant, listbox roles), debounced filtering is fine, empty and no-match states. (2) Choosing a result plays the 'drop' animation: a small Parsle drops into a much larger open box, then the 'shake' animation plays on the box when it lands; the chosen Parsles are listed (removable, order shown) so a screen reader and reduced-motion users get the same information. (3) A GO! button (disabled until at least one Parsle is in the box) plays the 'box close' animation, then the screen fades out to the app theme colour (use the theme token, never a hard-coded colour), then transitions to the first question of the Repack via the existing remix start. ANIMATIONS ARE NOT READY: the final animation assets will be provided later. Build scaffolding placeholders: a single typed animation registry (e.g. src/.../repackAnimations.ts) with entries drop, shake, boxClose, fadeToTheme, each a small component or config with a simple CSS/transform placeholder (a plain rounded square 'box' and small 'parsle' chip are fine), a documented prop contract and the intended duration, and a swap point so a real asset (Lottie/sprite/video) can replace a placeholder by editing one registry entry. Sequence with a small orchestration hook (promise or state machine) that awaits each animation's completion callback, so durations come from the registry. Respect prefers-reduced-motion by skipping to the end state of each step instantly. Add tests for the sequencing (drop then shake, GO disabled when empty, close then fade then start), the combobox keyboard behaviour and reduced motion. Anything about search fields, limits on box size, or entry point placement the existing code does not settle: choose the simplest option and list it in deviations.",
+  "allowedPaths": [
+    "^src/",
+    "^public/",
+    "^package(-lock)?\\.json$"
+  ],
+  "acceptance": [
+    "Builder screen with accessible autocomplete combobox searching existing item fields",
+    "Selecting plays drop then shake via a typed animation registry of placeholders; chosen Parsles listed and removable",
+    "GO! disabled when empty; plays boxClose, then fades to the theme colour, then starts the existing remix session at the first question",
+    "Reduced motion skips animations; tests for sequencing and combobox; CI green"
+  ],
+  "reviewer": "sonnet",
+  "reviewers": 2,
+  "gate": "approved by the user 2026-10-14 (explicit request: build the cloze UI and the Repack builder)",
+  "approved": true,
+  "notes": "USER REVISION 2026-10-14: remove the 8-Parsle cap entirely (no box limit). The list of chosen Parsles must paginate/scroll vertically inside its container when it does not fit (a bounded-height container with vertical overflow scrolling; keyboard and screen-reader reachable, new additions scrolled into view). Everything else in the PR is accepted as is, including the lessonIds query param, searchable fields, entry point, and the remix contents picker still showing after GO!. Update tests for the removed cap."
+}

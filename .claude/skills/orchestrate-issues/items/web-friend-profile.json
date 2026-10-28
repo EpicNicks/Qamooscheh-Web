@@ -1,0 +1,23 @@
+{
+  "name": "web-friend-profile",
+  "repo": "web",
+  "branch": "friend-profile",
+  "title": "Friend profile page (clean placeholder design) with stats and unfriend",
+  "closes": null,
+  "issue": "USER REQUEST 2026-10-14: build a clean friend profile page for web; the user will iterate on the design later, so keep the layout simple, tokenised and easy to restyle (use the app's existing theme tokens/components, no hard-coded colours, no one-off styling systems). Backend is MERGED (Qamooscheh-Backend PR #52): GET /v1/friends/{id}/stats and DELETE /v1/friends/{id}; the contract is src/Qamooscheh.Api/API_SPEC.md at C:/Users/epicn/source/repos/Qamooscheh on origin/master (read it, do not guess shapes; it may not be deployed to production yet, so handle network/404 gracefully). The Android screen (EpicNicks/Qamooscheh-Android PR #71, read-only reference, feature/ friends profile) shows the same data: display name, @handle, friends-since and a league row (rank and points in the caller's current cohort) that is HIDDEN when null. BUILD: (1) an API client + query hook for the stats and an idempotent unfriend mutation that invalidates the friends list; (2) a friend profile page reached from a friend in FriendsPage (add a clear 'View' action; do not redesign FriendsPage), with loading, error, 404 ('Not friends any more', link back to Friends) and 429 (friendly retry copy) states; (3) Unfriend with a confirm dialog (reuse an existing dialog/confirm pattern), then return to Friends and refresh, no block, no extra notification; (4) accessible semantics: one h1 (display name), the handle as secondary text, the stats as a definition list, buttons with labels, focus management on the dialog, mobile-first layout that works at phone width. Copy follows CLAUDE.md terminology (Parsle/Repack). Add tests for the data hook/mutation and the pure formatting helpers (friends-since date, league row visibility); there is no DOM test env, so do not add one. Unsettled points go in deviations.",
+  "allowedPaths": [
+    "^src/",
+    "^public/",
+    "^package(-lock)?\\.json$"
+  ],
+  "acceptance": [
+    "Profile page shows name, handle, friends-since and a league row only when present",
+    "Unfriend with confirm, idempotent, list refreshed; 404/429/error states handled",
+    "Uses existing theme tokens/components so the design can be iterated; accessible and phone-width friendly",
+    "Tests for hook/mutation and helpers; lint, tsc, build, test pass"
+  ],
+  "gate": "approved by the user 2026-10-14",
+  "approved": true,
+  "reviewer": "sonnet",
+  "reviewers": 1
+}
