@@ -1,0 +1,23 @@
+{
+  "name": "web-cloze-ui",
+  "repo": "web",
+  "branch": "cloze-ui",
+  "title": "Fill-in-the-blank flashcards (cloze), phase 1 UI",
+  "closes": null,
+  "issue": "Web issue #87 phase 1 (read it with gh; this PR must say 'Part of #87', not 'Closes'). The design proposal is C:/Users/epicn/AppData/Local/Temp/claude/E--Code-Projects-Qamooscheh-Web-Qamooscheh-Web/8bcc13c3-742b-454a-8f3b-63611fceadd8/scratchpad/issue87-design.md: read its web/UI section; if the file is missing, say so in needsUser rather than guessing the design. The backend half (cloze XP and scoring) is merged: the contract is src/Qamooscheh.Api/API_SPEC.md in C:/Users/epicn/source/repos/Qamooscheh (read it, do not guess shapes; check with git log/gh that the cloze-flashcard-xp backend PR is on master and tell the user in needsUser if it is not). USER DECISIONS: cloze XP per card is 5 on the first attempt, 3 on the first retry, 1 on the second retry, 0 afterwards; a per-word daily cooldown applies and FSRS applies once per day (both enforced by the backend, the UI only shows what it returns); regular mode tolerates a one-letter typo on the client, hardcore mode (opt-in) tolerates none. BUILD: the cloze exercise stacked on the existing flashcards functionality, reusing lessons where the practised lexemes are contained: the translation is shown where the word belongs in the sentence and the learner types the missing word. Reuse the existing flashcard/lesson-session components, answer normalisation and keyboard, and the existing XP/result display; add tests for typo tolerance in both modes, retry XP display and the result screen. Out of scope (list in deviations only if tempted): marathon/speedrun/gauntlet modes, FSRS scheduling UI. User-facing copy follows CLAUDE.md terminology.",
+  "allowedPaths": [
+    "^src/",
+    "^public/",
+    "^package(-lock)?\\.json$"
+  ],
+  "acceptance": [
+    "Cloze card shows the translation in place of the missing word and accepts typed input",
+    "Regular mode tolerates a one-letter typo, hardcore mode none",
+    "XP 5/3/1/0 by attempt shown from the backend response; result screen works",
+    "Tests; lint, tsc, build and test pass; says Part of #87"
+  ],
+  "reviewer": "sonnet",
+  "reviewers": 2,
+  "gate": "approved by the user 2026-10-14 (explicit request: build the cloze UI and the Repack builder)",
+  "approved": true
+}

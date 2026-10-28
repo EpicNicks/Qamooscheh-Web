@@ -1,0 +1,27 @@
+{
+  "name": "android-cloze-ui",
+  "repo": "android",
+  "branch": "cloze-ui",
+  "title": "Fill-in-the-blank flashcards (cloze), phase 1 (web parity)",
+  "closes": null,
+  "issue": "Android issue #58 (read it with gh; this PR must say 'Part of #58' unless the issue says phase 1 is the whole scope). Web reference, read-only: web PR #100 (cloze UI) in E:/Code/Projects/Qamooscheh-Web/Qamooscheh-Web (git log --grep cloze) and its design proposal C:/Users/epicn/AppData/Local/Temp/claude/E--Code-Projects-Qamooscheh-Web-Qamooscheh-Web/8bcc13c3-742b-454a-8f3b-63611fceadd8/scratchpad/issue87-design.md (if missing, rely on the web code). The backend cloze endpoints and XP are merged: the contract is src/Qamooscheh.Api/API_SPEC.md in C:/Users/epicn/source/repos/Qamooscheh (read it, do not guess shapes). USER DECISIONS: cloze XP is 5 on the first attempt, 3 on the first retry, 1 on the second retry, 0 afterwards; per-word daily cooldown and once-per-day FSRS are enforced by the backend, the UI shows what it returns; regular mode tolerates a one-letter typo, hardcore mode none. Match web behaviour natively, including web's accepted choices: per-attempt XP shown as the card's worth with the server total on the result screen, and saved words with no usable sentence dropped rather than turned into translation cards (the backend rejects mixed kinds in one session). Use Parsle/Repack terminology and 'Perfect Delivery!' for the flawless title. Unsettled points go in deviations. Gradle: run tasks one at a time (lock contention and low memory). Android CI runs unit tests, Roborazzi verification, lint and assembleDevDebug: run the equivalent locally, add tests, record baselines only for intended visual changes. Read CLAUDE.md, README.md and docs/SPEC.md first.",
+  "allowedPaths": [
+    "^app/",
+    "^core/",
+    "^feature/",
+    "^keyboard/",
+    "^docs/",
+    "^build-logic/",
+    "^gradle/libs.versions.toml$"
+  ],
+  "acceptance": [
+    "Cloze card shows the translation in the gap and accepts typed input",
+    "Regular mode one-letter typo tolerance, hardcore none",
+    "XP 5/3/1/0 by attempt, server total on the result screen",
+    "Tests/baselines; Gradle CI tasks pass locally"
+  ],
+  "reviewer": "sonnet",
+  "reviewers": 2,
+  "gate": "approved by the user 2026-10-14 (continue)",
+  "approved": true
+}

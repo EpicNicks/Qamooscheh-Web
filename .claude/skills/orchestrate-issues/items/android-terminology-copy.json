@@ -1,0 +1,26 @@
+{
+  "name": "android-terminology-copy",
+  "repo": "android",
+  "branch": "terminology-copy",
+  "title": "Terminology: Parsle (lesson in a unit) and Repack (Remix)",
+  "closes": "56",
+  "issue": "Android issue #56 (read it with gh) and the Terminology section of E:/Code/Projects/Qamooscheh-Web/Qamooscheh-Web/CLAUDE.md (reference, read-only: web PR #96, commit d4a1609). Change user-facing copy only (strings, content descriptions, titles, accessibility labels): lessons in a unit are Parsles (capitalised, plural Parsles), custom Repack groupings are custom Parsles, Remix becomes Repack, the planned timed mode is the Repack race; the recap card has no 'Lesson complete' heading but result titles ('Perfect Parsle!', 'Not passed yet') stay. Code identifiers, file names, routes, storage keys and API fields keep lesson/remix. Update tests and Roborazzi baselines only for the intended text changes. Gradle: run tasks one at a time (lock contention and low memory). Android CI runs unit tests, Roborazzi verification, lint and assembleDevDebug: run the equivalent locally, add tests, record baselines only for intended visual changes. Read CLAUDE.md, README.md and docs/SPEC.md first.",
+  "allowedPaths": [
+    "^app/",
+    "^core/",
+    "^feature/",
+    "^keyboard/",
+    "^docs/",
+    "^build-logic/",
+    "^gradle/libs.versions.toml$"
+  ],
+  "acceptance": [
+    "All user-facing copy follows the terminology; identifiers unchanged",
+    "Baselines updated only for intended text changes",
+    "CI-equivalent Gradle tasks pass locally"
+  ],
+  "reviewer": "sonnet",
+  "reviewers": 1,
+  "gate": "approved by the user 2026-10-14 (continue-session handoff: start in parallel)",
+  "approved": true
+}
