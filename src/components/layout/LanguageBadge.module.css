@@ -56,7 +56,11 @@
   position: absolute;
   top: 50%;
   left: 0;
-  width: 100%;
+  /* width: 0 + min-width: 100% rather than width: 100%: the used width is the
+     same (the chip's), but the image has no width of its own for WebKit to
+     take its intrinsic size from and feed into the chip's sizing. */
+  width: 0;
+  min-width: 100%;
   height: auto;
   transform: translateY(-50%);
 }
@@ -67,16 +71,10 @@
    the switcher wrapper (~530px for the Pahlavi SVG's declared 512px), even
    with the image out of flow. A definite width leaves no shrink-to-fit sizing
    on the chip for anything to leak into; flex: none stops a flex parent
-   resizing it, and the image gets a pixel width (minus .badge's 1px borders,
-   box-sizing being border-box) instead of a percentage of the chip. */
+   resizing it. */
 @supports (font: -apple-system-body) {
   .imageBadge {
     width: var(--badge-width, 36px);
     flex: none;
-  }
-
-  .flagImage {
-    width: calc(var(--badge-width, 36px) - 2px);
-    max-width: none;
   }
 }
