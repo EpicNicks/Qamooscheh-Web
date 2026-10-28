@@ -35,7 +35,7 @@ import { useHoldContentCache } from "./useContentCache";
 import { loadGate, pinFirst, versionMismatch } from "../domain/lessonPin";
 import type { Grader } from "../grader/types";
 import { resolveExerciseType } from "../domain/exerciseResolution";
-import { LESSON_PASS_THRESHOLD, verdictWeight } from "../domain/lessonScore";
+import { LESSON_PASS_THRESHOLD, retryWeight } from "../domain/lessonScore";
 import { clozeSourcesForTags } from "../domain/cloze";
 import { filterRemixExercises, type RemixContents } from "../domain/remixContents";
 import { MAX_CREDITED_RETYPES, needsRetype } from "../domain/retype";
@@ -381,9 +381,10 @@ export function useLessonEngine(
   // this, so the end-of-lesson fraction reflects "got it right the first
   // time" rather than "eventually got it", independent of the requeue depth.
   const [firstTryCorrect, setFirstTryCorrect] = useState(0);
-  // The same first attempts, weighted the way the pass mark is
-  // (domain/lessonScore.ts) — a forgiven typo is half a point.
-  const [firstTryPoints, setFirstTryPoints] = useState(0);
+  // Every exercise's credit toward the pass mark (domain/lessonScore.ts): a
+  // forgiven typo is half a point, and a right retry half what it would have
+  // been first time.
+  const [points, setPoints] = useState(0);
   // True for a session started via startPractice() rather than seeded from
   // the real due queue — finishLesson skips POST /v1/sessions/submit
   // entirely for these, so redoing a lesson never earns FSRS credit twice
@@ -569,7 +570,7 @@ export function useLessonEngine(
     pendingFinish.current = null;
     setItems([]);
     setFirstTryCorrect(0);
-    setFirstTryPoints(0);
+    setPoints(0);
     setResult(null);
     setRejection(null);
     setStatus("ready");
@@ -597,11 +598,9 @@ export function useLessonEngine(
 
     // Computed here rather than read back from state, which won't have
     // updated yet if this is the answer that finishes the lesson.
-    const points = firstTryPoints + (current.attempt === 0 ? verdictWeight(feedback.verdict) : 0);
-    if (current.attempt === 0) {
-      if (correct) setFirstTryCorrect((n) => n + 1);
-      setFirstTryPoints(points);
-    }
+    const newPoints = points + retryWeight(feedback.verdict, attempt);
+    setPoints(newPoints);
+    if (current.attempt === 0 && correct) setFirstTryCorrect((n) => n + 1);
 
     const newItems = current.exercise.tags.map(
       (lexemeTag): RecordedItem => ({
@@ -640,7 +639,7 @@ export function useLessonEngine(
     // time too. The page calls markShown() when the next one is really shown.
 
     if (rest.length === 0) {
-      const score = totalCount === 0 ? 0 : points / totalCount;
+      const score = totalCount === 0 ? 0 : newPoints / totalCount;
       if (needsRetype(current.renderType, correct)) {
         // Submitted by settleAnswer once the review closes.
         pendingFinish.current = score;
@@ -882,8 +881,8 @@ export function useLessonEngine(
     current,
     currentGlossaryRef,
     progress: { completed: totalCount - (queue?.length ?? totalCount), total: totalCount },
-    /** `correct` counts first attempts accepted at all; `score` (0..1) is the weighted one the pass mark is measured on (domain/lessonScore.ts). */
-    score: { correct: firstTryCorrect, total: totalCount, score: totalCount === 0 ? 0 : firstTryPoints / totalCount },
+    /** `correct` counts first attempts accepted at all; `score` (0..1) is the weighted one, retries included, the pass mark is measured on (domain/lessonScore.ts). */
+    score: { correct: firstTryCorrect, total: totalCount, score: totalCount === 0 ? 0 : points / totalCount },
     isPracticeMode,
     /** A multi-lesson remix — the only kind that offers a contents choice (status "choosing"). */
     isRemix,
