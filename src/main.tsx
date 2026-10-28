@@ -6,6 +6,7 @@ import { AuthProvider } from "./auth/AuthProvider";
 import { FontProvider } from "./theme/FontProvider";
 import { ColorVisionProvider } from "./theme/ColorVisionProvider";
 import { queryClient } from "./queryClient";
+import { registerServiceWorker } from "./serviceWorker";
 import App from "./App.tsx";
 import "./index.css";
 
@@ -24,3 +25,5 @@ createRoot(document.getElementById("root")!).render(
     </QueryClientProvider>
   </StrictMode>,
 );
+
+registerServiceWorker();

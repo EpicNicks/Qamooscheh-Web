@@ -4,9 +4,9 @@
 // the app was built, and public/grader/index.json says which version that is.
 // This loads it lazily (never in the main bundle) from there and keeps a copy
 // of its files in Cache Storage, keyed by version, so grading keeps working
-// offline (with public/grader-sw.js answering the script imports from it, and
-// the index kept alongside). Starting it is runtime.ts, which scripts/verify-grader.mjs drives
-// in Node too.
+// offline (with public/sw.js answering the script imports from it, and the
+// index kept alongside). Starting it is runtime.ts, which
+// scripts/verify-grader.mjs drives in Node too.
 import { resourceResponse, startGrader } from "./runtime";
 import type { Grader, GraderIndex, ShippedGrader } from "./types";
 
@@ -83,12 +83,6 @@ async function cacheBuild(shipped: ShippedGrader): Promise<Cache | null> {
   }
 }
 
-/** Lets the cached files answer the grader's script imports offline (public/grader-sw.js). Best effort. */
-function registerOfflineWorker() {
-  if (!("serviceWorker" in navigator)) return;
-  navigator.serviceWorker.register(url("grader-sw.js"), { scope: base.pathname }).catch((error) => console.warn("Couldn't register the grader's offline worker", error));
-}
-
 const loads = new Map<string, Promise<Grader | null>>();
 
 /**
@@ -111,7 +105,6 @@ export function loadGrader(language: string): Promise<Grader | null> {
     }
     const root = rootOf(shipped);
     const cache = await cacheBuild(shipped);
-    if (cache) registerOfflineWorker();
     return startGrader(root, async (path) => {
       const hit = await cache?.match(`${root}/${path}`);
       if (hit) return resourceResponse(path, new Uint8Array(await hit.arrayBuffer()));
