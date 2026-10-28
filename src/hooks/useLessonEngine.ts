@@ -36,13 +36,14 @@ import { useHoldContentCache } from "./useContentCache";
 import { loadGate, pinFirst, versionMismatch } from "../domain/lessonPin";
 import type { Grader } from "../grader/types";
 import { resolveExerciseType } from "../domain/exerciseResolution";
-import { LESSON_PASS_THRESHOLD, verdictWeight } from "../domain/lessonScore";
+import { LESSON_PASS_THRESHOLD, retryWeight } from "../domain/lessonScore";
 import { clozeSourcesForTags } from "../domain/cloze";
 import { filterRemixExercises, type RemixContents } from "../domain/remixContents";
 import { MAX_CREDITED_RETYPES, needsRetype } from "../domain/retype";
 import type { SessionPlanResponse, SkillRef, SubmittedItem, SubmittedSession, SubmittedSessionResponse } from "../types/api";
 import type { ExerciseArtifact, SkillArtifact } from "../types/content";
-import type { ExerciseType, SkillCategory } from "../domain/enums";
+import { isPlayable } from "../domain/recordings";
+import { isKnownExerciseType, type ExerciseType, type SkillCategory } from "../domain/enums";
 
 const RETRY_DEPTH = 3;
 // attempt < MAX_RETRIES gates the requeue in submitAnswer below — 2 means a
@@ -67,7 +68,7 @@ export interface LessonExerciseInstance {
   attempt: number;
 }
 
-export type LessonStatus = "loading" | "choosing" | "empty" | "ready" | "submitting" | "done" | "rejected" | "error" | "unavailable" | "outdated";
+export type LessonStatus = "loading" | "choosing" | "empty" | "ready" | "submitting" | "done" | "rejected" | "error" | "unavailable" | "outdated" | "needsNewerApp" | "missingRecording";
 
 /**
  * A submission the server answered 200 to but explicitly refused — one or
@@ -107,6 +108,8 @@ export interface SubmitAnswerResult {
   attempt: number;
   /** What the grader prices this answer at (hint included): the "+N XP" pop. Not what the server credits when a session rule applies, which the pages honor themselves. */
   xp: number;
+  /** Why `xp` is below the full award (domain/xpReason.ts); null when there is nothing to say. */
+  xpNote?: string | null;
   /** What was actually graded — surfaced on the revealed-answer feedback so a learner can see exactly what the grader received (e.g. a word-bank submission whose tile order wasn't what they intended). */
   submittedText: string;
   /** The grader's separator edits when a half-space or space was off but the answer was accepted — the review marks where (domain/typedAnswerMarks.ts). */
@@ -300,6 +303,7 @@ export function useLessonEngine(
       const artifact = artifacts.get(refKey(ref));
       if (!artifact) continue;
       artifact.exercises.forEach((exercise, ordinal) => {
+        if (!isPlayable(exercise)) return;
         if (dueTagsFilter && !exercise.tags.some((tag) => dueTagsFilter.has(tag))) return;
         // An exercise with no tags at all has no card to resolve its render
         // mode against — without the guard, `tags[0]` is `undefined` and the
@@ -380,9 +384,10 @@ export function useLessonEngine(
   // this, so the end-of-lesson fraction reflects "got it right the first
   // time" rather than "eventually got it", independent of the requeue depth.
   const [firstTryCorrect, setFirstTryCorrect] = useState(0);
-  // The same first attempts, weighted the way the pass mark is
-  // (domain/lessonScore.ts) — a forgiven typo is half a point.
-  const [firstTryPoints, setFirstTryPoints] = useState(0);
+  // Every exercise's credit toward the pass mark (domain/lessonScore.ts): a
+  // forgiven typo is half a point, and a right retry half what it would have
+  // been first time.
+  const [points, setPoints] = useState(0);
   // True for a session started via startPractice() rather than seeded from
   // the real due queue — finishLesson skips POST /v1/sessions/submit
   // entirely for these, so redoing a lesson never earns FSRS credit twice
@@ -477,7 +482,23 @@ export function useLessonEngine(
   useEffect(() => {
     if (outdated) void refetchBootstrap();
   }, [outdated, refetchBootstrap]);
-  if (queue === null && skillsReady && plan.data && !awaitingRemixContents && !outdated) {
+  // A lesson with an exercise this build can't render is declined whole, before it
+  // starts: a submitted lesson needs an answer for every exercise, so skipping one
+  // would break the submit.
+  const needsNewerApp =
+    started.current == null &&
+    skillsReady &&
+    !!plan.data &&
+    lessonSkills(plan.data.skills).some((ref) => skillArtifacts.get(refKey(ref))?.exercises.some((exercise) => !isKnownExerciseType(exercise.type)));
+  // Likewise a lesson with a listening exercise that has no recording: its text is
+  // never shown in place of the audio. A repack only drops such an exercise.
+  const missingRecording =
+    !isRemix &&
+    started.current == null &&
+    skillsReady &&
+    !!plan.data &&
+    lessonSkills(plan.data.skills).some((ref) => skillArtifacts.get(refKey(ref))?.exercises.some((exercise) => !isPlayable(exercise)));
+  if (queue === null && skillsReady && plan.data && !awaitingRemixContents && !outdated && !needsNewerApp && !missingRecording) {
     started.current = { course: liveCourse, plan: plan.data };
     setQueue(initialQueue);
     setTotalCount(initialQueue.length);
@@ -486,6 +507,10 @@ export function useLessonEngine(
   }
 
   const current = queue && queue.length > 0 ? queue[0] : null;
+  // The glossary page the current exercise's lesson points at, if any (SkillArtifact.glossaryRef).
+  const currentGlossaryRef = current
+    ? ((sessionArtifacts.get(refKey(current)) ?? skillArtifacts.get(refKey(current)))?.glossaryRef ?? null)
+    : null;
 
   /**
    * Restarts the latency clock. The page owning the answer-confirmation
@@ -556,7 +581,7 @@ export function useLessonEngine(
     pendingFinish.current = null;
     setItems([]);
     setFirstTryCorrect(0);
-    setFirstTryPoints(0);
+    setPoints(0);
     setResult(null);
     setRejection(null);
     setStatus("ready");
@@ -572,21 +597,21 @@ export function useLessonEngine(
    * for a frame first, mounting it and starting its prompt's autoplay. The
    * end-of-lesson submit runs on its own (finishLesson owns its errors).
    */
-  function submitAnswer(submittedText: string, opts?: { usedHint?: boolean }): SubmitAnswerResult {
+  function submitAnswer(submittedText: string, opts?: { usedHint?: boolean; playsUsed?: number }): SubmitAnswerResult {
     if (!current || !queue) return { correct: false, requeued: false, note: null, verdict: "incorrect", attempt: 1, xp: 0, submittedText };
 
     const attempt = current.attempt + 1;
-    const feedback = checkAnswer(grader, courseCode, current.exercise, submittedText, { attempt, usedHint: opts?.usedHint });
+    // A listening test prices an answer at the later of the attempt and the plays used (API_SPEC.md §2.3 point 8).
+    const playsUsed = current.renderType === "listen_type" ? Math.min(3, Math.max(1, opts?.playsUsed ?? 1)) : undefined;
+    const feedback = checkAnswer(grader, courseCode, current.exercise, submittedText, { attempt: Math.max(attempt, playsUsed ?? 1), usedHint: opts?.usedHint });
     const correct = feedback.verdict !== "incorrect";
     const latencyMs = Math.round(performance.now() - shownAt.current);
 
     // Computed here rather than read back from state, which won't have
     // updated yet if this is the answer that finishes the lesson.
-    const points = firstTryPoints + (current.attempt === 0 ? verdictWeight(feedback.verdict) : 0);
-    if (current.attempt === 0) {
-      if (correct) setFirstTryCorrect((n) => n + 1);
-      setFirstTryPoints(points);
-    }
+    const newPoints = points + retryWeight(feedback.verdict, attempt);
+    setPoints(newPoints);
+    if (current.attempt === 0 && correct) setFirstTryCorrect((n) => n + 1);
 
     const newItems = current.exercise.tags.map(
       (lexemeTag): RecordedItem => ({
@@ -601,6 +626,7 @@ export function useLessonEngine(
           usedHint: opts?.usedHint ?? false,
           latencyMs,
           attempt,
+          ...(playsUsed !== undefined && { playsUsed }),
         },
       }),
     );
@@ -624,7 +650,7 @@ export function useLessonEngine(
     // time too. The page calls markShown() when the next one is really shown.
 
     if (rest.length === 0) {
-      const score = totalCount === 0 ? 0 : points / totalCount;
+      const score = totalCount === 0 ? 0 : newPoints / totalCount;
       if (needsRetype(current.renderType, correct)) {
         // Submitted by settleAnswer once the review closes.
         pendingFinish.current = score;
@@ -634,7 +660,7 @@ export function useLessonEngine(
       }
     }
 
-    return { correct, requeued, note: feedback.note, verdict: feedback.verdict, attempt, xp: feedback.xp, submittedText, separators: feedback.separators };
+    return { correct, requeued, note: feedback.note, verdict: feedback.verdict, attempt, xp: feedback.xp, xpNote: feedback.xpNote, submittedText, separators: feedback.separators };
   }
 
   /**
@@ -833,7 +859,11 @@ export function useLessonEngine(
         ? "unavailable"
         : outdated
           ? "outdated"
-          : gate === "loading"
+          : needsNewerApp
+            ? "needsNewerApp"
+            : missingRecording
+            ? "missingRecording"
+            : gate === "loading"
           ? "loading"
           : gate === "error"
             ? "error"
@@ -864,9 +894,10 @@ export function useLessonEngine(
     course,
     courseCode,
     current,
+    currentGlossaryRef,
     progress: { completed: totalCount - (queue?.length ?? totalCount), total: totalCount },
-    /** `correct` counts first attempts accepted at all; `score` (0..1) is the weighted one the pass mark is measured on (domain/lessonScore.ts). */
-    score: { correct: firstTryCorrect, total: totalCount, score: totalCount === 0 ? 0 : firstTryPoints / totalCount },
+    /** `correct` counts first attempts accepted at all; `score` (0..1) is the weighted one, retries included, the pass mark is measured on (domain/lessonScore.ts). */
+    score: { correct: firstTryCorrect, total: totalCount, score: totalCount === 0 ? 0 : points / totalCount },
     isPracticeMode,
     /** A multi-lesson remix — the only kind that offers a contents choice (status "choosing"). */
     isRemix,

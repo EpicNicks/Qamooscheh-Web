@@ -47,6 +47,20 @@ function recordedVoices(audio: AudioMap | null | undefined): string[] {
   return audio ? Object.keys(audio).filter((voice) => audio[voice]?.[0]) : [];
 }
 
+/** Whether any voice recorded this line at all. */
+export function hasRecording(audio: AudioMap | null | undefined): boolean {
+  return recordedVoices(audio).length > 0;
+}
+
+/**
+ * False for a listening exercise whose prompt has no recording: there is
+ * nothing to hear and its text must not stand in for it. A lesson holding one is
+ * declined; repacks and practice leave it out.
+ */
+export function isPlayable(exercise: { type: string; promptAudio?: AudioMap | null }): boolean {
+  return exercise.type !== "listen_type" || hasRecording(exercise.promptAudio);
+}
+
 /** The first non-empty tier's draw. */
 function drawFromTiers(tiers: readonly (readonly string[])[], seed: number, key: string): string | null {
   const tier = tiers.find((voices) => voices.length > 0);

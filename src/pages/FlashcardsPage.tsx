@@ -5,7 +5,8 @@ import { useBootstrap } from "../hooks/useBootstrap";
 import { useLexemeIndex } from "../hooks/useCourseContent";
 import { useStarredLexemes } from "../hooks/useStarredLexemes";
 import { flashcardWords, type FlashcardWord } from "../domain/flashcards";
-import { submitFlashcards } from "../api/flashcards";
+import { submitFlashcardsDurably } from "../api/flashcards";
+import { useAuth } from "../auth/useAuth";
 import { ClozeRound } from "../components/flashcards/ClozeRound";
 import { Flashcard } from "../components/flashcards/Flashcard";
 import { SessionProgressBar } from "../components/lesson/SessionProgressBar";
@@ -34,6 +35,7 @@ type XpState = { status: "idle" } | { status: "saving" } | { status: "saved"; xp
 export function FlashcardsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { userId } = useAuth();
   const bootstrap = useBootstrap();
   const course = bootstrap.data?.course ?? null;
   const lexemeIndex = useLexemeIndex(course);
@@ -67,12 +69,12 @@ export function FlashcardsPage() {
   async function answer(word: FlashcardWord, correct: boolean) {
     const next = [...results, { tag: word.tag, correct }];
     setResults(next);
-    if (!deck || next.length < deck.length || kind !== "translation" || !course) return;
+    if (!deck || next.length < deck.length || kind !== "translation" || !course || !userId) return;
 
     // A flip round earns nothing standalone, so only a typed round is sent.
     setXp({ status: "saving" });
     try {
-      const response = await submitFlashcards({
+      const response = await submitFlashcardsDurably(userId, {
         submissionId: submissionId.current,
         courseCode: course.code,
         occurredAt: new Date().toISOString(),

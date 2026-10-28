@@ -17,6 +17,8 @@ import {
 import { useAuth } from "../auth/useAuth";
 import { loadCardStates, mergeCardStates } from "../lib/cardStateStore";
 import { resolveExerciseType } from "../domain/exerciseResolution";
+import { isPlayable } from "../domain/recordings";
+import { versionMismatch } from "../domain/lessonPin";
 import type { CheckpointSkillAnswers, CheckpointSubmitResponse, SubmitCheckpointRequest, SubmittedItem } from "../types/api";
 import type { ExerciseArtifact } from "../types/content";
 import type { ExerciseType } from "../domain/enums";
@@ -74,7 +76,7 @@ export function useCheckpoint(targetUnitKey: string, targetSkillKey: string) {
       const artifact = artifactFor(skillPlan.unitKey, skillPlan.skillKey)!;
       return skillPlan.exerciseOrdinals.flatMap((ordinal) => {
         const exercise = artifact.exercises[ordinal];
-        if (!exercise) return [];
+        if (!exercise || !isPlayable(exercise)) return [];
         return [
           {
             key: `${skillPlan.unitKey}/${skillPlan.skillKey}/${ordinal}`,
@@ -99,6 +101,17 @@ export function useCheckpoint(targetUnitKey: string, targetSkillKey: string) {
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const current = instances[index] ?? null;
+
+  // The plan is resolved under one course version and the exercises load under
+  // the bootstrap's; when they differ the test would show one version's
+  // questions and submit them as another's. Held back until the first answer
+  // (reopening then costs nothing); the stale side is usually the cached
+  // bootstrap, so one re-read may settle it without the learner doing anything.
+  const outdated = answers.size === 0 && versionMismatch(plan.data?.courseVersion, bootstrap.data?.course?.version);
+  const refetchBootstrap = bootstrap.refetch;
+  useEffect(() => {
+    if (outdated) void refetchBootstrap();
+  }, [outdated, refetchBootstrap]);
 
   function answerCurrent(text: string) {
     if (!current) return;
@@ -212,6 +225,7 @@ export function useCheckpoint(targetUnitKey: string, targetSkillKey: string) {
 
   return {
     hasPendingAttempt: pending !== null && submitResult === null,
+    outdated,
     isLoading: bootstrap.isLoading || plan.isLoading || skillsLoading,
     isError: bootstrap.isError || plan.isError || skillsError,
     courseCode: bootstrap.data?.course?.code ?? null,

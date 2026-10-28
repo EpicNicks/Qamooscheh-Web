@@ -214,6 +214,8 @@ export interface SubmittedItem {
   usedHint: boolean;
   latencyMs: number | null;
   attempt: number;
+  /** listen_type only: how many times the learner heard the prompt, 1 to 3 (API_SPEC.md §2.3 point 8). The server prices the answer at attempt max(attempt, playsUsed). */
+  playsUsed?: number;
   /**
    * The correct answer retyped after this wrong typed attempt (domain/retype.ts),
    * sent only when it matched. Earns retype XP only; never changes the grade,
@@ -256,7 +258,7 @@ export interface SubmittedSessionResponse {
   outcome: SessionOutcome;
   rejectionReason: string | null;
   cards: CardState[];
-  /** First-attempt score, 0..1 (domain/lessonScore.ts) — null unless `outcome` is "Processed". */
+  /** Lesson score, 0..1, retries credited at half per attempt (domain/lessonScore.ts) — null unless `outcome` is "Processed". */
   score?: number | null;
   /** Whether this session completed its skill: every exercise answered and `score` at or above the pass mark. Null unless `outcome` is "Processed". */
   lessonCompleted?: boolean | null;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { shownAnswerVariant, variantAudio } from "./answerVariants";
+import { revealedAnswers, shownAnswerVariant, variantAudio } from "./answerVariants";
 import { pickRecording } from "./recordings";
 import type { ExerciseArtifact } from "../types/content";
 
@@ -55,5 +55,13 @@ describe("variantAudio", () => {
     const audio = variantAudio({ answerAudio: a0, answerVariantAudio: [a0, a2] }, 1);
     expect(pickRecording(audio, { preferredVoice: "hooman", defaultVoice: "setareh" })).toBe("h2.mp3");
     expect(pickRecording(audio, { preferredVoice: "ali", defaultVoice: "setareh" })).toBe("a2.mp3");
+  });
+});
+
+describe("revealedAnswers", () => {
+  it("lists every word_bank order, the closest first", () => {
+    const exercise = { type: "word_bank", tiles: ["a", "b", "c"], answer: ["a", "b", "c"], alternativeAnswers: [["c", "a", "b"]] } as never;
+    expect(revealedAnswers(exercise, "c a b")).toEqual(["c a b", "a b c"]);
+    expect(revealedAnswers(exercise, undefined)).toEqual(["a b c", "c a b"]);
   });
 });

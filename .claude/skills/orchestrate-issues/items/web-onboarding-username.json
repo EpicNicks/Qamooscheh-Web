@@ -1,0 +1,23 @@
+{
+  "name": "web-onboarding-username",
+  "repo": "web",
+  "branch": "onboarding-username",
+  "title": "Onboarding: choose your username (live availability check)",
+  "closes": null,
+  "issue": "USER-APPROVED onboarding username step. Backend usernames are MERGED and DEPLOYED (Qamooscheh-Backend PR #46); the contract is the usernames section of C:/Users/epicn/source/repos/Qamooscheh/src/Qamooscheh.Api/API_SPEC.md (read it first, do not guess shapes). Rules: handle 3-20 chars of lowercase letters, digits, _ and ., unique case-insensitively. Every account already has an auto-assigned handle; choosing one in onboarding is the first/auto-replacement change: it is free but STARTS the 30-day rename clock, and the UI must say so before the user confirms. BUILD an optional username step in onboarding: (1) instant local format check as the user types (trim, lowercase, optional leading @ stripped); (2) availability check about 400ms after typing stops (debounce), cancelling stale in-flight requests so an old response never overwrites a newer one; show a spinner while checking, then a tick or the specific reason (taken, held, blocked, invalid); the check shares the 30/min rate limit with search, so map 429 to friendly copy and do not fire for locally-invalid input; (3) server re-check on submit (the availability result can be stale): map any rejection to copy and keep the user on the step; (4) Skip keeps the auto-assigned handle and does not start the clock; (5) user-facing copy follows the CLAUDE.md terminology. Web: read CLAUDE.md, the existing onboarding flow and the friends-usernames rename UI first; reuse the existing username API client and validation helpers rather than duplicating them. Add tests for the debounce and stale-request cancellation.",
+  "allowedPaths": [
+    "^src/",
+    "^public/",
+    "^package(-lock)?\\.json$"
+  ],
+  "acceptance": [
+    "Local format check is instant; availability check debounced ~400ms with stale requests cancelled",
+    "Spinner then tick or reason; server re-check on submit",
+    "Skip keeps the auto-assigned handle and does not start the clock; choosing one says it starts a 30-day rename clock",
+    "Tests for debounce/cancel and submit rejection; CI green"
+  ],
+  "reviewer": "sonnet",
+  "reviewers": 1,
+  "gate": "approved by the user 2026-10-14 (continue-session handoff: start in parallel)",
+  "approved": true
+}

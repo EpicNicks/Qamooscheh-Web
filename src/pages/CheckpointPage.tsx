@@ -32,6 +32,24 @@ export function CheckpointPage() {
   if (checkpoint.isLoading) return <Spinner label="Preparing checkpoint…" />;
   if (checkpoint.isError) return <ErrorBanner message="Couldn't load this checkpoint." />;
 
+  // The plan and the content in hand name different course versions; nothing
+  // was shown, so reopening costs the learner nothing. A saved submission
+  // (below) carries its own version and is unaffected.
+  if (checkpoint.outdated && !checkpoint.hasPendingAttempt && !checkpoint.submitResult) {
+    return (
+      <div className={styles.done}>
+        <h1>This checkpoint was updated</h1>
+        <p>A newer version came out while it was opening. Reopen it to get the latest.</p>
+        <div className={styles.doneActions}>
+          <Button variant="secondary" onClick={() => navigate("/path")}>
+            Back to path
+          </Button>
+          <Button onClick={() => window.location.reload()}>Reopen checkpoint</Button>
+        </div>
+      </div>
+    );
+  }
+
   // "X lessons skipped, Y of which you'd already completed via deep dive" —
   // rendered directly from the backend's derived skip-state (API_SPEC.md
   // §2.11) rather than the client inferring it. Only worth a line when

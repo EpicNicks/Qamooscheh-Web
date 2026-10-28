@@ -51,7 +51,7 @@ function isOtherTextField(target: EventTarget | null, except: HTMLElement | null
  * this component asks for — see keyboard/scriptEngines.tsx. Adding a new
  * keyboard kind means writing one engine there; nothing here changes.
  */
-export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keyboardMode, autoplayAudio, hintMap, textSettings, advance, reviewedAnswer, retype, promptSlot }: ExerciseProps) {
+export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keyboardMode, autoplayAudio, hintMap, textSettings, advance, reviewedAnswer, retype, promptSlot, listenPlays }: ExerciseProps & { listenPlays?: () => number }) {
   // Retyping (issue #44) starts from an empty field under the checked answer.
   const initialText = retype ? "" : (reviewedAnswer?.text ?? "");
   const [text, setText] = useState(initialText);
@@ -223,7 +223,7 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
     // The text stays in the box: the review screen shows this same answer,
     // marked word by word, until the learner moves on.
     const typed = typedText();
-    onSubmit(typed, { usedHint });
+    onSubmit(typed, listenPlays ? { playsUsed: listenPlays() } : { usedHint });
     setUsedHint(false);
     setHintShown(false);
   }
@@ -535,7 +535,7 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
           <Button onClick={advance.onAdvance}>{advance.label}</Button>
         ) : (
           <>
-            {exercise.hint && (
+            {exercise.hint && !listenPlays && (
               <button
                 type="button"
                 className={styles.hint}

@@ -1,0 +1,30 @@
+{
+  "name": "android-friend-notifications",
+  "repo": "android",
+  "branch": "friend-notifications",
+  "title": "Friend-request push notifications with an on/off setting and a permission explainer",
+  "closes": null,
+  "issue": "Android issue #57, notifications part (PR must say 'Part of #57'). Depends on backend PR for branch push-friend-requests (read its API_SPEC.md section for the exact device-registration and notification-preferences contract; if that PR is not merged yet, read it from the branch via gh/git and build against it; do not guess shapes). BUILD: (1) FCM receive path: a FirebaseMessagingService, a notification channel 'Friend requests', a notification that opens the Friends screen on tap, text from the payload (sender display name and @username). Build MUST still compile and run with NO Firebase config: apply the google-services plugin and Firebase dependencies so that a missing google-services.json does not break assembleDevDebug/CI or crash the app (push simply stays inactive and registration is skipped); document how to add the file (never commit it, it is gitignored) in docs. (2) Token registration: register/refresh the FCM token with the backend device endpoint after sign-in and on token refresh, unregister on sign-out; failures retried quietly. (3) Setting: a 'Friend requests' toggle in Settings notifications, mirrored to the backend notification-preferences endpoint (server is the source of truth so a push is never sent when off) and honoured locally too; default ON. (4) Permission explainer per the docs/SPEC.md rule added in PR #62 (merge origin/master; if that rule is not on master yet, base your docs edit so it merges cleanly): on Android 13+ the POST_NOTIFICATIONS permission is requested only from an in-app explainer that asks, explains and nudges, handles denial gracefully (setting shows 'off in system settings' with a deep link), and is shown in context (e.g. after the first friend request is sent or when enabling the toggle), not at app start. (5) Tests for the preference mapping, registration lifecycle and explainer state; screenshot baselines only for intended UI. Do not touch the existing lesson-reminder notifications except to share the explainer component if natural. Gradle: one task at a time.",
+  "allowedPaths": [
+    "^app/",
+    "^core/",
+    "^feature/",
+    "^keyboard/",
+    "^docs/",
+    "^build-logic/",
+    "^gradle/libs.versions.toml$",
+    "^.gitignore$"
+  ],
+  "acceptance": [
+    "Builds and runs with no Firebase config; push inactive without it",
+    "Token registration lifecycle and server-mirrored friend-requests toggle",
+    "Permission explainer shown in context, denial handled",
+    "PR says Part of #57",
+    "Gradle tests, screenshot verification, lint and assembleDevDebug green locally"
+  ],
+  "gate": "approved by the user 2026-10-14 ('build everything around it first')",
+  "approved": true,
+  "reviewer": "sonnet",
+  "reviewers": 1,
+  "notes": "The user's google-services.json (project parsling-e39a3) currently registers ONLY com.parsling.android (prod). The dev flavor id com.parsling.android.dev has no client in it, and the google-services Gradle plugin FAILS the build for a flavor with no matching client. So the build must tolerate a google-services.json that lacks a client for a flavor's applicationId (skip processing for that flavor, push inactive there), as well as a missing file. The file lives outside the repo at C:/Users/epicn/Downloads/google-services.json; do NOT read its keys into anything committed; make sure app/google-services.json is gitignored BEFORE anyone copies it in. Do not copy it into the repo yourself: the user places it. VERSIONS (from the Firebase console setup page, user-supplied 2026-10-14): Google services Gradle plugin com.google.gms.google-services 4.5.0 (apply false at root, applied in app only conditionally as described) and Firebase BoM com.google.firebase:firebase-bom:35.0.0. Put them in gradle/libs.versions.toml like the other dependencies. Add only firebase-messaging, NOT firebase-analytics (no analytics wanted). Verify those versions resolve before relying on them. UPDATE 2026-10-14: the user supplied a second file, C:/Users/epicn/Downloads/google-services dev.json, which registers BOTH com.parsling.android and com.parsling.android.dev; the user will have it placed as app/google-services.json, so both flavors will normally have a client. Keep the tolerant build (skip a flavor with no client, or no file) anyway. USER REVISION 2026-10-14 (privacy): backend PR #49 now sends the sender's DISPLAY NAME only; the payload no longer has senderUsername. Re-read the PR's current API_SPEC section, remove every use of the @username from parsing, notification text, tests and docs, and make the notification read from the display name alone (handle a missing/blank name with a neutral fallback like 'Someone'). Merge origin/master first; list only NEW judgement calls."
+}

@@ -1,0 +1,27 @@
+{
+  "name": "backend-friend-stats-unfriend",
+  "repo": "backend",
+  "branch": "friend-stats-unfriend",
+  "title": "Friends: friend-profile stats and unfriend endpoints",
+  "closes": null,
+  "issue": "The Android friend profile screen (adapted from the web friend profile design in Qamooscheh-Web: see src/ for the friends profile page and what it shows) needs two backend endpoints that do not exist yet. Read the friends/usernames sections of src/Qamooscheh.Api/API_SPEC.md, AGENTS.md and the existing friends code first and follow their conventions (route style, error envelope, rate limits, features.yaml `backend` key, migrations numbered after 0023 if any are needed). BUILD: (1) GET friend stats for a user who is an accepted friend of the caller: only the fields the web friend profile already displays (display name, @handle and the learning stats shown there); 404 (not 403) for non-friends and blocked pairs so existence never leaks; never return anything the pending lists withhold. (2) Unfriend: DELETE for an accepted friendship, idempotent (204 if already not friends), removes the friendship for both sides, does NOT create a block; pending-request behaviour stays as is. Re-adding after unfriend follows the normal add flow and states (none, request_sent, request_received, friends); no notification on unfriend. Document both in API_SPEC.md; add tests incl. non-friend, blocked, idempotency and rate limit. Run dotnet build and dotnet test locally (CI fails on a billing problem; local results are accepted). Any shape choice the web design does not settle goes in deviations for the user.",
+  "allowedPaths": [
+    "^src/",
+    "^tests/",
+    "^tools/",
+    "^content/",
+    "^deploy/migrations/",
+    "^features\\.yaml$",
+    "^AGENTS\\.md$",
+    "^docs/"
+  ],
+  "acceptance": [
+    "Friend stats endpoint returns only the fields the web profile shows; 404 for non-friend/blocked",
+    "Unfriend is idempotent, both sides, no block",
+    "API_SPEC.md and features.yaml updated; tests; dotnet build and test pass"
+  ],
+  "reviewer": "sonnet",
+  "reviewers": 2,
+  "gate": "approved by the user 2026-10-14 (continue-session handoff: start in parallel)",
+  "approved": true
+}

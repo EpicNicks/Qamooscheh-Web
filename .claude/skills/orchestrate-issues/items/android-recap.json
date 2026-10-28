@@ -1,0 +1,26 @@
+{
+  "name": "android-recap",
+  "repo": "android",
+  "branch": "lesson-recap",
+  "title": "Lesson-complete recap with Repack (web parity)",
+  "closes": "53",
+  "issue": "Android issue #53 (read it with gh; it is the approved scope). Web reference, read-only: the lesson-recap-a work in E:/Code/Projects/Qamooscheh-Web/Qamooscheh-Web (find it with git log --grep and the recap components under src/). Match web behaviour natively. Use the Parsle/Repack terminology from the start (see the web CLAUDE.md); no 'Lesson complete' heading. Anything the issue leaves unsettled goes in deviations. Gradle: run tasks one at a time (lock contention and low memory). Android CI runs unit tests, Roborazzi verification, lint and assembleDevDebug: run the equivalent locally, add tests, record baselines only for intended visual changes. Read CLAUDE.md, README.md and docs/SPEC.md first.",
+  "allowedPaths": [
+    "^app/",
+    "^core/",
+    "^feature/",
+    "^keyboard/",
+    "^docs/",
+    "^build-logic/",
+    "^gradle/libs.versions.toml$"
+  ],
+  "acceptance": [
+    "Recap matches issue #53 and web behaviour",
+    "Terminology correct",
+    "Tests/baselines added; Gradle CI tasks pass locally"
+  ],
+  "reviewer": "sonnet",
+  "reviewers": 1,
+  "gate": "approved by the user 2026-10-14 (continue-session handoff: start in parallel)",
+  "approved": true
+}

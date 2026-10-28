@@ -40,6 +40,12 @@ export interface GraderResponse {
   separatorEdits?: SeparatorEdit[] | null;
   error?: string | null;
   xp?: number | null;
+  /** What `xp` is before a hint halves it; absent from builds older than the one that added `xpReasons`. */
+  xpBase?: number | null;
+  /** One base code (first_try, corrected, retry, retype, second_retype), then hint_halved when a hint lowered the award; empty for a wrong answer. */
+  xpReasons?: string[] | null;
+  /** The English line for each `xpReasons` code, same order and length; absent from builds older than the one that added it. */
+  xpLines?: string[] | null;
 }
 
 /** The loaded grader: the `grader` object main.mjs of the browser build exports. */

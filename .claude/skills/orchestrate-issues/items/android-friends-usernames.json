@@ -1,0 +1,20 @@
+{
+  "name": "android-friends-usernames",
+  "repo": "android",
+  "branch": "friends-usernames",
+  "title": "Friends: find people by exact username, relationship state, claim and rename your handle",
+  "closes": null,
+  "issue": "Android issue #57 (this PR delivers the username part only, so it must say 'Part of #57', not 'Closes'). The backend is MERGED and DEPLOYED (Qamooscheh-Backend PR #46); the contract is the usernames/friends sections of C:/Users/epicn/source/repos/Qamooscheh/src/Qamooscheh.Api/API_SPEC.md (read it first; do not guess shapes). The web reference is being built in parallel (Qamooscheh-Web#85, branch friends-usernames, read-only at E:/Code/Projects/Qamooscheh-Web/Qamooscheh-Web) so match its behaviour and copy where it exists, but implement natively. BUILD: (1) Friends search by exact username: input accepts an optional leading @, trims/lowercases, validates with the backend rules (3-20 chars, lowercase letters/digits/_/.); 0 or 1 result with display name + @handle and relationship state with one action: Add, Pending (disabled; Add is idempotent), Accept (incoming), View (open the friend's profile). Map 409/429/blocked to friendly copy; blocked pairs show no result. Replace the old display-name search. (2) Show the learner's own handle with a copy/share action. (3) One-time dismissible prompt to change the auto-assigned handle (dismissal persisted per user) and a rename control using the rename endpoint, with the once-per-30-days, availability, blocklist and held-old-handle errors mapped to copy. (4) Add to docs/SPEC.md the rule from the issue: permissions that fundamentally change how the app is used (lesson reminders, contacts) get an in-app explainer that asks, explains and nudges before the OS prompt. DO NOT build in this PR (list in deviations as follow-ups): friend-request notifications and the local on/off setting, and contacts matching (the backend has no hashed-matching endpoint yet: that is a backend ask). Gradle: run tasks one at a time (lock contention and low memory); Android CI runs unit tests, Roborazzi verification, lint and assembleDevDebug: add tests and record baselines only for intended visual changes. Read CLAUDE.md, README.md and docs/SPEC.md first.",
+  "allowedPaths": ["^app/", "^core/", "^feature/", "^keyboard/", "^docs/", "^build-logic/", "^gradle/libs.versions.toml$"],
+  "acceptance": [
+    "Exact-username search with relationship state and idempotent Add/Pending/Accept/View",
+    "Own handle shown; one-time change prompt; rename with backend rules mapped to copy",
+    "docs/SPEC.md permission-explainer rule added; notifications and contacts listed as follow-ups",
+    "PR says Part of #57",
+    "Gradle tests, screenshot verification, lint and assembleDevDebug green"
+  ],
+  "gate": "approved by the user 2026-10-14 (defaults approved earlier; backend deployed)",
+  "approved": true,
+  "reviewer": "sonnet",
+  "reviewers": 1
+}

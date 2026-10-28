@@ -18,6 +18,7 @@ import { useLocalAppPref } from "../hooks/useLocalAppPref";
 import { ClozeDeckRound } from "../components/flashcards/ClozeDeckRound";
 import { RemixContentsPicker } from "../components/lesson/RemixContentsPicker";
 import { ExerciseSessionScreen } from "../components/lesson/ExerciseSessionScreen";
+import { IntroGlossaryPrompt } from "../components/lesson/IntroGlossaryPrompt";
 import { RealLessonOverlay } from "../components/tutorial/RealLessonOverlay";
 import { LessonResults } from "../components/lesson/LessonResults";
 import { LessonRecap, type RecapNote } from "../components/lesson/LessonRecap";
@@ -359,6 +360,35 @@ function LessonPageContent() {
     );
   }
 
+  // The lesson has an exercise this build can't render, so it isn't opened at all.
+  if (engine.status === "needsNewerApp") {
+    return (
+      <div className={styles.done}>
+        <h1>This Parsle needs a newer version of this app</h1>
+        <p>Reload to get the latest version, then open it again.</p>
+        <div className={styles.doneActions}>
+          <Button variant="secondary" onClick={() => navigate(isDeepDive ? "/themes" : "/path")}>
+            {isDeepDive ? "Back to browsing" : "Back to path"}
+          </Button>
+          <Button onClick={() => window.location.reload()}>Reload</Button>
+        </div>
+      </div>
+    );
+  }
+
+  // The lesson has a listening exercise with no recording, so it isn't opened at all.
+  if (engine.status === "missingRecording") {
+    return (
+      <div className={styles.done}>
+        <h1>This Parsle isn't ready yet</h1>
+        <p>One of its listening exercises has no recording yet. Try again later.</p>
+        <div className={styles.doneActions}>
+          <Button onClick={() => navigate(isDeepDive ? "/themes" : "/path")}>{isDeepDive ? "Back to browsing" : "Back to path"}</Button>
+        </div>
+      </div>
+    );
+  }
+
   if (engine.status === "empty") {
     return (
       <div className={styles.done}>
@@ -423,9 +453,9 @@ function LessonPageContent() {
           title="Not passed yet"
           body={
             <>
-              You need {Math.round(LESSON_PASS_THRESHOLD * 100)}% on your first tries to pass this Parsle
-              {isDeepDive ? "" : " and unlock the next one"}. Your answers still count toward your reviews — take it
-              again to pass.
+              You need {Math.round(LESSON_PASS_THRESHOLD * 100)}% to pass this Parsle
+              {isDeepDive ? "" : " and unlock the next one"}. A retry counts for less than a first try. Your answers still
+              count toward your reviews — take it again to pass.
             </>
           }
           notes={[]}
@@ -492,7 +522,7 @@ function LessonPageContent() {
     }
   }
 
-  function handleSubmit(text: string, opts?: { usedHint?: boolean }) {
+  function handleSubmit(text: string, opts?: { usedHint?: boolean; playsUsed?: number }) {
     const answered = engine.current; // snapshot before submitAnswer advances the queue
     if (!answered) return;
     const result = engine.submitAnswer(text, opts);
@@ -500,30 +530,38 @@ function LessonPageContent() {
     confirmation.record(answered, result);
   }
 
+  // Offered before a single Parsle's first exercise, never mid-way or in a Repack/practice.
+  const introGlossaryRef = engine.status === "ready" && !engine.isRemix && !engine.isPracticeMode && engine.progress.completed === 0 ? engine.currentGlossaryRef : null;
+
   return (
-    <ExerciseSessionScreen
-      session={session}
-      courseCode={engine.courseCode}
-      progress={engine.progress}
-      current={engine.current}
-      onSubmit={handleSubmit}
-      // A practice round is never submitted, so it earns nothing to pop.
-      feedbackXp={(feedback) => (engine.isPracticeMode ? 0 : feedback.xp)}
-      onRetype={(text) => {
-        const xp = engine.recordRetype(text, lastUsedHint);
-        return xp !== null && !engine.isPracticeMode ? xp : 0;
-      }}
-      overlay={({ item, topRowEl, exerciseEl }) => (
-        <RealLessonOverlay
-          topRowEl={topRowEl}
-          exerciseEl={exerciseEl}
-          renderType={item.renderType}
-          allowAutoTrigger={allowTutorialAutoTrigger}
-          forceShow={forceShowTutorial}
-          onForceShowHandled={() => setForceShowTutorial(false)}
-        />
+    <>
+      {introGlossaryRef && engine.current && (
+        <IntroGlossaryPrompt key={engine.current.skillKey} skillKey={engine.current.skillKey} glossaryRef={introGlossaryRef} courseCode={engine.courseCode} />
       )}
-      onReplayTutorial={() => setForceShowTutorial(true)}
-    />
+      <ExerciseSessionScreen
+        session={session}
+        courseCode={engine.courseCode}
+        progress={engine.progress}
+        current={engine.current}
+        onSubmit={handleSubmit}
+        // A practice round is never submitted, so it earns nothing to pop.
+        feedbackXp={(feedback) => (engine.isPracticeMode ? 0 : feedback.xp)}
+        onRetype={(text) => {
+          const xp = engine.recordRetype(text, lastUsedHint);
+          return xp !== null && !engine.isPracticeMode ? xp : 0;
+        }}
+        overlay={({ item, topRowEl, exerciseEl }) => (
+          <RealLessonOverlay
+            topRowEl={topRowEl}
+            exerciseEl={exerciseEl}
+            renderType={item.renderType}
+            allowAutoTrigger={allowTutorialAutoTrigger}
+            forceShow={forceShowTutorial}
+            onForceShowHandled={() => setForceShowTutorial(false)}
+          />
+        )}
+        onReplayTutorial={() => setForceShowTutorial(true)}
+      />
+    </>
   );
 }
