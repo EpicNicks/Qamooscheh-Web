@@ -48,6 +48,8 @@ The first language-specific pass — Persian — is also done: RTL layout and na
 
 The offline submission queue now flushes itself: `useOfflineQueueFlush` (mounted once in `AppShell`) retries on every browser `online` event and on same-tab queue changes, merges returned card state, and surfaces a small "N pending sync" badge while sessions are queued.
 
+The app is installable (PWA): `public/manifest.webmanifest` names it and its icons (`public/icons/`, drawn by `scripts/generate-icons.mjs` from the Android placeholder mark), and `public/sw.js` caches every file of the build on install so the installed app opens offline. `vite.config.ts` (`precacheBuild`) writes the build's file list into the built worker; in dev the list is empty and only the grader's offline files are served. Page loads still go to the network first, so a deploy shows on the next load. The same worker answers the published grader's files from Cache Storage. It is registered by `src/serviceWorker.ts`.
+
 The streak (`GET /v1/streak` — one number across every enrolled language, counted in the learner's own time zone and day start server-side) shows in the header beside the course switcher (`StreakCounter`) and, with the longest streak, on the Profile page. Plain warm-colored text for now, no icon (`--color-streak-*` in `index.css`; a zero streak is muted grey). Every submit path — a lesson, a story, a checkpoint, an offline-queue flush — invalidates it, so finishing a lesson ticks it over without a refresh.
 
 Google sign-in is wired up (`GoogleSignInButton` on both Login and Register — one button covers both, since `AuthService.GoogleSignInAsync` creates a new account the first time a Google identity is seen). Hidden entirely when `VITE_GOOGLE_CLIENT_ID` is unset.
