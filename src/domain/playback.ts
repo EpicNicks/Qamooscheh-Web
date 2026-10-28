@@ -26,9 +26,10 @@ let active: { stop: () => void } | null = null;
  * Starts playback, stopping whatever was already playing, and returns a
  * `stop`. `onEnd` fires exactly once — when playback finishes, is stopped, or
  * nothing could play — so a caller never has to tell those apart to know it's
- * over.
+ * over. A caller that does need to (a listening test charges only for a play
+ * that ran to its end) reads `completed`.
  */
-export function play(request: PlaybackRequest, onEnd: () => void = () => {}): { stop: () => void } {
+export function play(request: PlaybackRequest, onEnd: (completed: boolean) => void = () => {}): { stop: () => void } {
   active?.stop();
   const handle = start(request, onEnd);
   active = handle;
@@ -40,12 +41,12 @@ export function play(request: PlaybackRequest, onEnd: () => void = () => {}): { 
   };
 }
 
-function start({ url, text, speechLang, rate = 1 }: PlaybackRequest, onEnd: () => void): { stop: () => void } {
+function start({ url, text, speechLang, rate = 1 }: PlaybackRequest, onEnd: (completed: boolean) => void): { stop: () => void } {
   let ended = false;
-  const finish = () => {
+  const finish = (completed = false) => {
     if (ended) return;
     ended = true;
-    onEnd();
+    onEnd(completed);
   };
 
   // Stopping is once-only and ends this playback straight away: a stale
@@ -57,7 +58,7 @@ function start({ url, text, speechLang, rate = 1 }: PlaybackRequest, onEnd: () =
   let audio: HTMLAudioElement | null = null;
   const fallback = () => {
     if (stopped || speech) return;
-    if (speechLang) speech = speak(text, speechLang, finish, rate);
+    if (speechLang) speech = speak(text, speechLang, () => finish(true), rate);
     else finish();
   };
 
@@ -65,7 +66,7 @@ function start({ url, text, speechLang, rate = 1 }: PlaybackRequest, onEnd: () =
     audio = new Audio(url);
     // Pitch is preserved by default: slowed, a voice still sounds like itself.
     audio.playbackRate = rate;
-    audio.onended = finish;
+    audio.onended = () => finish(true);
     audio.onerror = fallback;
     // Autoplay blocked, or the source failed before onerror fired: read it instead.
     audio.play().catch(fallback);

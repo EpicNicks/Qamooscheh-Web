@@ -1,3 +1,7 @@
+import { useRef, useState } from "react";
+import { useAuth } from "../../auth/useAuth";
+import { loadLocalAppPrefs, saveLocalAppPrefs } from "../../lib/localAppPrefs";
+import { HintWarningModal } from "./HintWarningModal";
 import { getLanguageInfo, getSpeechLang } from "../../domain/language";
 import { displayDirection } from "../../domain/annotation";
 import { usePhraseAudio } from "../../hooks/usePhraseAudio";
@@ -80,6 +84,19 @@ export function ExercisePrompt({
   const audio = usePhraseAudio({ text, speechLang, audioUrl, autoplay: autoplayAudio && voiceAvailable && isForeignLanguageText });
   const { align } = useNativeTextAlign();
   const direction = displayDirection(text, textSettings.display);
+  // The first hint reveal on an exercise warns that it halves the answer's XP
+  // (unless the learner turned the warning off); agreeing reveals this
+  // exercise's hints freely from then on.
+  const { userId } = useAuth();
+  const [hintAgreed, setHintAgreed] = useState(false);
+  const [warning, setWarning] = useState(false);
+  const pendingReveal = useRef<(() => void) | null>(null);
+  const warnBeforeHint = !hintAgreed && !(userId && loadLocalAppPrefs(userId).suppressHintWarning);
+  const gateHint = (proceed: () => void) => {
+    if (warning) return;
+    pendingReveal.current = proceed;
+    setWarning(true);
+  };
 
   return (
     <>
@@ -90,11 +107,26 @@ export function ExercisePrompt({
             natural browser default either way. */}
         <p className={styles.prompt} dir={direction} style={direction === "rtl" ? { textAlign: align } : undefined}>
           {textSettings.nativeEnabled && tags && isLatinText(text) ? (
-          <EnglishAnnotatedText text={text} tags={tags} hintMap={hintMap} settings={textSettings} onReveal={onHintReveal} />
+          <EnglishAnnotatedText text={text} tags={tags} hintMap={hintMap} settings={textSettings} onReveal={onHintReveal} gate={warnBeforeHint ? gateHint : undefined} />
         ) : (
           <AnnotatedText text={text} hintMap={hintMap} settings={textSettings} tags={tags} />
         )}
         </p>
+        {warning && (
+          <HintWarningModal
+            onCancel={() => {
+              pendingReveal.current = null;
+              setWarning(false);
+            }}
+            onConfirm={(dontAskAgain) => {
+              if (dontAskAgain && userId) saveLocalAppPrefs(userId, { suppressHintWarning: true });
+              setHintAgreed(true);
+              setWarning(false);
+              pendingReveal.current?.();
+              pendingReveal.current = null;
+            }}
+          />
+        )}
         {speechLang &&
           (voiceAvailable ? (
             <PlayAudioButton status={audio.status} onClick={audio.play} onSlowClick={audio.playSlow} />

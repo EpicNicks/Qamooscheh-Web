@@ -10,6 +10,8 @@ interface FontPickerProps {
   label: string;
   /** Set on the wrapping preview span so a caller (StudySection's Persian/Japanese panels, GoalsSection's Latin/English panel) can give it the right dir/lang for the script being previewed. */
   dir?: "rtl" | "ltr";
+  /** The lesson cog's version (LanguageSettingsButton): choices and size only, no custom-font entry or removal. RemoveCustomFontModal is portalled, so a click in it would land outside the popover and close it. */
+  compact?: boolean;
 }
 
 /**
@@ -26,7 +28,7 @@ interface FontPickerProps {
  * reappears as a regular choice next session. Removing one prompts a
  * confirmation (RemoveCustomFontModal), skippable via "don't ask again".
  */
-export function FontPicker({ script, label, dir }: FontPickerProps) {
+export function FontPicker({ script, label, dir, compact = false }: FontPickerProps) {
   const { family, sizePct, custom, update } = useFontPref(script);
   const [customInput, setCustomInput] = useState("");
   const [removing, setRemoving] = useState<string | null>(null);
@@ -67,7 +69,7 @@ export function FontPicker({ script, label, dir }: FontPickerProps) {
   }
 
   return (
-    <div className={styles.wrap}>
+    <div className={compact ? `${styles.wrap} ${styles.compact}` : styles.wrap}>
       <p className={styles.label}>{label}</p>
       <div className={styles.optionRow}>
         <button
@@ -96,7 +98,7 @@ export function FontPicker({ script, label, dir }: FontPickerProps) {
               </span>
               <span className={styles.optionLabel}>{name}</span>
             </button>
-            {custom.includes(name) && (
+            {!compact && custom.includes(name) && (
               <button type="button" className={styles.remove} aria-label={`Remove ${name}`} onClick={() => requestRemove(name)}>
                 ×
               </button>
@@ -115,24 +117,26 @@ export function FontPicker({ script, label, dir }: FontPickerProps) {
         </label>
       )}
 
-      <div className={styles.customRow}>
-        <input
-          type="text"
-          className={styles.customInput}
-          placeholder="Type any font name…"
-          value={customInput}
-          onChange={(e) => setCustomInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              addCustomFont();
-            }
-          }}
-        />
-        <button type="button" className={styles.addButton} onClick={addCustomFont} disabled={!customInput.trim()}>
-          Add
-        </button>
-      </div>
+      {!compact && (
+        <div className={styles.customRow}>
+          <input
+            type="text"
+            className={styles.customInput}
+            placeholder="Type any font name…"
+            value={customInput}
+            onChange={(e) => setCustomInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                addCustomFont();
+              }
+            }}
+          />
+          <button type="button" className={styles.addButton} onClick={addCustomFont} disabled={!customInput.trim()}>
+            Add
+          </button>
+        </div>
+      )}
 
       {removing && (
         <RemoveCustomFontModal

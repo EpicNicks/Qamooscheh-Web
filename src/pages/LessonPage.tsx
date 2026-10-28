@@ -5,16 +5,20 @@ import { useLessonEngine, type SubmitAnswerResult, type LessonExerciseInstance }
 import { useExerciseSession } from "../hooks/useExerciseSession";
 import { useBootstrap } from "../hooks/useBootstrap";
 import { useAuth } from "../auth/useAuth";
-import { useCoursePath, useAllThemeSkillArtifacts, useThemeIndex, refKey } from "../hooks/useCourseContent";
+import { useCoursePath, useAllThemeSkillArtifacts, useLexemeIndex, useThemeIndex, refKey } from "../hooks/useCourseContent";
+import { describeRejectionReason } from "../domain/rejectionReason";
 import { findLessonAfter, isFirstStandardPosition } from "../domain/pathProgress";
 import { rootThemesForLesson } from "../domain/themeTree";
 import { buildRemixPool, computeMasteryScore, selectRemixLessons, REMIX_MAX_LESSONS } from "../domain/deepDiveRemix";
 import { buildPickedPool, parseLessonIds } from "../domain/repackBuilder";
-import { initialRemixContents, remixContentsOptions, type RemixContents } from "../domain/remixContents";
+import { buildClozeDeck, type ClozeCard } from "../domain/cloze";
+import { initialRemixContents, isClozeContents, remixContentsOptions, type RemixContents } from "../domain/remixContents";
 import { loadCardStates } from "../lib/cardStateStore";
 import { useLocalAppPref } from "../hooks/useLocalAppPref";
+import { ClozeDeckRound } from "../components/flashcards/ClozeDeckRound";
 import { RemixContentsPicker } from "../components/lesson/RemixContentsPicker";
 import { ExerciseSessionScreen } from "../components/lesson/ExerciseSessionScreen";
+import { IntroGlossaryPrompt } from "../components/lesson/IntroGlossaryPrompt";
 import { RealLessonOverlay } from "../components/tutorial/RealLessonOverlay";
 import { LessonResults } from "../components/lesson/LessonResults";
 import { LessonRecap, type RecapNote } from "../components/lesson/LessonRecap";
@@ -164,6 +168,24 @@ function LessonPageContent() {
   );
   const session = useExerciseSession<LessonExerciseInstance, SubmitAnswerResult>(engine.course);
   const { confirmation } = session;
+
+  // Fill in the blank (issue #105): a cloze Repack never starts the engine's
+  // queue; it runs its own round over cards cut from the remix's due words,
+  // and the engine stays on its contents choice behind it.
+  const lexemeIndex = useLexemeIndex(engine.course);
+  const [clozeSeed] = useState(() => Math.random());
+  const clozeDeck = useMemo<ClozeCard[]>(
+    () =>
+      lexemeIndex.data == null
+        ? []
+        : buildClozeDeck(engine.remixClozeSources, session.courseHintMap, lexemeIndex.data, (count) => Math.floor(clozeSeed * count)).slice(
+            0,
+            engine.remixMaxCards,
+          ),
+    [engine.remixClozeSources, engine.remixMaxCards, session.courseHintMap, lexemeIndex.data, clozeSeed],
+  );
+  const [hardcore, setHardcore] = useState(false);
+  const [clozeRound, setClozeRound] = useState<ClozeCard[] | null>(null);
   const [lastUsedHint, setLastUsedHint] = useState(false);
   const [forceShowTutorial, setForceShowTutorial] = useState(false);
 
@@ -254,6 +276,22 @@ function LessonPageContent() {
     return <ErrorBanner message="Couldn't load your next Parsle." />;
   }
 
+  const backToBrowsing = () => navigate(isThemeRemixRoute ? (pickedLessonIds.length > 0 ? "/repack-builder" : "/theme-remix") : "/themes");
+
+  if (clozeRound && engine.course) {
+    return (
+      <ClozeDeckRound
+        course={engine.course}
+        deck={clozeRound}
+        hardcore={hardcore}
+        inRemix
+        exitLabel="Back to path"
+        onExit={() => navigate("/path")}
+        secondaryExit={{ label: "Back to browsing", onExit: backToBrowsing }}
+      />
+    );
+  }
+
   if (engine.status === "choosing") {
     return (
       <RemixContentsPicker
@@ -263,7 +301,18 @@ function LessonPageContent() {
           setChosenContents(next);
           setRemixChoiceEmpty(false);
         }}
+        hardcore={hardcore}
+        onHardcoreChange={setHardcore}
         onStart={() => {
+          if (isClozeContents(chosenContents)) {
+            if (clozeDeck.length === 0) {
+              setRemixChoiceEmpty(true);
+              return;
+            }
+            setRememberedContents({ ...rememberedContents, lesson: chosenContents });
+            setClozeRound(clozeDeck);
+            return;
+          }
           if (engine.remixCount(chosenContents) === 0) {
             setRemixChoiceEmpty(true);
             return;
@@ -273,7 +322,7 @@ function LessonPageContent() {
         }}
         emptyMessage={remixChoiceEmpty ? "This Repack has none of those right now — pick something else." : null}
         backLabel="Back to browsing"
-        onBack={() => navigate(isThemeRemixRoute ? (pickedLessonIds.length > 0 ? "/repack-builder" : "/theme-remix") : "/themes")}
+        onBack={backToBrowsing}
       />
     );
   }
@@ -289,6 +338,52 @@ function LessonPageContent() {
         <p>It isn't in your current course version — try updating your course, or pick another Parsle to try.</p>
         <div className={styles.doneActions}>
           <Button onClick={() => navigate("/themes")}>Back to browsing</Button>
+        </div>
+      </div>
+    );
+  }
+
+  // The plan was resolved under a newer (or older) course version than the
+  // content in hand; nothing was shown, so reopening costs the learner nothing.
+  if (engine.status === "outdated") {
+    return (
+      <div className={styles.done}>
+        <h1>This Parsle was updated</h1>
+        <p>A newer version came out while it was opening. Reopen it to get the latest.</p>
+        <div className={styles.doneActions}>
+          <Button variant="secondary" onClick={() => navigate(isDeepDive ? "/themes" : "/path")}>
+            {isDeepDive ? "Back to browsing" : "Back to path"}
+          </Button>
+          <Button onClick={() => window.location.reload()}>Reopen Parsle</Button>
+        </div>
+      </div>
+    );
+  }
+
+  // The lesson has an exercise this build can't render, so it isn't opened at all.
+  if (engine.status === "needsNewerApp") {
+    return (
+      <div className={styles.done}>
+        <h1>This Parsle needs a newer version of this app</h1>
+        <p>Reload to get the latest version, then open it again.</p>
+        <div className={styles.doneActions}>
+          <Button variant="secondary" onClick={() => navigate(isDeepDive ? "/themes" : "/path")}>
+            {isDeepDive ? "Back to browsing" : "Back to path"}
+          </Button>
+          <Button onClick={() => window.location.reload()}>Reload</Button>
+        </div>
+      </div>
+    );
+  }
+
+  // The lesson has a listening exercise with no recording, so it isn't opened at all.
+  if (engine.status === "missingRecording") {
+    return (
+      <div className={styles.done}>
+        <h1>This Parsle isn't ready yet</h1>
+        <p>One of its listening exercises has no recording yet. Try again later.</p>
+        <div className={styles.doneActions}>
+          <Button onClick={() => navigate(isDeepDive ? "/themes" : "/path")}>{isDeepDive ? "Back to browsing" : "Back to path"}</Button>
         </div>
       </div>
     );
@@ -331,7 +426,7 @@ function LessonPageContent() {
         <div className={styles.done}>
           <h1>{partial ? "Only part of this Parsle was saved" : "This Parsle wasn't saved"}</h1>
           <p>
-            {engine.rejection?.reason ??
+            {describeRejectionReason(engine.rejection?.reason) ??
               "The server didn't record this session, so it won't count toward your review schedule."}
           </p>
           <LessonResults correct={engine.score.correct} total={engine.score.total} />
@@ -358,9 +453,9 @@ function LessonPageContent() {
           title="Not passed yet"
           body={
             <>
-              You need {Math.round(LESSON_PASS_THRESHOLD * 100)}% on your first tries to pass this Parsle
-              {isDeepDive ? "" : " and unlock the next one"}. Your answers still count toward your reviews — take it
-              again to pass.
+              You need {Math.round(LESSON_PASS_THRESHOLD * 100)}% to pass this Parsle
+              {isDeepDive ? "" : " and unlock the next one"}. A retry counts for less than a first try. Your answers still
+              count toward your reviews — take it again to pass.
             </>
           }
           notes={[]}
@@ -427,7 +522,7 @@ function LessonPageContent() {
     }
   }
 
-  function handleSubmit(text: string, opts?: { usedHint?: boolean }) {
+  function handleSubmit(text: string, opts?: { usedHint?: boolean; playsUsed?: number }) {
     const answered = engine.current; // snapshot before submitAnswer advances the queue
     if (!answered) return;
     const result = engine.submitAnswer(text, opts);
@@ -435,30 +530,38 @@ function LessonPageContent() {
     confirmation.record(answered, result);
   }
 
+  // Offered before a single Parsle's first exercise, never mid-way or in a Repack/practice.
+  const introGlossaryRef = engine.status === "ready" && !engine.isRemix && !engine.isPracticeMode && engine.progress.completed === 0 ? engine.currentGlossaryRef : null;
+
   return (
-    <ExerciseSessionScreen
-      session={session}
-      courseCode={engine.courseCode}
-      progress={engine.progress}
-      current={engine.current}
-      onSubmit={handleSubmit}
-      // A practice round is never submitted, so it earns nothing to pop.
-      feedbackXp={(feedback) => (engine.isPracticeMode ? 0 : feedback.xp)}
-      onRetype={(text) => {
-        const xp = engine.recordRetype(text, lastUsedHint);
-        return xp !== null && !engine.isPracticeMode ? xp : 0;
-      }}
-      overlay={({ item, topRowEl, exerciseEl }) => (
-        <RealLessonOverlay
-          topRowEl={topRowEl}
-          exerciseEl={exerciseEl}
-          renderType={item.renderType}
-          allowAutoTrigger={allowTutorialAutoTrigger}
-          forceShow={forceShowTutorial}
-          onForceShowHandled={() => setForceShowTutorial(false)}
-        />
+    <>
+      {introGlossaryRef && engine.current && (
+        <IntroGlossaryPrompt key={engine.current.skillKey} skillKey={engine.current.skillKey} glossaryRef={introGlossaryRef} courseCode={engine.courseCode} />
       )}
-      onReplayTutorial={() => setForceShowTutorial(true)}
-    />
+      <ExerciseSessionScreen
+        session={session}
+        courseCode={engine.courseCode}
+        progress={engine.progress}
+        current={engine.current}
+        onSubmit={handleSubmit}
+        // A practice round is never submitted, so it earns nothing to pop.
+        feedbackXp={(feedback) => (engine.isPracticeMode ? 0 : feedback.xp)}
+        onRetype={(text) => {
+          const xp = engine.recordRetype(text, lastUsedHint);
+          return xp !== null && !engine.isPracticeMode ? xp : 0;
+        }}
+        overlay={({ item, topRowEl, exerciseEl }) => (
+          <RealLessonOverlay
+            topRowEl={topRowEl}
+            exerciseEl={exerciseEl}
+            renderType={item.renderType}
+            allowAutoTrigger={allowTutorialAutoTrigger}
+            forceShow={forceShowTutorial}
+            onForceShowHandled={() => setForceShowTutorial(false)}
+          />
+        )}
+        onReplayTutorial={() => setForceShowTutorial(true)}
+      />
+    </>
   );
 }

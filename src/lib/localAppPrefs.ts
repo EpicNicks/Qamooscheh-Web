@@ -39,6 +39,8 @@ export type ColorVision = "default" | "red-green" | "blue-yellow";
 export interface LocalAppPrefs {
   /** True once the learner has ticked "Don't ask me again" on the skip confirmation. */
   suppressSkipWarning: boolean;
+  /** True once the learner has ticked "Don't ask again" on the warning that a hint halves the answer's XP. Local per device, like suppressSkipWarning. */
+  suppressHintWarning: boolean;
   /** Per-language virtual keyboard mode (see components/lesson/keyboard/). fa defaults to the standard ISIRI layout, ja defaults to phonetic (romaji IME) — matching what most learners already expect from each language. */
   keyboardInputMethod: KeyboardInputMethod;
   /**
@@ -105,6 +107,8 @@ export interface LocalAppPrefs {
    * whether onboarding's tutorial ran at all.
    */
   seenLessonOverlay: { wordBank: boolean; typeIn: boolean };
+  /** Skill keys whose intro glossary prompt (a skill's `glossaryRef`) has been shown, so each Parsle offers it once. Local-only on every surface: a new device asks again. */
+  seenIntroGlossary: Record<string, boolean>;
   /**
    * The last streak-day (`YYYY-MM-DD`, the server's StreakResponse.today —
    * the same day key the ring's XP is read under, so the two never disagree
@@ -222,6 +226,7 @@ export interface LocalAppPrefs {
 
 const DEFAULTS: LocalAppPrefs = {
   suppressSkipWarning: false,
+  suppressHintWarning: false,
   keyboardInputMethod: { fa: "layout", ja: "phonetic" },
   showFurigana: true,
   showRomanizationHints: true,
@@ -231,6 +236,7 @@ const DEFAULTS: LocalAppPrefs = {
   showSentenceRomanization: false,
   nativeTextAlign: "left",
   seenLessonOverlay: { wordBank: false, typeIn: false },
+  seenIntroGlossary: {},
   lastGoalCelebrationDay: null,
   goalCelebrationEnabled: true,
   fontPrefs: {

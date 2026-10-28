@@ -178,6 +178,8 @@ export interface SubmittedItem {
   usedHint: boolean;
   latencyMs: number | null;
   attempt: number;
+  /** listen_type only: how many times the learner heard the prompt, 1 to 3 (API_SPEC.md §2.3 point 8). The server prices the answer at attempt max(attempt, playsUsed). */
+  playsUsed?: number;
   /**
    * The correct answer retyped after this wrong typed attempt (domain/retype.ts),
    * sent only when it matched. Earns retype XP only; never changes the grade,
@@ -220,7 +222,7 @@ export interface SubmittedSessionResponse {
   outcome: SessionOutcome;
   rejectionReason: string | null;
   cards: CardState[];
-  /** First-attempt score, 0..1 (domain/lessonScore.ts) — null unless `outcome` is "Processed". */
+  /** Lesson score, 0..1, retries credited at half per attempt (domain/lessonScore.ts) — null unless `outcome` is "Processed". */
   score?: number | null;
   /** Whether this session completed its skill: every exercise answered and `score` at or above the pass mark. Null unless `outcome` is "Processed". */
   lessonCompleted?: boolean | null;
@@ -359,6 +361,23 @@ export interface FriendRequestResponse {
 export interface UserSearchResultResponse {
   userId: string;
   username: string;
+  displayName: string;
+  relationship: FriendRelationship;
+}
+
+// ---------------------------------------------------------------------------
+// v1/contacts (Contacts/ContactsController.cs; API_SPEC.md §2.6 "Contacts matching")
+// ---------------------------------------------------------------------------
+
+export interface ContactsFindableResponse {
+  /** The caller's own opt-in switch; off by default. */
+  findable: boolean;
+  /** False for an account with no password credential (Google-only): matching is by email, so it can never be found. */
+  canBeFound: boolean;
+}
+
+export interface ContactMatchResponse {
+  userId: string;
   displayName: string;
   relationship: FriendRelationship;
 }
@@ -585,6 +604,80 @@ export interface SubmitFlashcardsResponse {
   alreadyProcessed: boolean;
   /** What the round earned, after the daily cap. */
   xp: number;
+}
+
+// ---------------------------------------------------------------------------
+// v1/race (Race/RaceContracts.cs, API_SPEC §2.8b). The device builds and grades
+// the cloze cards; the server starts and finishes the run, times it, issues the
+// FSRS weights and holds implausible runs off the boards.
+// ---------------------------------------------------------------------------
+
+export type RaceMode = "perfect_delivery" | "endless_practice";
+export type RaceDeviceClass = "touch" | "keyboard";
+export type RaceScope = "global" | "country" | "weekly" | "friends";
+
+export interface StartRaceRequest {
+  courseCode: string;
+  mode: RaceMode;
+  hardcore: boolean;
+  deviceClass: RaceDeviceClass;
+  /** The lexeme tags of the deck the device built. */
+  tags: string[];
+}
+
+export interface StartRaceResponse {
+  runId: string;
+  serverStartedAt: string;
+  /** Each learned tag's weight, `1 + min(1 - R, 0.9)`. A tag missing from it is not a learned word and must not be dealt. */
+  weights: Record<string, number>;
+}
+
+export interface RaceAnswer {
+  tag: string;
+  attempt: number;
+  correct: boolean;
+  elapsedMs?: number | null;
+}
+
+export interface FinishRaceRequest {
+  answers: RaceAnswer[];
+  /** The deck ran out. */
+  deckDone: boolean;
+}
+
+export interface RacePersonalBest {
+  score: number;
+  timeMs: number;
+}
+
+export interface FinishRaceResponse {
+  score: number;
+  timeMs: number;
+  solved: number;
+  strikes: number;
+  endReason: "third_strike" | "deck_done" | "stopped" | string;
+  xp: number;
+  /** A speed check kept the run off the boards; `heldReason` names it. */
+  held: boolean;
+  heldReason: string | null;
+  /** Place on the global board, only for a ranked, unheld run that solved a card. */
+  rank: number | null;
+  personalBest: RacePersonalBest | null;
+  alreadyFinished: boolean;
+}
+
+export interface RaceBoardEntry {
+  rank: number;
+  userId: string;
+  displayName: string | null;
+  country: string | null;
+  score: number;
+  timeMs: number;
+  isYou: boolean;
+}
+
+export interface RaceBoardResponse {
+  entries: RaceBoardEntry[];
 }
 
 // ---------------------------------------------------------------------------

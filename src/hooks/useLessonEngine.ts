@@ -28,19 +28,21 @@ import { submitSessions } from "../api/sessionSubmit";
 import { ApiError } from "../api/httpClient";
 import { useAuth } from "../auth/useAuth";
 import { loadCardStates, mergeCardStates } from "../lib/cardStateStore";
-import { enqueue as enqueueOffline } from "../lib/offlineQueue";
+import { enqueueClaimed, releaseClaims, removeFromQueue } from "../lib/offlineQueue";
 import { checkAnswer, type AnswerVerdict, type SeparatorMarks } from "../domain/answerFeedback";
 import { useGrader, useHoldGrader } from "../grader/useGrader";
 import { useHoldContentCache } from "./useContentCache";
-import { loadGate, pinFirst } from "../domain/lessonPin";
+import { loadGate, pinFirst, versionMismatch } from "../domain/lessonPin";
 import type { Grader } from "../grader/types";
 import { resolveExerciseType } from "../domain/exerciseResolution";
-import { LESSON_PASS_THRESHOLD, verdictWeight } from "../domain/lessonScore";
+import { LESSON_PASS_THRESHOLD, retryWeight } from "../domain/lessonScore";
+import { clozeSourcesForTags } from "../domain/cloze";
 import { filterRemixExercises, type RemixContents } from "../domain/remixContents";
 import { MAX_CREDITED_RETYPES, needsRetype } from "../domain/retype";
 import type { SessionPlanResponse, SkillRef, SubmittedItem, SubmittedSession, SubmittedSessionResponse } from "../types/api";
 import type { ExerciseArtifact, SkillArtifact } from "../types/content";
-import type { ExerciseType, SkillCategory } from "../domain/enums";
+import { isPlayable } from "../domain/recordings";
+import { isKnownExerciseType, type ExerciseType, type SkillCategory } from "../domain/enums";
 
 const RETRY_DEPTH = 3;
 // attempt < MAX_RETRIES gates the requeue in submitAnswer below — 2 means a
@@ -65,7 +67,7 @@ export interface LessonExerciseInstance {
   attempt: number;
 }
 
-export type LessonStatus = "loading" | "choosing" | "empty" | "ready" | "submitting" | "done" | "rejected" | "error" | "unavailable";
+export type LessonStatus = "loading" | "choosing" | "empty" | "ready" | "submitting" | "done" | "rejected" | "error" | "unavailable" | "outdated" | "needsNewerApp" | "missingRecording";
 
 /**
  * A submission the server answered 200 to but explicitly refused — one or
@@ -105,6 +107,8 @@ export interface SubmitAnswerResult {
   attempt: number;
   /** What the grader prices this answer at (hint included): the "+N XP" pop. Not what the server credits when a session rule applies, which the pages honor themselves. */
   xp: number;
+  /** Why `xp` is below the full award (domain/xpReason.ts); null when there is nothing to say. */
+  xpNote?: string | null;
   /** What was actually graded — surfaced on the revealed-answer feedback so a learner can see exactly what the grader received (e.g. a word-bank submission whose tile order wasn't what they intended). */
   submittedText: string;
   /** The grader's separator edits when a half-space or space was off but the answer was accepted — the review marks where (domain/typedAnswerMarks.ts). */
@@ -298,6 +302,7 @@ export function useLessonEngine(
       const artifact = artifacts.get(refKey(ref));
       if (!artifact) continue;
       artifact.exercises.forEach((exercise, ordinal) => {
+        if (!isPlayable(exercise)) return;
         if (dueTagsFilter && !exercise.tags.some((tag) => dueTagsFilter.has(tag))) return;
         // An exercise with no tags at all has no card to resolve its render
         // mode against — without the guard, `tags[0]` is `undefined` and the
@@ -351,6 +356,23 @@ export function useLessonEngine(
     return filterRemixExercises(remixBuilt, contents, maxExercises).length;
   }
 
+  /**
+   * The words a fill-in-the-blank Repack (issue #105) can cut cards from: the
+   * remix's due words, those due for review first, each with the remix's
+   * exercises that use it. Which of them yield a usable blank is the page's
+   * call (buildClozeDeck).
+   */
+  const remixClozeSources = useMemo(
+    () =>
+      isRemix
+        ? clozeSourcesForTags(
+            [...(plan.data?.reviewTags ?? []), ...(plan.data?.newTags ?? [])],
+            remixBuilt.map((instance) => instance.exercise),
+          )
+        : [],
+    [isRemix, plan.data, remixBuilt],
+  );
+
   const [queue, setQueue] = useState<LessonExerciseInstance[] | null>(null);
   const [totalCount, setTotalCount] = useState(0);
   const [items, setItems] = useState<RecordedItem[]>([]);
@@ -361,9 +383,10 @@ export function useLessonEngine(
   // this, so the end-of-lesson fraction reflects "got it right the first
   // time" rather than "eventually got it", independent of the requeue depth.
   const [firstTryCorrect, setFirstTryCorrect] = useState(0);
-  // The same first attempts, weighted the way the pass mark is
-  // (domain/lessonScore.ts) — a forgiven typo is half a point.
-  const [firstTryPoints, setFirstTryPoints] = useState(0);
+  // Every exercise's credit toward the pass mark (domain/lessonScore.ts): a
+  // forgiven typo is half a point, and a right retry half what it would have
+  // been first time.
+  const [points, setPoints] = useState(0);
   // True for a session started via startPractice() rather than seeded from
   // the real due queue — finishLesson skips POST /v1/sessions/submit
   // entirely for these, so redoing a lesson never earns FSRS credit twice
@@ -383,6 +406,11 @@ export function useLessonEngine(
   // against, and how many times each exercise (by instance key) was retyped
   // this run: the server credits two retypes per exercise
   // (MAX_CREDITED_RETYPES), so a later one is practice.
+  // A round's identity, fixed the first time it finishes: submission ids per
+  // skill plus occurredAt, reused if the same round is sent again so a retry
+  // after a lost response is a replay, not a second submission. Reset when a
+  // new round starts (restart).
+  const roundIdentity = useRef<{ occurredAt: string; ids: Map<string, string> } | null>(null);
   const lastAnswer = useRef<{ instance: LessonExerciseInstance; attempt: number } | null>(null);
   const retypeCounts = useRef(new Map<string, number>());
   // The last answer's score while its submit waits for the review to close —
@@ -446,7 +474,30 @@ export function useLessonEngine(
   // of useEffect entirely, which matters here because re-seeding on every
   // background refetch of `plan`/`skillArtifacts` would blow away in-progress
   // answers.
-  if (queue === null && skillsReady && plan.data && !awaitingRemixContents) {
+  const outdated = started.current == null && versionMismatch(plan.data?.courseVersion, liveCourse?.version);
+  // The stale side is usually the cached bootstrap; re-reading it once may
+  // settle the mismatch without the learner doing anything.
+  const refetchBootstrap = bootstrap.refetch;
+  useEffect(() => {
+    if (outdated) void refetchBootstrap();
+  }, [outdated, refetchBootstrap]);
+  // A lesson with an exercise this build can't render is declined whole, before it
+  // starts: a submitted lesson needs an answer for every exercise, so skipping one
+  // would break the submit.
+  const needsNewerApp =
+    started.current == null &&
+    skillsReady &&
+    !!plan.data &&
+    lessonSkills(plan.data.skills).some((ref) => skillArtifacts.get(refKey(ref))?.exercises.some((exercise) => !isKnownExerciseType(exercise.type)));
+  // Likewise a lesson with a listening exercise that has no recording: its text is
+  // never shown in place of the audio. A repack only drops such an exercise.
+  const missingRecording =
+    !isRemix &&
+    started.current == null &&
+    skillsReady &&
+    !!plan.data &&
+    lessonSkills(plan.data.skills).some((ref) => skillArtifacts.get(refKey(ref))?.exercises.some((exercise) => !isPlayable(exercise)));
+  if (queue === null && skillsReady && plan.data && !awaitingRemixContents && !outdated && !needsNewerApp && !missingRecording) {
     started.current = { course: liveCourse, plan: plan.data };
     setQueue(initialQueue);
     setTotalCount(initialQueue.length);
@@ -455,6 +506,10 @@ export function useLessonEngine(
   }
 
   const current = queue && queue.length > 0 ? queue[0] : null;
+  // The glossary page the current exercise's lesson points at, if any (SkillArtifact.glossaryRef).
+  const currentGlossaryRef = current
+    ? ((sessionArtifacts.get(refKey(current)) ?? skillArtifacts.get(refKey(current)))?.glossaryRef ?? null)
+    : null;
 
   /**
    * Restarts the latency clock. The page owning the answer-confirmation
@@ -520,11 +575,12 @@ export function useLessonEngine(
     setLessonCompleted(null);
     setSessionXp(null);
     lastAnswer.current = null;
+    roundIdentity.current = null;
     retypeCounts.current = new Map();
     pendingFinish.current = null;
     setItems([]);
     setFirstTryCorrect(0);
-    setFirstTryPoints(0);
+    setPoints(0);
     setResult(null);
     setRejection(null);
     setStatus("ready");
@@ -540,21 +596,21 @@ export function useLessonEngine(
    * for a frame first, mounting it and starting its prompt's autoplay. The
    * end-of-lesson submit runs on its own (finishLesson owns its errors).
    */
-  function submitAnswer(submittedText: string, opts?: { usedHint?: boolean }): SubmitAnswerResult {
+  function submitAnswer(submittedText: string, opts?: { usedHint?: boolean; playsUsed?: number }): SubmitAnswerResult {
     if (!current || !queue) return { correct: false, requeued: false, note: null, verdict: "incorrect", attempt: 1, xp: 0, submittedText };
 
     const attempt = current.attempt + 1;
-    const feedback = checkAnswer(grader, courseCode, current.exercise, submittedText, { attempt, usedHint: opts?.usedHint });
+    // A listening test prices an answer at the later of the attempt and the plays used (API_SPEC.md §2.3 point 8).
+    const playsUsed = current.renderType === "listen_type" ? Math.min(3, Math.max(1, opts?.playsUsed ?? 1)) : undefined;
+    const feedback = checkAnswer(grader, courseCode, current.exercise, submittedText, { attempt: Math.max(attempt, playsUsed ?? 1), usedHint: opts?.usedHint });
     const correct = feedback.verdict !== "incorrect";
     const latencyMs = Math.round(performance.now() - shownAt.current);
 
     // Computed here rather than read back from state, which won't have
     // updated yet if this is the answer that finishes the lesson.
-    const points = firstTryPoints + (current.attempt === 0 ? verdictWeight(feedback.verdict) : 0);
-    if (current.attempt === 0) {
-      if (correct) setFirstTryCorrect((n) => n + 1);
-      setFirstTryPoints(points);
-    }
+    const newPoints = points + retryWeight(feedback.verdict, attempt);
+    setPoints(newPoints);
+    if (current.attempt === 0 && correct) setFirstTryCorrect((n) => n + 1);
 
     const newItems = current.exercise.tags.map(
       (lexemeTag): RecordedItem => ({
@@ -569,6 +625,7 @@ export function useLessonEngine(
           usedHint: opts?.usedHint ?? false,
           latencyMs,
           attempt,
+          ...(playsUsed !== undefined && { playsUsed }),
         },
       }),
     );
@@ -592,7 +649,7 @@ export function useLessonEngine(
     // time too. The page calls markShown() when the next one is really shown.
 
     if (rest.length === 0) {
-      const score = totalCount === 0 ? 0 : points / totalCount;
+      const score = totalCount === 0 ? 0 : newPoints / totalCount;
       if (needsRetype(current.renderType, correct)) {
         // Submitted by settleAnswer once the review closes.
         pendingFinish.current = score;
@@ -602,7 +659,7 @@ export function useLessonEngine(
       }
     }
 
-    return { correct, requeued, note: feedback.note, verdict: feedback.verdict, attempt, xp: feedback.xp, submittedText, separators: feedback.separators };
+    return { correct, requeued, note: feedback.note, verdict: feedback.verdict, attempt, xp: feedback.xp, xpNote: feedback.xpNote, submittedText, separators: feedback.separators };
   }
 
   /**
@@ -671,15 +728,23 @@ export function useLessonEngine(
     // One session per skill the items actually came from — a plan may list
     // several skills (§2.2), and grading an item under a skill it doesn't
     // belong to would corrupt that skill's FSRS state.
-    const courseVersion = plan.data.courseVersion;
-    const occurredAt = new Date().toISOString();
+    // The version the exercises on screen were loaded under, not whatever a
+    // later plan refetch names.
+    const courseVersion = course?.version ?? plan.data.courseVersion;
+    const identity = (roundIdentity.current ??= { occurredAt: new Date().toISOString(), ids: new Map() });
+    const occurredAt = identity.occurredAt;
     const bySkill = new Map<string, SubmittedSession>();
     for (const recorded of finalItems) {
       const key = `${recorded.unitKey ?? "_"}/${recorded.skillKey}`;
       let session = bySkill.get(key);
       if (!session) {
+        let submissionId = identity.ids.get(key);
+        if (!submissionId) {
+          submissionId = crypto.randomUUID();
+          identity.ids.set(key, submissionId);
+        }
         session = {
-          submissionId: crypto.randomUUID(),
+          submissionId,
           unitKey: recorded.unitKey,
           skillKey: recorded.skillKey,
           courseCode,
@@ -706,8 +771,14 @@ export function useLessonEngine(
       return;
     }
 
+    // Write-ahead: saved (claimed by this page) before the request, so a reload
+    // or tab close mid-submit leaves it for the flush instead of losing it.
+    if (userId) {
+      for (const session of sessions) enqueueClaimed(userId, session);
+    }
+
     try {
-      const response = await submitSessions(sessions, { keepalive });
+      const response = await submitSessions(sessions, { keepalive, asUserId: userId ?? undefined });
       // Cards come back per session; every one of them needs merging. `result`
       // only drives the recap's "Already recorded." line, so the first
       // response stands in for the batch.
@@ -747,8 +818,11 @@ export function useLessonEngine(
       // a delivery problem, not a rejection: requeue it exactly like a
       // network failure would, instead of discarding it as unrecoverable.
       const missing = sessions.filter((s) => !answered.has(s.submissionId));
-      if (missing.length > 0 && userId) {
-        for (const session of missing) enqueueOffline(userId, session);
+      if (userId) {
+        // Answered (including Rejected, which the end screen reports itself)
+        // is settled; the unanswered stay queued with their claim released.
+        removeFromQueue(userId, [...answered]);
+        if (missing.length > 0) releaseClaims(userId, missing.map((s) => s.submissionId));
       }
 
       if (rejected.length > 0) {
@@ -765,9 +839,7 @@ export function useLessonEngine(
       // same as a network failure, so it's fair to call the lesson done.
       setStatus("done");
     } catch {
-      if (userId) {
-        for (const session of sessions) enqueueOffline(userId, session);
-      }
+      if (userId) releaseClaims(userId, sessions.map((s) => s.submissionId));
       setStatus("done"); // queued locally; will sync on next successful flush
     }
   }
@@ -782,7 +854,13 @@ export function useLessonEngine(
       ? status
       : isLessonNotFound
         ? "unavailable"
-        : gate === "loading"
+        : outdated
+          ? "outdated"
+          : needsNewerApp
+            ? "needsNewerApp"
+            : missingRecording
+            ? "missingRecording"
+            : gate === "loading"
           ? "loading"
           : gate === "error"
             ? "error"
@@ -813,13 +891,17 @@ export function useLessonEngine(
     course,
     courseCode,
     current,
+    currentGlossaryRef,
     progress: { completed: totalCount - (queue?.length ?? totalCount), total: totalCount },
-    /** `correct` counts first attempts accepted at all; `score` (0..1) is the weighted one the pass mark is measured on (domain/lessonScore.ts). */
-    score: { correct: firstTryCorrect, total: totalCount, score: totalCount === 0 ? 0 : firstTryPoints / totalCount },
+    /** `correct` counts first attempts accepted at all; `score` (0..1) is the weighted one, retries included, the pass mark is measured on (domain/lessonScore.ts). */
+    score: { correct: firstTryCorrect, total: totalCount, score: totalCount === 0 ? 0 : points / totalCount },
     isPracticeMode,
     /** A multi-lesson remix — the only kind that offers a contents choice (status "choosing"). */
     isRemix,
     remixCount,
+    remixClozeSources,
+    /** The most cards (or exercises) a Repack holds: REMIX_MAX_EXERCISES, or no limit for a hand-picked one. */
+    remixMaxCards: maxExercises,
     submitAnswer,
     recordRetype,
     settleAnswer,

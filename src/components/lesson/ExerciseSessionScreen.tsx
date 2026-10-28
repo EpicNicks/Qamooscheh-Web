@@ -20,7 +20,7 @@ import { SessionProgressBar } from "./SessionProgressBar";
 import { AnswerFeedback } from "./AnswerFeedback";
 import { describeAnswerRegister } from "../../domain/answerRegister";
 import { ReportIssue } from "./ReportIssue";
-import { closestAnswerFirst } from "../../domain/answerFeedback";
+import { revealedAnswers } from "../../domain/answerVariants";
 import { needsRetype, retypeMatches } from "../../domain/retype";
 import { useGrader } from "../../grader/useGrader";
 import { SaveWordsRow } from "../vocabulary/SaveWordsRow";
@@ -33,7 +33,6 @@ import { useExerciseReportContext } from "../../hooks/useExerciseReportContext";
 import { ExerciseVoiceScope } from "../../hooks/exerciseVoiceScope";
 import type { ExerciseSession } from "../../hooks/useExerciseSession";
 import type { ExerciseType } from "../../domain/enums";
-import { revealedTileOrder } from "../../domain/wordBankOrders";
 import type { ExerciseArtifact } from "../../types/content";
 import styles from "./ExerciseSessionScreen.module.css";
 
@@ -56,6 +55,8 @@ export interface ExerciseSessionFeedback {
   submittedText: string;
   /** The grader's separator edits when a half-space or space was off but the answer was accepted — the review marks where (domain/typedAnswerMarks.ts). */
   separators?: SeparatorMarks | null;
+  /** Why the answer's XP is below the full award (domain/xpReason.ts), shown beside the XP. */
+  xpNote?: string | null;
 }
 
 interface ExerciseSessionScreenProps<TItem extends ExerciseSessionItem, TFeedback extends ExerciseSessionFeedback> {
@@ -69,7 +70,7 @@ interface ExerciseSessionScreenProps<TItem extends ExerciseSessionItem, TFeedbac
    * with its completion screen.
    */
   current: TItem | null;
-  onSubmit: (submittedText: string, opts?: { usedHint?: boolean }) => void;
+  onSubmit: (submittedText: string, opts?: { usedHint?: boolean; playsUsed?: number }) => void;
   /** Shown under the top row in both states — the chapter/lesson title Story and Practice have. A lesson is planned across skills and has no single title, so it passes none. */
   title?: string | null;
   /** Per-answer XP for the review screen's burst (the grader prices it: AnswerFeedback.xp). Omitted — by Practice — renders no burst at all. */
@@ -158,15 +159,11 @@ export function ExerciseSessionScreen<TItem extends ExerciseSessionItem, TFeedba
             answerAudio={answerAudio}
             note={feedback.note}
             xp={feedbackXp?.(feedback)}
-            answer={
-              answerIsTokenized
-                ? revealedTileOrder(answeredItem.exercise, feedback.submittedText)
-                : closestAnswerFirst(feedback.submittedText, answeredItem.exercise.answer)
-            }
-            answerIsTokenized={answerIsTokenized}
+            xpNote={feedback.xpNote}
+            answer={revealedAnswers(answeredItem.exercise, feedback.submittedText)}
             // A type-in or word-bank answer stays visible in the (red/green)
             // exercise below, so the feedback box shows only the correct answer.
-            submittedText={answeredItem.renderType === "type_in" || answeredItem.renderType === "word_bank" ? undefined : feedback.submittedText}
+            submittedText={answeredItem.renderType === "type_in" || answeredItem.renderType === "listen_type" || answeredItem.renderType === "word_bank" ? undefined : feedback.submittedText}
             hintMap={hintMap}
             textSettings={textSettings}
             answerRomanization={{

@@ -7,6 +7,7 @@ import { WordBankExercise } from "./WordBankExercise";
 import { TypeInExercise } from "./TypeInExercise";
 import { MatchExercise } from "./MatchExercise";
 import { SpeakExercise } from "./SpeakExercise";
+import { ListenTypeExercise } from "./ListenTypeExercise";
 import { ExerciseVoiceScope } from "../../hooks/exerciseVoiceScope";
 
 export interface ReviewedAnswer {
@@ -19,7 +20,7 @@ export interface ReviewedAnswer {
 
 export interface ExerciseProps {
   exercise: ExerciseArtifact;
-  onSubmit: (submittedText: string, opts?: { usedHint?: boolean }) => void;
+  onSubmit: (submittedText: string, opts?: { usedHint?: boolean; playsUsed?: number }) => void;
   disabled?: boolean;
   /** Drives RTL layout/font for native-script content (domain/language.ts) — null when the course's language isn't known/supported yet. */
   courseCode?: string | null;
@@ -143,6 +144,20 @@ function ExerciseByType({
           hintMap={hintMap}
           textSettings={textSettings}
           advance={advance}
+        />
+      );
+    case "listen_type":
+      return (
+        <ListenTypeExercise
+          exercise={exercise}
+          onSubmit={onSubmit}
+          disabled={disabled}
+          courseCode={courseCode}
+          keyboardMode={keyboardMode}
+          autoplayAudio={autoplayAudio}
+          textSettings={textSettings}
+          advance={advance}
+          reviewedAnswer={reviewedAnswer}
         />
       );
     case "speak":

@@ -1,0 +1,26 @@
+{
+  "name": "android-friend-profile",
+  "repo": "android",
+  "branch": "friend-profile",
+  "title": "Friend profile screen with stats and unfriend",
+  "closes": null,
+  "issue": "Adapt the web friend profile design (E:/Code/Projects/Qamooscheh-Web/Qamooscheh-Web, find the friend profile page under src/ and match what it shows) to a native Android screen reached from a friend in the Friends list ('View'). The backend is built in Qamooscheh-Backend PR #52 (GET /v1/friends/{id}/stats and DELETE /v1/friends/{id}); read the contract from the PR branch or API_SPEC.md on origin/master of C:/Users/epicn/source/repos/Qamooscheh (if #52 is not merged yet, use the PR's API_SPEC.md via gh pr diff and code against it; mention in deviations that the endpoints are not deployed until it merges). The stats are exactly: display name, @handle, friends-since and league rank/points (rank/points are the friend's place in the caller's current cohort, null otherwise: hide the league row when null). Unfriend: a confirm dialog, then DELETE (idempotent), return to the list and refresh, no block, friendly error copy. 404 on stats means not a friend any more: leave the screen gracefully. Handle 429 with friendly copy. An iOS version comes later, so keep the screen's data and actions in a ViewModel/UI-state layer that is easy to port. Use Parsle/Repack terminology in copy. Unsettled points go in deviations. Gradle: run tasks one at a time (lock contention and low memory). Android CI runs unit tests, Roborazzi verification, lint and assembleDevDebug: run the equivalent locally, add tests, record baselines only for intended visual changes. Read CLAUDE.md, README.md and docs/SPEC.md first.",
+  "allowedPaths": [
+    "^app/",
+    "^core/",
+    "^feature/",
+    "^keyboard/",
+    "^docs/",
+    "^build-logic/",
+    "^gradle/libs.versions.toml$"
+  ],
+  "acceptance": [
+    "Profile shows name, handle, friends-since and league row when present",
+    "Unfriend with confirm, idempotent, list refreshed",
+    "404/429 handled; tests and baselines; Gradle CI tasks pass locally"
+  ],
+  "reviewer": "sonnet",
+  "reviewers": 1,
+  "gate": "approved by the user 2026-10-14 (continue)",
+  "approved": true
+}

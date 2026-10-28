@@ -2,12 +2,10 @@ import { useParams } from "react-router-dom";
 import { useBootstrap } from "../hooks/useBootstrap";
 import { glossaryForCourse, findGlossaryEntry } from "../domain/glossaryContent";
 import { BackButton } from "../components/common/BackButton";
-import { DirectionalText } from "../components/common/DirectionalText";
-import { AbjadGlossary } from "../components/glossary/AbjadGlossary";
+import { GlossaryEntryView } from "../components/glossary/GlossaryEntryView";
 import { Spinner } from "../components/common/Spinner";
 import { ErrorBanner } from "../components/common/ErrorBanner";
 import { errorMessage } from "../lib/errors";
-import styles from "./GlossaryEntryPage.module.css";
 
 /** One leaf glossary entry's term list, reached from GlossaryTree — a real route (not a modal/expansion) so it lands in browser history and the back button/browser back agree with each other. */
 export function GlossaryEntryPage() {
@@ -35,36 +33,7 @@ export function GlossaryEntryPage() {
   return (
     <div>
       <BackButton />
-      <h1 className={styles.title}>{entry.title}</h1>
-      {entry.note && <p className={styles.note}>{entry.note}</p>}
-      {entry.view === "abjad" ? (
-        <AbjadGlossary courseCode={courseCode} />
-      ) : (
-        <div className={styles.tableScroll}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>Term</th>
-                <th>Romanization</th>
-                <th>Meaning</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(entry.terms ?? []).map((term) => (
-                <tr key={term.term}>
-                  <td>
-                    <DirectionalText courseCode={courseCode} className={styles.native}>
-                      {term.term}
-                    </DirectionalText>
-                  </td>
-                  <td className={styles.romanization}>{term.romanization}</td>
-                  <td className={styles.definition}>{term.definition}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <GlossaryEntryView entry={entry} courseCode={courseCode} />
     </div>
   );
 }

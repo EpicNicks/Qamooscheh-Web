@@ -1,0 +1,25 @@
+{
+  "name": "friends-usernames",
+  "repo": "web",
+  "branch": "friends-usernames",
+  "title": "Friends: find people by exact username, show relationship state, claim and rename your handle",
+  "closes": null,
+  "issue": "Issue #85 (web part only; the PR must say 'Part of #85', not 'Closes'). The backend side is MERGED and DEPLOYED (backend PR #46); the contract is the usernames/friends sections of C:/Users/epicn/source/repos/Qamooscheh/src/Qamooscheh.Api/API_SPEC.md (read it first; do not guess shapes). BUILD: (1) Friends search by exact username (Discord-style handle, separate from display name): input accepts an optional leading @, trims and lowercases, validates format client-side with the same rules as the backend (3-20 chars, lowercase letters/digits/_/.); the result is a 0 or 1 hit list; each result shows display name + @handle and its relationship state with one action: Add, Pending (disabled; sent requests are idempotent so repeated Add never errors), Accept (incoming request), or View (open the friend's profile). Handle 409/429/blocked responses with friendly copy; blocked pairs just show no result. Replace the old display-name search entirely. (2) Show the learner's own handle prominently on the Friends page with copy-to-clipboard so they can share it. (3) Username claim/rename: every existing user was auto-assigned a handle; show a one-time dismissible prompt (persist dismissal per user locally) offering to change it, plus a rename control in Profile/Friends using the rename endpoint; surface the backend's once-per-30-days rule, availability errors, blocklist errors and the held-old-handle rule with clear copy. (4) Onboarding: if the backend lets a name/handle be chosen at signup per the spec, follow it; otherwise leave onboarding alone. (5) Tests for validation, state-to-action mapping, idempotent add, rename error mapping. (6) The backend ledger (features.yaml, web key) is updated by the orchestrator after merge, not by you. OUT OF SCOPE (Android-only or later): contacts matching, push notifications, permission explainers. Use the terminology agreed in memory (Parsle/Repack) in any new copy.",
+  "allowedPaths": [
+    "^src/",
+    "^public/",
+    "^package(-lock)?\\.json$"
+  ],
+  "acceptance": [
+    "Search is by exact username only, with relationship state and idempotent Add/Pending/Accept/View",
+    "Own handle shown with copy; one-time change prompt; rename with the backend's rules and errors mapped to copy",
+    "No guessed API shapes: matches API_SPEC.md",
+    "PR says Part of #85",
+    "lint, tsc -b, build, test green locally and in CI"
+  ],
+  "gate": "approved by the user 2026-10-14 (defaults approved earlier; backend deployed)",
+  "approved": true,
+  "reviewer": "sonnet",
+  "reviewers": 1,
+  "notes": "USER REVISION 2026-10-14: add a FRIEND PROFILE PAGE so that 'View' has somewhere to go (this removes deviation 1: View no longer scrolls to a row). Route /friends/:userId, reached from View in search results and from each row in Your friends; add the route in src/App.tsx. DATA: only what the backend already returns, never invented. The friend's FriendRefResponse from GET /v1/friends (userId, displayName, username, since); and, if the friend appears in the learner's current league standings (src/api/leagues.ts), their points and rank this week. There is NO friend-stats endpoint: do NOT show streak, XP, courses or any placeholder/fake figures. List as a backend ask in the PR body: a GET /v1/friends/{userId}/profile with streak, weekly XP and courses, and an unfriend/cancel endpoint. DESIGN (mobile first, 420px column like ProfilePage, use the existing CSS tokens and both themes, no new colours or fonts): a header card with a large circular avatar showing the display-name initial on a colour picked by a stable hash of userId from existing theme tokens; display name as the h1; @handle with a copy button; a quiet 'Friends since <month year>' line. Below, a league card only when applicable ('In your league this week: rank N, X points' with the same visual language as LeaguesPage). A back link to Friends. A not-a-friend / unknown-id state (userId not in the learner's friends list): a friendly message with a link back to Friends, no error banner. Loading skeleton or Spinner consistent with other pages. Subtle entrance motion only, disabled under prefers-reduced-motion; focus-visible styles; accessible names; 44px touch targets; text must not overflow with long names or handles. Tests: the resolver from userId to friend/league data, unknown-id state, route rendering. Use Parsle/Repack terminology if any copy needs it. List only NEW deviations."
+}

@@ -29,3 +29,14 @@ export function graderGate(status: "none" | "loading" | "ready" | "unavailable",
   if (held || status === "ready" || status === "none") return "open";
   return status;
 }
+
+/**
+ * True when the session plan names a course version other than the one the
+ * lesson's content is loaded under. Playing it would show one version's
+ * exercises and submit them as another's, so a lesson not yet started holds
+ * back and asks the learner to reopen it (both queries refetch meanwhile).
+ * Unknown on either side is no mismatch: nothing to compare yet.
+ */
+export function versionMismatch(planVersion: number | undefined, loadedVersion: number | undefined): boolean {
+  return planVersion !== undefined && loadedVersion !== undefined && planVersion !== loadedVersion;
+}

@@ -7,15 +7,19 @@ import { useGrader } from "../grader/useGrader";
 import { useLexemeIndex, useSkillArtifactsForRefs, refKey } from "../hooks/useCourseContent";
 import { useExerciseSession } from "../hooks/useExerciseSession";
 import { getStarredPractice } from "../api/vocab";
-import { submitFlashcards } from "../api/flashcards";
+import { submitFlashcardsDurably } from "../api/flashcards";
 import { checkAnswer, type AnswerVerdict } from "../domain/answerFeedback";
 import { resolveExerciseType } from "../domain/exerciseResolution";
+import { isPlayable } from "../domain/recordings";
+import { buildClozeDeck, type ClozeCard } from "../domain/cloze";
 import { flashcardWords, type FlashcardWord } from "../domain/flashcards";
 import { needsRetype } from "../domain/retype";
+import { versionMismatch } from "../domain/lessonPin";
 import {
   includesExercise,
   includesFlashcards,
   initialRemixContents,
+  isClozeContents,
   remixContentsOptions,
   type RemixContents,
 } from "../domain/remixContents";
@@ -26,6 +30,7 @@ import { submitRecordedAnswers, type RecordedAnswer, type SubmitOutcome } from "
 import { ExerciseSessionScreen, type ExerciseSessionFeedback, type ExerciseSessionItem } from "../components/lesson/ExerciseSessionScreen";
 import { SessionProgressBar } from "../components/lesson/SessionProgressBar";
 import { LessonResults } from "../components/lesson/LessonResults";
+import { ClozeDeckRound } from "../components/flashcards/ClozeDeckRound";
 import { Flashcard } from "../components/flashcards/Flashcard";
 import { Spinner } from "../components/common/Spinner";
 import { ErrorBanner } from "../components/common/ErrorBanner";
@@ -56,6 +61,7 @@ interface RemixFeedback extends ExerciseSessionFeedback {
   usedHint: boolean;
   /** What the grader prices the answer at (a first attempt, hint included). */
   xp: number;
+  xpNote?: string | null;
 }
 
 interface Outcome {
@@ -113,6 +119,14 @@ export function SavedPracticePage() {
   // review to close, so a retype goes in it.
   const finishPending = useRef(false);
 
+  const outdated = versionMismatch(practice.data?.courseVersion, course?.version);
+  // The stale side is usually the cached bootstrap; re-reading it once may
+  // settle the mismatch without the learner doing anything.
+  const refetchBootstrap = bootstrap.refetch;
+  useEffect(() => {
+    if (outdated) void refetchBootstrap();
+  }, [outdated, refetchBootstrap]);
+
   const ready =
     practice.data != null && lexemeIndex.data != null && userId != null && refs.every((ref) => content.skills.has(refKey(ref)));
 
@@ -129,7 +143,7 @@ export function SavedPracticePage() {
       for (const { unitKey, skillKey, ordinal } of word.exercises) {
         const key = `${unitKey}/${skillKey}/${ordinal}`;
         const exercise = content.skills.get(refKey({ unitKey, skillKey }))?.exercises[ordinal];
-        if (seen.has(key) || !exercise) continue;
+        if (seen.has(key) || !exercise || !isPlayable(exercise)) continue;
         seen.add(key);
         const primaryTag = exercise.tags[0];
         items.push({
@@ -152,6 +166,24 @@ export function SavedPracticePage() {
   const [choiceEmpty, setChoiceEmpty] = useState(false);
   const shownContents = chosenContents ?? initialRemixContents(rememberedContents.saved, contentsOptions, "all");
 
+  // Fill in the blank (issue #105): the same cards the standalone round
+  // makes, from the sentences of the picked words. Which sentence each card
+  // uses is fixed for the visit.
+  const [clozeSeed] = useState(() => Math.random());
+  const clozeDeck = useMemo<ClozeCard[] | null>(() => {
+    if (!ready) return null;
+    const sources = practice.data!.words.map((word) => ({
+      tag: word.tag,
+      exercises: word.exercises.flatMap(({ unitKey, skillKey, ordinal }) => {
+        const exercise = content.skills.get(refKey({ unitKey, skillKey }))?.exercises[ordinal];
+        return exercise ? [exercise] : [];
+      }),
+    }));
+    return buildClozeDeck(sources, session.courseHintMap, lexemeIndex.data!, (count) => Math.floor(clozeSeed * count));
+  }, [ready, practice.data, content.skills, lexemeIndex.data, session.courseHintMap, clozeSeed]);
+  const [hardcore, setHardcore] = useState(false);
+  const [clozeRound, setClozeRound] = useState<ClozeCard[] | null>(null);
+
   function filtered(items: readonly RemixItem[], contents: RemixContents): RemixItem[] {
     return items.filter((item) =>
       item.kind === "flashcard" ? includesFlashcards(contents) : includesExercise(contents, item.renderType),
@@ -160,6 +192,15 @@ export function SavedPracticePage() {
 
   function start() {
     if (!built) return;
+    if (isClozeContents(shownContents)) {
+      if (!clozeDeck || clozeDeck.length === 0) {
+        setChoiceEmpty(true);
+        return;
+      }
+      setRememberedContents({ ...rememberedContents, saved: shownContents });
+      setClozeRound(clozeDeck);
+      return;
+    }
     const items = filtered(built, shownContents);
     if (items.length === 0) {
       setChoiceEmpty(true);
@@ -221,7 +262,7 @@ export function SavedPracticePage() {
     let flashcardXp: number | null = 0;
     if (finalCards.length > 0) {
       try {
-        const response = await submitFlashcards({
+        const response = await submitFlashcardsDurably(userId, {
           submissionId: crypto.randomUUID(),
           courseCode: course.code,
           occurredAt: new Date().toISOString(),
@@ -261,7 +302,7 @@ export function SavedPracticePage() {
     advance(answers, nextCards);
   }
 
-  function answerExercise(item: RemixExercise, submittedText: string, opts?: { usedHint?: boolean }) {
+  function answerExercise(item: RemixExercise, submittedText: string, opts?: { usedHint?: boolean; playsUsed?: number }) {
     const usedHint = opts?.usedHint ?? false;
     const feedback = checkAnswer(grader, course?.code, item.exercise, submittedText, { usedHint });
     const correct = feedback.verdict !== "incorrect";
@@ -287,7 +328,7 @@ export function SavedPracticePage() {
       ),
     ];
     setAnswers(nextAnswers);
-    confirmation.record(item, { correct, note: feedback.note, submittedText, verdict: feedback.verdict, usedHint, xp: feedback.xp, separators: feedback.separators });
+    confirmation.record(item, { correct, note: feedback.note, submittedText, verdict: feedback.verdict, usedHint, xp: feedback.xp, xpNote: feedback.xpNote, separators: feedback.separators });
     advance(nextAnswers, cards, needsRetype(item.renderType, correct));
   }
 
@@ -322,6 +363,24 @@ export function SavedPracticePage() {
     );
   }
 
+  // The picked words are resolved under one course version and their exercises
+  // load under the bootstrap's; when they differ the round would show one
+  // version's exercises and submit them as another's. Held back until it starts.
+  if (queue === null && !clozeRound && outdated) {
+    return (
+      <div className={styles.done}>
+        <h1>This Repack was updated</h1>
+        <p>A newer version came out while this was opening. Reopen it to get the latest.</p>
+        <div className={styles.doneActions}>
+          <Button variant="secondary" onClick={() => navigate("/vocabulary")}>
+            Back to vocabulary
+          </Button>
+          <Button onClick={() => window.location.reload()}>Reopen Repack</Button>
+        </div>
+      </div>
+    );
+  }
+
   if (practice.isError || bootstrap.isError || lexemeIndex.isError || content.isError) {
     return <ErrorBanner message="Couldn't put together your saved-words practice." />;
   }
@@ -338,6 +397,20 @@ export function SavedPracticePage() {
     );
   }
 
+  if (clozeRound && course) {
+    return (
+      <ClozeDeckRound
+        course={course}
+        deck={clozeRound}
+        hardcore={hardcore}
+        inRemix
+        exitLabel="Back to path"
+        onExit={() => navigate("/path")}
+        secondaryExit={{ label: "Back to vocabulary", onExit: () => navigate("/vocabulary") }}
+      />
+    );
+  }
+
   if (queue === null) {
     return (
       <RemixContentsPicker
@@ -348,6 +421,8 @@ export function SavedPracticePage() {
           setChoiceEmpty(false);
         }}
         onStart={start}
+        hardcore={hardcore}
+        onHardcoreChange={setHardcore}
         emptyMessage={choiceEmpty ? "Your saved words have none of those right now — pick something else." : null}
         backLabel="Back to vocabulary"
         onBack={() => navigate("/vocabulary")}

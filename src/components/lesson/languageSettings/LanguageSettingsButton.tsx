@@ -11,6 +11,7 @@ import { useShowTranslationHints } from "../../../hooks/useShowTranslationHints"
 import { useNativeTextAlign } from "../../../hooks/useNativeTextAlign";
 import { useBootstrap } from "../../../hooks/useBootstrap";
 import { useAudioIndex } from "../../../hooks/useCourseContent";
+import { FontPicker } from "../../settings/FontPicker";
 import { VoicePicker } from "../../settings/VoicePicker";
 import { SettingsGroup } from "./SettingsGroup";
 import { PersianScriptSettings } from "./PersianScriptSettings";
@@ -35,7 +36,9 @@ const LANGUAGE_SETTINGS: Partial<Record<Language, ComponentType<LanguageSettings
 /**
  * A cog that opens the lesson's settings without leaving it, in titled
  * groups: the course language's own script settings (LANGUAGE_SETTINGS
- * above), the voice recordings play in (the same VoicePicker as Settings ->
+ * above), the course script's font (the same FontPicker as Settings ->
+ * Appearance, so a hard-to-read letterform can be fixed without quitting the
+ * Parsle), the voice recordings play in (the same VoicePicker as Settings ->
  * Input), and the walkthrough replay. Renders nothing when none of those
  * apply.
  */
@@ -46,7 +49,8 @@ interface LanguageSettingsButtonProps {
 }
 
 export function LanguageSettingsButton({ courseCode, onReplayTutorial }: LanguageSettingsButtonProps) {
-  const language = getLanguageInfo(courseCode)?.language;
+  const info = getLanguageInfo(courseCode);
+  const language = info?.language;
   const SettingsPanel = language ? LANGUAGE_SETTINGS[language] : undefined;
 
   const [buttonEl, setButtonEl] = useState<HTMLButtonElement | null>(null);
@@ -64,7 +68,7 @@ export function LanguageSettingsButton({ courseCode, onReplayTutorial }: Languag
   const course = useBootstrap().data?.course ?? null;
   const hasVoices = (useAudioIndex(course).data?.voices.length ?? 0) > 0;
 
-  if (!SettingsPanel && !hasVoices && !onReplayTutorial) return null;
+  if (!SettingsPanel && !info && !hasVoices && !onReplayTutorial) return null;
 
   return (
     <>
@@ -92,6 +96,11 @@ export function LanguageSettingsButton({ courseCode, onReplayTutorial }: Languag
               nativeTextAlign={nativeTextAlign.align}
               onChangeNativeTextAlign={nativeTextAlign.setNativeTextAlign}
             />
+          )}
+          {info && (
+            <SettingsGroup title="Font">
+              <FontPicker script={info.language} label={`${info.displayName} font`} dir={info.direction} compact />
+            </SettingsGroup>
           )}
           {hasVoices && (
             <SettingsGroup title="Audio">

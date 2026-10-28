@@ -7,7 +7,7 @@
 // remix: the learner just answers fewer kinds of exercise.
 import type { ExerciseType } from "./enums";
 
-export type RemixContents = "all" | "type_in" | "word_bank" | "flashcards" | "flashcards_and_all";
+export type RemixContents = "all" | "type_in" | "word_bank" | "flashcards" | "flashcards_and_all" | "cloze";
 
 export const REMIX_CONTENTS_LABELS: Record<RemixContents, string> = {
   all: "All exercises",
@@ -15,11 +15,21 @@ export const REMIX_CONTENTS_LABELS: Record<RemixContents, string> = {
   word_bank: "Word bank only",
   flashcards: "Flashcards only",
   flashcards_and_all: "Flashcards + all exercises",
+  cloze: "Fill in the blank",
 };
 
-/** The choices a remix can offer: the flashcard ones only where it has flashcards at all. */
+/** The choices a remix can offer: the flashcard ones only where it has flashcards at all; fill in the blank (issue #105) always. */
 export function remixContentsOptions(hasFlashcards: boolean): RemixContents[] {
-  return hasFlashcards ? ["all", "type_in", "word_bank", "flashcards", "flashcards_and_all"] : ["all", "type_in", "word_bank"];
+  return hasFlashcards ? ["all", "type_in", "word_bank", "flashcards", "flashcards_and_all", "cloze"] : ["all", "type_in", "word_bank", "cloze"];
+}
+
+/**
+ * A fill-in-the-blank Repack (issue #105) is not a filter over the remix's
+ * exercises: its whole round is cloze cards (domain/cloze.ts), run and
+ * submitted as a cloze round, so the exercise queue never starts.
+ */
+export function isClozeContents(contents: RemixContents): boolean {
+  return contents === "cloze";
 }
 
 /** `remembered` when this remix offers it, else `fallback` — a choice saved on a remix with flashcards can't apply to one without. */
@@ -37,6 +47,7 @@ export function includesExercise(contents: RemixContents, renderType: ExerciseTy
     case "flashcards_and_all":
       return true;
     case "flashcards":
+    case "cloze":
       return false;
     case "type_in":
     case "word_bank":

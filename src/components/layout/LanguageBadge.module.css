@@ -33,10 +33,27 @@
    fills the exact same box and scales/crops consistently with the others. */
 .imageBadge {
   padding: 0;
+  position: relative;
 }
 
+/* Out of flow on purpose: the flag SVGs carry only a viewBox, and Safari
+   sizes an in-flow <img> with no intrinsic width from its content, which
+   stretched the shrink-to-fit chip far wider than its min-width. Taken out of
+   flow, the chip's width is just .badge's min-width (36px, or the trigger's
+   48px) and the image fills it.
+
+   Cover is done by hand rather than with object-fit: WebKit gives object-fit
+   a viewBox-only SVG the default 300x150 object size instead of its viewBox
+   ratio, so `object-fit: cover` drew the 4:3 flag stretched to 2:1 and then
+   cropped its sides. Full width with height:auto (which does use the viewBox
+   ratio), centred vertically, covers the chip because every flag here (4:3,
+   the square Pahlavi one) is no wider than the chip's 3:2; the overflow is
+   clipped by .badge. */
 .flagImage {
+  position: absolute;
+  top: 50%;
+  left: 0;
   width: 100%;
-  height: 100%;
-  object-fit: cover;
+  height: auto;
+  transform: translateY(-50%);
 }
