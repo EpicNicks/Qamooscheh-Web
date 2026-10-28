@@ -16,27 +16,27 @@ import styles from "./Exercise.module.css";
  * Three plays, each after the first paying less (the server prices the answer
  * at attempt max(attempt, playsUsed)). There are no hints, no retype, and no
  * synthetic-voice fallback: without a recording there is nothing to hear, so
- * the text is shown instead of leaving the learner stuck. Nothing autoplays,
- * since a play the learner didn't ask for would still cost XP.
+ * the text is never shown in its place (a lesson holding such an exercise is
+ * declined and repacks leave it out, see isPlayable). Nothing autoplays, since
+ * a play the learner didn't ask for would still cost XP.
  */
 export function ListenTypeExercise(props: ExerciseProps) {
   const { exercise, textSettings, reviewedAnswer } = props;
   const audioUrl = useRecordings().phraseUrl(exercise.promptAudio, exercise.speaker);
   const answered = !!reviewedAnswer;
   const plays = useListenPlays(audioUrl, answered);
-  const unplayable = audioUrl === null;
   const direction = displayDirection(exercise.prompt, textSettings?.display ?? "native");
 
   const promptSlot = (
     <div className={styles.promptRow}>
-      {answered || unplayable ? (
+      {answered ? (
         <p className={styles.prompt} dir={direction}>
           {exercise.prompt}
         </p>
       ) : (
         <p className={styles.prompt}>Type what you hear.</p>
       )}
-      {!unplayable && (
+      {audioUrl !== null && (
         <PlayAudioButton
           status={plays.status}
           onClick={plays.play}
@@ -44,9 +44,14 @@ export function ListenTypeExercise(props: ExerciseProps) {
           disabled={!plays.canPlay}
         />
       )}
-      {!unplayable && !answered && (
+      {audioUrl !== null && !answered && (
         <span className={styles.note} role="status">
           {plays.completed >= MAX_PLAYS ? "No plays left" : `Plays heard: ${plays.completed} of ${MAX_PLAYS}. Each play after the first lowers the XP.`}
+        </span>
+      )}
+      {answered && plays.completed > 1 && (
+        <span className={styles.note} role="status">
+          You played it more than once
         </span>
       )}
     </div>

@@ -10,6 +10,7 @@ import { getStarredPractice } from "../api/vocab";
 import { submitFlashcardsDurably } from "../api/flashcards";
 import { checkAnswer, type AnswerVerdict } from "../domain/answerFeedback";
 import { resolveExerciseType } from "../domain/exerciseResolution";
+import { isPlayable } from "../domain/recordings";
 import { buildClozeDeck, type ClozeCard } from "../domain/cloze";
 import { flashcardWords, type FlashcardWord } from "../domain/flashcards";
 import { needsRetype } from "../domain/retype";
@@ -142,7 +143,7 @@ export function SavedPracticePage() {
       for (const { unitKey, skillKey, ordinal } of word.exercises) {
         const key = `${unitKey}/${skillKey}/${ordinal}`;
         const exercise = content.skills.get(refKey({ unitKey, skillKey }))?.exercises[ordinal];
-        if (seen.has(key) || !exercise) continue;
+        if (seen.has(key) || !exercise || !isPlayable(exercise)) continue;
         seen.add(key);
         const primaryTag = exercise.tags[0];
         items.push({

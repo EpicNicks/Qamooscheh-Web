@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { exerciseVoice, lineVoice, pickRecording, wordRecording } from "./recordings";
+import { exerciseVoice, isPlayable, lineVoice, pickRecording, wordRecording } from "./recordings";
 import type { LexemeIndex, LexemeIndexEntry } from "../types/content";
 
 const NO_PREFERENCE = { preferredVoice: null, defaultVoice: "setareh" };
@@ -119,5 +119,18 @@ describe("wordRecording", () => {
   it("is null for an unrecorded word or a word with endings attached", () => {
     expect(wordRecording("نان", [], index, NO_PREFERENCE)).toBeNull();
     expect(wordRecording("کتابم", [], index, NO_PREFERENCE)).toBeNull();
+  });
+});
+
+describe("isPlayable", () => {
+  it("passes every type but a listening exercise", () => {
+    expect(isPlayable({ type: "type_in", promptAudio: null })).toBe(true);
+  });
+
+  it("needs a listening exercise to have a take", () => {
+    expect(isPlayable({ type: "listen_type", promptAudio: { a: ["x.mp3"] } })).toBe(true);
+    expect(isPlayable({ type: "listen_type", promptAudio: { a: [] } })).toBe(false);
+    expect(isPlayable({ type: "listen_type", promptAudio: null })).toBe(false);
+    expect(isPlayable({ type: "listen_type" })).toBe(false);
   });
 });

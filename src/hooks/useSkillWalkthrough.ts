@@ -32,6 +32,7 @@ import { mergeCardStates } from "../lib/cardStateStore";
 import { enqueueClaimed, releaseClaims, removeFromQueue } from "../lib/offlineQueue";
 import { checkAnswer, type SeparatorMarks } from "../domain/answerFeedback";
 import { resolveExerciseType } from "../domain/exerciseResolution";
+import { isPlayable } from "../domain/recordings";
 import { loadGate, pinFirst } from "../domain/lessonPin";
 import { verdictWeight } from "../domain/lessonScore";
 import type { SubmittedItem, SubmittedSession, SubmittedSessionResponse } from "../types/api";
@@ -96,14 +97,14 @@ export function useSkillWalkthrough(unitKey: string, skillKey: string, options: 
   // Plain derivation rather than useMemo: it's one map over a handful of
   // exercises, and it's read once, at the seeding check below.
   const instances: WalkthroughExerciseInstance[] = artifact
-    ? artifact.exercises.map((exercise, ordinal) => ({
+    ? artifact.exercises.flatMap((exercise, ordinal) => (isPlayable(exercise) ? [{
         key: `${unitKey}/${skillKey}/${ordinal}`,
         unitKey,
         skillKey,
         ordinal,
         exercise,
         renderType: resolveExerciseType(exercise, null),
-      }))
+      }] : []))
     : [];
 
   const [queue, setQueue] = useState<WalkthroughExerciseInstance[] | null>(null);
