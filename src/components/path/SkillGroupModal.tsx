@@ -21,6 +21,8 @@ interface SkillGroupModalProps {
   onClose: () => void;
   /** Opens the Deep Dive chooser for the currently-active alternate, after this modal's own close animation finishes — see requestClose's `then` param. */
   onDeepDive: (skillKey: string) => void;
+  /** Same, for the Stow dialogs. */
+  onStow: (skillKey: string) => void;
   themeIndex?: ThemeIndexArtifact | null;
 }
 
@@ -38,7 +40,7 @@ interface SkillGroupModalProps {
  * containing block for `position: fixed` descendants, so an in-place overlay
  * would size itself to the node's own small box instead of the viewport.
  */
-export function SkillGroupModal({ skills, nextSkipTarget, originRef, onClose, onDeepDive, themeIndex }: SkillGroupModalProps) {
+export function SkillGroupModal({ skills, nextSkipTarget, originRef, onClose, onDeepDive, onStow, themeIndex }: SkillGroupModalProps) {
   const theme = usePathTheme();
   const overlayRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -177,6 +179,16 @@ export function SkillGroupModal({ skills, nextSkipTarget, originRef, onClose, on
             <Button className={styles.action} variant="secondary" onClick={actions.onReviewVocabulary}>
               Review vocabulary
             </Button>
+            {actions.canStow && activeSkill && (
+              <Button
+                className={styles.action}
+                variant="secondary"
+                onClick={() => requestClose(() => onStow(activeSkill.skillKey))}
+                title="Move on and come back to this Parsle later"
+              >
+                Stow
+              </Button>
+            )}
           </div>
         </div>
       </div>

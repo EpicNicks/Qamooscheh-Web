@@ -9,6 +9,7 @@ import { PlacementTestNode } from "../components/path/PlacementTestNode";
 import { DailyGoalRing } from "../components/path/DailyGoalRing";
 import { JumpToCurrentButton } from "../components/path/JumpToCurrentButton";
 import { CourseUpdateBanner } from "../components/course/CourseUpdateBanner";
+import { StowReminderModal } from "../components/path/StowReminderModal";
 import { BookIcon } from "../components/common/icons";
 import { PathThemeProvider } from "../theme/PathThemeProvider";
 import { Spinner } from "../components/common/Spinner";
@@ -95,6 +96,11 @@ export function PathPage() {
         <section key={unit.unitKey} className={styles.section}>
           <h2 className={styles.title}>
             <span className={styles.titleText}>{unit.title}</span>
+            {unit.deferred && (
+              <span className={styles.deferred} title="A stowed Parsle in this unit is waiting for another try">
+                Stowed Parsle waiting
+              </span>
+            )}
             <Link
               to={`/vocabulary/${unit.unitKey}`}
               className={styles.vocabLink}
@@ -109,6 +115,7 @@ export function PathPage() {
         </section>
       ))}
       <JumpToCurrentButton containerRef={pageRef} watchKey={path} />
+      <StowReminderModal path={path} />
     </PathThemeProvider>
   );
 }

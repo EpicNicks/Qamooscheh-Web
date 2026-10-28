@@ -15,10 +15,16 @@
 //   story/conversation/song -> unlocked iff its unit's index <= the cursor
 //                        unit's index, independent of position within it.
 //
-// This is authoritative for DISPLAY only — every gated read (checkpoint,
-// session plan) is still enforced server-side regardless of what this
-// function renders as unlocked.
+// This is authoritative for DISPLAY only. The server enforces the checkpoint
+// range and the cursor-driven session plan, but not GET /v1/sessions/for-lesson,
+// which serves any unlocked lesson, so a locked card is a UI guard rather than
+// a server one.
+//
+// A stowed lesson (API_SPEC.md §2.18) sits behind the cursor, so its status is
+// "unlocked"; `stowed` is drawn from the server's Stowage and never inferred
+// from the cursor.
 import type { SkillCategory } from "./enums";
+import { stowedRef } from "./stowage";
 
 export type SkillStatus = "locked" | "unlocked" | "current";
 
@@ -55,6 +61,8 @@ export interface PathSkill extends PathSkillInput {
   status: SkillStatus;
   /** Whether the learner has a completion event for this skill (GET /v1/lessons/completed). Independent of the cursor: a skipped-over fork alternate was never completed. */
   completed: boolean;
+  /** Whether the lesson is in the learner's Stowage: failed, deferred, and not yet passed. Stays true through failed or abandoned retries; only a pass clears it. */
+  stowed: boolean;
   /**
    * Status on the Journey road. Equals `status` for a standard skill. A story
    * stays locked there until the position before it is passed, whereas
@@ -77,6 +85,8 @@ export interface PathUnit {
   title: string;
   standardPositions: PathPosition[];
   otherSkills: PathSkill[];
+  /** A deferred unit: at least one live stowed lesson. Never drawn as complete. */
+  deferred: boolean;
 }
 
 export interface PositionKey {
@@ -156,12 +166,14 @@ export function storyRoadStatus(
 /**
  * `completedSkillKeys` is the skill keys from GET /v1/lessons/completed. The
  * backend reports no per-branch completion of its own, so it is joined onto
- * the manifest's skills here.
+ * the manifest's skills here. `stowed` is the Stowage's `unitKey/lessonKey`
+ * refs (domain/stowage.ts's stowedRefs).
  */
 export function computePathProgress(
   units: PathUnitInput[],
   position: PositionKey | null,
   completedSkillKeys: ReadonlySet<string> = new Set(),
+  stowed: ReadonlySet<string> = new Set(),
 ): PathUnit[] {
   const currentUnitIndex = position ? units.findIndex((u) => u.unitKey === position.unitKey) : -1;
 
@@ -199,6 +211,9 @@ export function computePathProgress(
           unitKey: unit.unitKey,
           status,
           completed: completedSkillKeys.has(s.skillKey),
+          // A stowed lesson passed elsewhere is cleared; the next bootstrap
+          // agrees, this just keeps the node from flashing gray until then.
+          stowed: stowed.has(stowedRef(unit.unitKey, s.skillKey)) && !completedSkillKeys.has(s.skillKey),
           roadStatus: status,
           positionIndex: posIndex,
         })),
@@ -218,10 +233,11 @@ export function computePathProgress(
         anchorCompleted,
         completedSkillKeys.has(skill.skillKey),
       );
-      return { ...skill, unitKey: unit.unitKey, status, roadStatus, completed: completedSkillKeys.has(skill.skillKey) };
+      return { ...skill, unitKey: unit.unitKey, status, roadStatus, completed: completedSkillKeys.has(skill.skillKey), stowed: false };
     });
 
-    return { unitKey: unit.unitKey, title: unit.title, standardPositions, otherSkills };
+    const deferred = standardPositions.some((p) => p.skills.some((s) => s.stowed));
+    return { unitKey: unit.unitKey, title: unit.title, standardPositions, otherSkills, deferred };
   });
 }
 
@@ -360,4 +376,16 @@ export function groupByArc(skills: PathSkill[]): ArcGroup[] {
   }
 
   return groups;
+}
+
+/** A standard skill by key within one unit, with the alternates sharing its position (for skillStartRoute), or null when the path doesn't have it. */
+export function findPathSkill(
+  path: readonly PathUnit[],
+  unitKey: string,
+  skillKey: string,
+): { unit: PathUnit; skill: PathSkill; siblings: PathSkill[] } | null {
+  const unit = path.find((u) => u.unitKey === unitKey);
+  const position = unit?.standardPositions.find((p) => p.skills.some((s) => s.skillKey === skillKey));
+  const skill = position?.skills.find((s) => s.skillKey === skillKey);
+  return unit && position && skill ? { unit, skill, siblings: position.skills } : null;
 }

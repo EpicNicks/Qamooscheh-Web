@@ -25,6 +25,7 @@ export function GoalsSection({ form, editForm }: SettingsSectionProps) {
   const matchedGoalPreset = matchDailyGoalPreset(form.dailyGoalXp);
   const [showCustomGoal, setShowCustomGoal] = useState(!matchedGoalPreset);
   const [celebrationEnabled, setCelebrationEnabled] = useLocalAppPref("goalCelebrationEnabled", true);
+  const [stowReminders, setStowReminders] = useLocalAppPref("stowReminders", true);
 
   return (
     <div className={styles.section}>
@@ -65,6 +66,15 @@ export function GoalsSection({ form, editForm }: SettingsSectionProps) {
           <input type="checkbox" checked={celebrationEnabled} onChange={(e) => setCelebrationEnabled(e.target.checked)} />
           Celebrate when I hit my daily goal
         </label>
+      </div>
+
+      <div className={styles.field}>
+        Stow reminders
+        <label className={`${styles.field} ${styles.checkboxRow}`}>
+          <input type="checkbox" checked={stowReminders} onChange={(e) => setStowReminders(e.target.checked)} />
+          Remind me when a stowed Parsle is ready to retry
+        </label>
+        <span className={styles.fieldNote}>Only on this device. You can still stow a Parsle with this off.</span>
       </div>
 
       <div className={styles.field}>

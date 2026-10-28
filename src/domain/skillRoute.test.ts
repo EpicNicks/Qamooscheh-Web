@@ -25,6 +25,16 @@ describe("skillStartRoute", () => {
     expect(skillStartRoute(a1)).toBe("/practice/u1/a1");
   });
 
+  it("sends a stowed lesson to a graded retry, since only a pass clears it", () => {
+    const a1 = { ...alt("a1", "unlocked", false), stowed: true };
+    expect(skillStartRoute(a1, [a1])).toBe("/practice/u1/a1?first=1");
+  });
+
+  it("still runs a stowed last lesson the cursor stayed on through /lesson", () => {
+    const e1 = { ...alt("e1", "current", false), stowed: true };
+    expect(skillStartRoute(e1, [e1])).toBe("/lesson?skill=e1");
+  });
+
   it("does not count an alternate as its own completed sibling", () => {
     const b1 = alt("b1", "unlocked", false);
     expect(isPassedOverAlternate(b1, [b1, alt("b2", "unlocked", false)])).toBe(false);

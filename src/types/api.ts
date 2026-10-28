@@ -145,6 +145,42 @@ export interface BootstrapResponse {
   onboardingComplete: boolean;
   /** null when no newer version than `course.version` exists yet. */
   update: CourseUpdateRef | null;
+  /** The learner's stowed lessons (API_SPEC.md §2.18), units descending. Absent from an older server, which means nothing is stowed. */
+  stowage?: StowageUnit[];
+  /** The lessons at the cursor with a finished failed attempt, not yet passed or stowed (§2.18). Empty or absent means no Stow option. */
+  stowableLessonKeys?: string[];
+}
+
+// ---------------------------------------------------------------------------
+// v1/journey/stow, /stowage/snooze, /stowage/mute (API_SPEC.md §2.18)
+// ---------------------------------------------------------------------------
+
+export interface StowedLesson {
+  lessonKey: string;
+  stowedAt: string;
+  lessonsCompletedSince: number;
+  readyPromptDue: boolean;
+  muted: boolean;
+}
+
+/** One unit's stowed lessons, in path order. The list of units is in descending unit order. */
+export interface StowageUnit {
+  unitKey: string;
+  lessons: StowedLesson[];
+}
+
+export interface StowResponse {
+  /** False only for an idempotent repeat: the lesson was already stowed. */
+  applied: boolean;
+  /** The cursor afterwards. */
+  position: PositionRef;
+  stowage: StowageUnit[];
+}
+
+/** What snooze and mute answer with. `applied` is false when there was nothing to do. */
+export interface StowageActionResponse {
+  applied: boolean;
+  stowage: StowageUnit[];
 }
 
 // ---------------------------------------------------------------------------
@@ -228,6 +264,8 @@ export interface SubmittedSessionResponse {
   lessonCompleted?: boolean | null;
   /** XP this session credited (API_SPEC.md §2.3 point 8, summed per answer as the grader prices it). Null unless `outcome` is "Processed". */
   xp?: number | null;
+  /** The lesson key of a stowed lesson this session passed (API_SPEC.md §2.18); null otherwise, including on a replay. */
+  stowCleared?: string | null;
 }
 
 export interface SubmitSessionsResponse {

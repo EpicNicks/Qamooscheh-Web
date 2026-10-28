@@ -186,6 +186,36 @@
   --node-accent: var(--color-current);
 }
 
+/*
+ * A stowed Parsle (failed, deferred, not yet passed): the plain gray of a
+ * locked card, but tappable, since it is retried from here. Placeholder until
+ * the Rive art lands (Taiga #40); this and StowedMark are the whole visual.
+ * It holds through failed or abandoned retries and ends only with a pass, and
+ * beats .current (a stowed last lesson keeps the cursor on it).
+ */
+.node.stowed {
+  --node-accent: var(--color-locked);
+  background: var(--color-locked);
+}
+
+.node.stowed .fold::after {
+  background: linear-gradient(
+    to bottom right,
+    transparent 50%,
+    color-mix(in srgb, var(--color-text-muted) 25%, var(--color-locked)) 50%,
+    color-mix(in srgb, var(--color-text-muted) 45%, var(--color-locked))
+  );
+}
+
+.node.stowed .title,
+.node.stowed .icon {
+  color: var(--color-text-muted);
+}
+
+.node.stowed .icon {
+  filter: grayscale(1);
+}
+
 .current {
   --node-accent: var(--color-current);
   background: color-mix(in srgb, var(--color-current) 12%, var(--color-surface));

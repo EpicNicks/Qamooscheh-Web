@@ -78,6 +78,20 @@
   min-width: 0;
 }
 
+/* A deferred unit (a live stowed Parsle in it): never drawn as complete. */
+.deferred {
+  flex-shrink: 0;
+  margin-left: var(--space-2);
+  padding: 1px var(--space-2);
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-locked);
+  color: var(--color-text-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 /* The unit's own vocabulary (VocabularyReviewPage at unit scope). Mobile only:
    there the title is a full-width bar with room for it at the far end. */
 .vocabLink {

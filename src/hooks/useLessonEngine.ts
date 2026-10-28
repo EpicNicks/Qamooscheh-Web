@@ -25,6 +25,7 @@ import { useSkillArtifactsForRefs, useSkillArtifactsForLessonRefs, useThemeIndex
 import { getNextSession } from "../api/sessionPlan";
 import { getSessionForLesson } from "../api/sessionForLesson";
 import { submitSessions } from "../api/sessionSubmit";
+import { applyStowCleared } from "../lib/stowageCache";
 import { ApiError } from "../api/httpClient";
 import { useAuth } from "../auth/useAuth";
 import { loadCardStates, mergeCardStates } from "../lib/cardStateStore";
@@ -797,6 +798,8 @@ export function useLessonEngine(
           if (sessionResult.outcome !== "Rejected") mergeCardStates(userId, sessionResult.cards);
         }
       }
+      // A pass that cleared a stowed lesson: drop it from the Stowage now, ahead of the refetch below.
+      applyStowCleared(queryClient, response.sessions);
       queryClient.invalidateQueries({ queryKey: ["bootstrap"] });
       queryClient.invalidateQueries({ queryKey: ["sessionPlan"] });
       // Whichever lesson(s) this session covered may now be complete, in the

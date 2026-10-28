@@ -28,6 +28,7 @@ import {
   type SyncRejection,
 } from "../lib/syncRejections";
 import { mergeCardStates } from "../lib/cardStateStore";
+import { applyStowCleared } from "../lib/stowageCache";
 import { useAuth } from "../auth/useAuth";
 
 export function useOfflineQueueFlush() {
@@ -92,6 +93,7 @@ export function useOfflineQueueFlush() {
       for (const batch of cards) mergeCardStates(currentUserId, batch);
       addRejections(currentUserId, refused);
       if (settledIds.length > 0) removeFromQueue(currentUserId, settledIds);
+      applyStowCleared(queryClient, response.sessions);
       queryClient.invalidateQueries({ queryKey: ["bootstrap"] });
       queryClient.invalidateQueries({ queryKey: ["sessionPlan"] });
       queryClient.invalidateQueries({ queryKey: ["lessonsCompleted"] });

@@ -3,6 +3,8 @@ import { isPassedOverAlternate, skillStartRoute } from "../../domain/skillRoute"
 import type { PathSkill, PositionKey } from "../../domain/pathProgress";
 import { themesForLesson } from "../../domain/themeLookup";
 import type { ThemeIndexArtifact } from "../../types/content";
+import { useBootstrap } from "../../hooks/useBootstrap";
+import { emitStowEvent } from "../../lib/stowEvents";
 
 export interface SkillActions {
   /** "Start Parsle" for the current skill or one never completed, "Practice" for a completed one being revisited. */
@@ -18,6 +20,8 @@ export interface SkillActions {
    * a navigation action like the others here.
    */
   hasDeepDive: boolean;
+  /** Whether Stow is offered: a journey lesson the server lists in `stowableLessonKeys` (a failed attempt on record, not yet passed or stowed). */
+  canStow: boolean;
 }
 
 /**
@@ -38,9 +42,11 @@ export function useSkillActions(
   siblings: readonly PathSkill[] = [],
 ): SkillActions {
   const navigate = useNavigate();
+  const stowableKeys = useBootstrap().data?.stowableLessonKeys;
 
   function primaryAction() {
     if (!skill) return;
+    if (skill.stowed) emitStowEvent("stowResumed", skill.skillKey);
     // See skillStartRoute for why /lesson, /practice and a graded /practice
     // are chosen the way they are.
     navigate(skillStartRoute(skill, siblings));
@@ -48,7 +54,11 @@ export function useSkillActions(
 
   return {
     // A passed-over fork alternate was never completed, so it's a first attempt, not practice.
-    primaryLabel: skill?.status === "current" || (skill != null && isPassedOverAlternate(skill, siblings)) ? "Start Parsle" : "Practice",
+    // A stowed lesson was never passed, so it is a first attempt, not practice.
+    primaryLabel:
+      skill?.status === "current" || skill?.stowed || (skill != null && isPassedOverAlternate(skill, siblings))
+        ? "Start Parsle"
+        : "Practice",
     onPrimary: primaryAction,
     onSkip:
       skill?.status === "current" && nextSkipTarget
@@ -59,5 +69,6 @@ export function useSkillActions(
     },
     hasDeepDive:
       skill != null && skill.category === "standard" && themesForLesson(themeIndex, skill.skillKey).length > 0,
+    canStow: skill != null && skill.category === "standard" && !skill.stowed && (stowableKeys?.includes(skill.skillKey) ?? false),
   };
 }

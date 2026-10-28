@@ -7,6 +7,8 @@ import { useBootstrap } from "../../hooks/useBootstrap";
 import { useThemeIndex } from "../../hooks/useCourseContent";
 import { LessonStartPopover } from "./LessonStartPopover";
 import { DeepDiveChooserModal } from "./DeepDiveChooserModal";
+import { StowFlow } from "./StowFlow";
+import { StowedMark } from "./StowedMark";
 import { useSkillActions } from "./useSkillActions";
 import styles from "./SkillNode.module.css";
 
@@ -39,6 +41,7 @@ export function SkillNode({ skill, layout = "node", nextSkipTarget = null, markC
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [deepDiveOpen, setDeepDiveOpen] = useState(false);
+  const [stowOpen, setStowOpen] = useState(false);
   // Independent react-query subscription rather than a prop drilled down from
   // PathPage — matches Sidebar.tsx's own pattern, and costs nothing extra:
   // both queries are already cached from whichever page fetched them first.
@@ -76,13 +79,19 @@ export function SkillNode({ skill, layout = "node", nextSkipTarget = null, markC
     layout === "row" && styles.row,
     layout === "story" && styles.story,
     openBranch && styles.openBranch,
+    skill.stowed && styles.stowed,
   ]
     .filter(Boolean)
     .join(" ");
   const icon = theme.icons[skill.category];
   // Shown on a phone only (SkillNode.module.css), alongside the title.
   const tagSymbol = layout === "node" ? mainTagSymbol(skill.themes, theme.tagSymbols, themeIndex.data) : null;
-  const label = layout === "story" ? `Story: ${skill.title}${skill.completed ? ", done" : locked ? ", locked" : ""}` : undefined;
+  const label =
+    layout === "story"
+      ? `Story: ${skill.title}${skill.completed ? ", done" : locked ? ", locked" : ""}`
+      : skill.stowed
+        ? `${skill.title}, stowed`
+        : undefined;
 
   return (
     <>
@@ -92,6 +101,7 @@ export function SkillNode({ skill, layout = "node", nextSkipTarget = null, markC
         {tagSymbol != null && <span className={styles.tagSymbol} aria-hidden="true">{tagSymbol}</span>}
         <span className={styles.title}>{skill.title}</span>
         {layout === "story" && skill.completed && <span className={styles.done} aria-hidden="true">✓</span>}
+        {skill.stowed && <StowedMark />}
       </button>
       {popoverOpen && (
         <LessonStartPopover
@@ -108,10 +118,19 @@ export function SkillNode({ skill, layout = "node", nextSkipTarget = null, markC
           }
           onSkip={actions.onSkip}
           onReviewVocabulary={actions.onReviewVocabulary}
+          onStow={
+            actions.canStow
+              ? () => {
+                  setPopoverOpen(false);
+                  setStowOpen(true);
+                }
+              : undefined
+          }
           onClose={() => setPopoverOpen(false)}
         />
       )}
       {deepDiveOpen && <DeepDiveChooserModal lessonKey={skill.skillKey} onClose={() => setDeepDiveOpen(false)} />}
+      {stowOpen && <StowFlow lessonKey={skill.skillKey} onRetry={actions.onPrimary} onClose={() => setStowOpen(false)} />}
     </>
   );
 }
