@@ -71,9 +71,9 @@ const FAQ: FaqEntry[] = [
     answer: (
       <>
         <p>
-          A Parsle needs 75% to pass and unlock the next one. A wrong answer comes back later in the Parsle, and
-          getting it right the second time counts for half. An answer accepted with a small typo counts as half
-          too.
+          A Parsle needs a score of 75% to pass and unlock the next one. A wrong answer comes back later in the
+          Parsle, and getting it right the second time counts as half. An answer accepted with a small typo counts as
+          half too.
         </p>
         <p>Your answers still count toward your reviews either way, so take it again to pass.</p>
       </>

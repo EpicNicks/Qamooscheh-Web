@@ -441,8 +441,8 @@ function LessonPageContent() {
           body={
             <>
               You need {Math.round(LESSON_PASS_THRESHOLD * 100)}% to pass this Parsle
-              {isDeepDive ? "" : " and unlock the next one"}, and an answer you get right on a retry counts for half.
-              Your answers still count toward your reviews — take it again to pass.
+              {isDeepDive ? "" : " and unlock the next one"}. A retry counts for less than a first try. Your answers still
+              count toward your reviews — take it again to pass.
             </>
           }
           notes={[]}
