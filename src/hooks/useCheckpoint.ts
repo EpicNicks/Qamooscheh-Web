@@ -17,6 +17,7 @@ import {
 import { useAuth } from "../auth/useAuth";
 import { loadCardStates, mergeCardStates } from "../lib/cardStateStore";
 import { resolveExerciseType } from "../domain/exerciseResolution";
+import { isPlayable } from "../domain/recordings";
 import { versionMismatch } from "../domain/lessonPin";
 import type { CheckpointSkillAnswers, CheckpointSubmitResponse, SubmitCheckpointRequest, SubmittedItem } from "../types/api";
 import type { ExerciseArtifact } from "../types/content";
@@ -75,7 +76,7 @@ export function useCheckpoint(targetUnitKey: string, targetSkillKey: string) {
       const artifact = artifactFor(skillPlan.unitKey, skillPlan.skillKey)!;
       return skillPlan.exerciseOrdinals.flatMap((ordinal) => {
         const exercise = artifact.exercises[ordinal];
-        if (!exercise) return [];
+        if (!exercise || !isPlayable(exercise)) return [];
         return [
           {
             key: `${skillPlan.unitKey}/${skillPlan.skillKey}/${ordinal}`,

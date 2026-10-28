@@ -41,6 +41,7 @@ import { filterRemixExercises, type RemixContents } from "../domain/remixContent
 import { MAX_CREDITED_RETYPES, needsRetype } from "../domain/retype";
 import type { SessionPlanResponse, SkillRef, SubmittedItem, SubmittedSession, SubmittedSessionResponse } from "../types/api";
 import type { ExerciseArtifact, SkillArtifact } from "../types/content";
+import { isPlayable } from "../domain/recordings";
 import { isKnownExerciseType, type ExerciseType, type SkillCategory } from "../domain/enums";
 
 const RETRY_DEPTH = 3;
@@ -66,7 +67,7 @@ export interface LessonExerciseInstance {
   attempt: number;
 }
 
-export type LessonStatus = "loading" | "choosing" | "empty" | "ready" | "submitting" | "done" | "rejected" | "error" | "unavailable" | "outdated" | "needsNewerApp";
+export type LessonStatus = "loading" | "choosing" | "empty" | "ready" | "submitting" | "done" | "rejected" | "error" | "unavailable" | "outdated" | "needsNewerApp" | "missingRecording";
 
 /**
  * A submission the server answered 200 to but explicitly refused — one or
@@ -301,6 +302,7 @@ export function useLessonEngine(
       const artifact = artifacts.get(refKey(ref));
       if (!artifact) continue;
       artifact.exercises.forEach((exercise, ordinal) => {
+        if (!isPlayable(exercise)) return;
         if (dueTagsFilter && !exercise.tags.some((tag) => dueTagsFilter.has(tag))) return;
         // An exercise with no tags at all has no card to resolve its render
         // mode against — without the guard, `tags[0]` is `undefined` and the
@@ -487,7 +489,15 @@ export function useLessonEngine(
     skillsReady &&
     !!plan.data &&
     lessonSkills(plan.data.skills).some((ref) => skillArtifacts.get(refKey(ref))?.exercises.some((exercise) => !isKnownExerciseType(exercise.type)));
-  if (queue === null && skillsReady && plan.data && !awaitingRemixContents && !outdated && !needsNewerApp) {
+  // Likewise a lesson with a listening exercise that has no recording: its text is
+  // never shown in place of the audio. A repack only drops such an exercise.
+  const missingRecording =
+    !isRemix &&
+    started.current == null &&
+    skillsReady &&
+    !!plan.data &&
+    lessonSkills(plan.data.skills).some((ref) => skillArtifacts.get(refKey(ref))?.exercises.some((exercise) => !isPlayable(exercise)));
+  if (queue === null && skillsReady && plan.data && !awaitingRemixContents && !outdated && !needsNewerApp && !missingRecording) {
     started.current = { course: liveCourse, plan: plan.data };
     setQueue(initialQueue);
     setTotalCount(initialQueue.length);
@@ -848,6 +858,8 @@ export function useLessonEngine(
           ? "outdated"
           : needsNewerApp
             ? "needsNewerApp"
+            : missingRecording
+            ? "missingRecording"
             : gate === "loading"
           ? "loading"
           : gate === "error"

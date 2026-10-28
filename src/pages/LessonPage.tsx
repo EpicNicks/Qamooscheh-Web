@@ -376,6 +376,19 @@ function LessonPageContent() {
     );
   }
 
+  // The lesson has a listening exercise with no recording, so it isn't opened at all.
+  if (engine.status === "missingRecording") {
+    return (
+      <div className={styles.done}>
+        <h1>This Parsle isn't ready yet</h1>
+        <p>One of its listening exercises has no recording yet. Try again later.</p>
+        <div className={styles.doneActions}>
+          <Button onClick={() => navigate(isDeepDive ? "/themes" : "/path")}>{isDeepDive ? "Back to browsing" : "Back to path"}</Button>
+        </div>
+      </div>
+    );
+  }
+
   if (engine.status === "empty") {
     return (
       <div className={styles.done}>
