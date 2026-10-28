@@ -4,6 +4,17 @@
   gap: var(--space-2);
 }
 
+/* In the lesson cog's popover, which sizes to its widest content: left to
+   itself the option row's max-content is every tile on one line, which would
+   stretch the popover far past its checkbox rows. */
+.compact {
+  max-width: 20rem;
+}
+
+.compact .option {
+  min-width: 0;
+}
+
 .label {
   margin: 0;
   font-size: 0.8rem;
