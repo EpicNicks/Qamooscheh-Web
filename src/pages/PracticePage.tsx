@@ -100,7 +100,7 @@ function PracticeRun({ onTryAgain }: { onTryAgain: () => void }) {
         <div className={styles.done}>
           <h1>Not passed yet</h1>
           <p>
-            You need {Math.round(LESSON_PASS_THRESHOLD * 100)}% on your first tries to pass this Parsle. Your answers
+            You need {Math.round(LESSON_PASS_THRESHOLD * 100)}% to pass this Parsle. Your answers
             still count toward your reviews — take it again to pass.
           </p>
           <LessonResults

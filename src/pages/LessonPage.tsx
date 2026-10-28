@@ -440,9 +440,9 @@ function LessonPageContent() {
           title="Not passed yet"
           body={
             <>
-              You need {Math.round(LESSON_PASS_THRESHOLD * 100)}% on your first tries to pass this Parsle
-              {isDeepDive ? "" : " and unlock the next one"}. Your answers still count toward your reviews — take it
-              again to pass.
+              You need {Math.round(LESSON_PASS_THRESHOLD * 100)}% to pass this Parsle
+              {isDeepDive ? "" : " and unlock the next one"}, and an answer you get right on a retry counts for half.
+              Your answers still count toward your reviews — take it again to pass.
             </>
           }
           notes={[]}
