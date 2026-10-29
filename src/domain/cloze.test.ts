@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { attemptWorth, buildClozeCard, buildClozeDeck, clozeResultLines, clozeSourcesForTags, clozeXp, gapLabel, gradeCloze, summarizeCloze } from "./cloze";
+import { attemptWorth, buildClozeCard, buildClozeDeck, clozeResultLines, clozeSourcesForTags, clozeXp, gapLabel, gradeCloze, practiceClozeSources, summarizeCloze } from "./cloze";
 import { buildLexemeHintMap } from "./romanization";
 import type { ExerciseArtifact, LexemeIndex, LexemeIndexEntry } from "../types/content";
 
@@ -153,6 +153,24 @@ describe("clozeSourcesForTags", () => {
     expect(sources.map((s) => s.tag)).toEqual(["آب<n>", "من<pron>"]);
     expect(sources[0].exercises).toEqual([thirsty, water]);
     expect(sources[1].exercises).toEqual([thirsty]);
+  });
+});
+
+describe("practiceClozeSources", () => {
+  it("blanks the form each exercise practises, so a saved verb is cut from its form", () => {
+    const words = [
+      {
+        tag: "خواستن<v>",
+        exercises: [
+          { unitKey: "u1", skillKey: "s1", ordinal: 0, form: "می‌خواهم<v>" },
+          { unitKey: "u1", skillKey: "s1", ordinal: 9, form: "می‌خواهم<v>" },
+        ],
+      },
+    ];
+    const sources = practiceClozeSources(words, ({ ordinal }) => (ordinal === 0 ? thirsty : undefined));
+    expect(sources).toEqual([{ tag: "خواستن<v>", exercises: [thirsty], forms: ["می‌خواهم<v>"] }]);
+    const [card] = buildClozeDeck(sources, hintMap, lexemes);
+    expect(card).toMatchObject({ tag: "می‌خواهم<v>", blankText: "می‌خواهم" });
   });
 });
 

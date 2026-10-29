@@ -23,6 +23,9 @@
   /** The "Deep Dive" button (Journey popovers, LessonPage's post-lesson bridge) — its own hue, distinct from primary/danger/current/placement, so it reads as a third kind of action rather than a stronger or weaker "Start lesson". */
   --color-deepdive: #8854d0;
   --color-deepdive-hover: #7042b8;
+  /** A saved verb (domain/baseVerb.ts): its star and its chip/card outline, apart from other saved words' gold, since practising it brings in every form of the verb. */
+  --color-saved-verb: #8854d0;
+  --color-saved-verb-bg: #f1e9fb;
   /** The streak count (StreakCounter, ProfilePage) — an orange-to-red gradient clipped to the text, with --color-streak as the solid fallback wherever background-clip: text isn't supported. Darker than --color-placement's orange on purpose: this is text, not a node fill, and needs to stay legible on white. A zero streak reads as --color-text-muted instead, not fiery. */
   --color-streak: #d9480f;
   --color-streak-from: #e06800;
@@ -74,6 +77,8 @@
     --color-info: #4db8f5;
     --color-info-bg: #0e2a3d;
     --color-locked: #3a3a4a;
+    --color-saved-verb: #b48af0;
+    --color-saved-verb-bg: #2a1e3d;
     /* Lighter, brighter flame on the dark background — the light theme's
        deep orange/red would sink into #131320. */
     --color-streak: #ff7a3d;

@@ -21,6 +21,23 @@
   max-width: 100%;
 }
 
+/* A verb's base form, offered beside its form: dashed until saved. */
+.verbChip {
+  border-style: dashed;
+}
+
+.savedVerb {
+  border: 1px solid var(--color-saved-verb);
+  background: var(--color-saved-verb-bg);
+}
+
+.verbLabel {
+  color: var(--color-saved-verb);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
 .surface {
   font-weight: 700;
 }

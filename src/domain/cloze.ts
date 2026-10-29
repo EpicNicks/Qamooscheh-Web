@@ -11,6 +11,7 @@ import { glossAnswers, normalizeMeaning, withinOneEdit } from "./flashcards";
 import { foldCodepoints, normalizeStrict, stripReadingAids } from "./persian/normalize";
 import { registerLabel, type WordHint } from "./romanization";
 import type { ExerciseArtifact, LexemeIndex, LexemeIndexEntry } from "../types/content";
+import type { StarredPracticeWord } from "../types/api";
 
 /** XP a card pays by the attempt it was answered on, mirroring the server's ClozeRules.Xp (first try 5, then 3, then 1, nothing later or for a give-up) — a display estimate; the server's award, cooldown included, is what counts. */
 export function clozeXp(attempt: number, correct: boolean): number {
@@ -126,6 +127,8 @@ export function buildClozeCard(
 export interface ClozeSource {
   tag: string;
   exercises: ExerciseArtifact[];
+  /** The tag each exercise blanks out, when it isn't `tag`: for a saved verb, the form of it that exercise uses. */
+  forms?: readonly string[];
 }
 
 /**
@@ -141,8 +144,8 @@ export function buildClozeDeck(
 ): ClozeCard[] {
   const deck: ClozeCard[] = [];
   for (const source of sources) {
-    const cards = source.exercises.flatMap((exercise) => {
-      const card = buildClozeCard(exercise, source.tag, hintMap, lexemeIndex);
+    const cards = source.exercises.flatMap((exercise, i) => {
+      const card = buildClozeCard(exercise, source.forms?.[i] ?? source.tag, hintMap, lexemeIndex);
       return card ? [card] : [];
     });
     if (cards.length > 0) deck.push(cards[pick(cards.length)]);
@@ -166,6 +169,30 @@ export function clozeSourcesForTags(tags: readonly string[], exercises: readonly
     if (using.length > 0) sources.push({ tag, exercises: [...using] });
   }
   return sources;
+}
+
+/**
+ * The sources for a saved-words cloze round, from GET
+ * /v1/vocab/starred/practice's words: one per word, each exercise blanking
+ * the form it practises, so a saved verb is cut from whichever of its forms
+ * the sentence uses. `exerciseAt` looks up a loaded exercise; one not loaded
+ * is left out.
+ */
+export function practiceClozeSources(
+  words: readonly StarredPracticeWord[],
+  exerciseAt: (ref: { unitKey: string; skillKey: string; ordinal: number }) => ExerciseArtifact | undefined,
+): ClozeSource[] {
+  return words.map((word) => {
+    const exercises: ExerciseArtifact[] = [];
+    const forms: string[] = [];
+    for (const ref of word.exercises) {
+      const exercise = exerciseAt(ref);
+      if (!exercise) continue;
+      exercises.push(exercise);
+      forms.push(ref.form);
+    }
+    return { tag: word.tag, exercises, forms };
+  });
 }
 
 /** Cards in one Repack cloze round, at most (the size of a Repack's exercises). */

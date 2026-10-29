@@ -21,6 +21,11 @@
   color: #ffb800;
 }
 
+.verb.starred,
+.verb.starred:hover {
+  color: var(--color-saved-verb);
+}
+
 .pop {
   animation: star-pop 0.4s ease;
 }

@@ -4,6 +4,10 @@ import styles from "./StarButton.module.css";
 interface StarButtonProps {
   starred: boolean;
   onToggle: () => void;
+  /** A verb's base form: saving it practises every form of the verb, so it is coloured apart from other saved words (domain/baseVerb.ts). */
+  verb?: boolean;
+  /** Overrides the accessible name, for a star whose word isn't the one beside it. */
+  label?: string;
 }
 
 /**
@@ -13,7 +17,7 @@ interface StarButtonProps {
  * than a timer, the same pattern VirtualKey's press-release bounce uses,
  * so it can never desync from the actual CSS animation duration.
  */
-export function StarButton({ starred, onToggle }: StarButtonProps) {
+export function StarButton({ starred, onToggle, verb = false, label }: StarButtonProps) {
   const [justStarred, setJustStarred] = useState(false);
 
   function handleClick() {
@@ -21,14 +25,14 @@ export function StarButton({ starred, onToggle }: StarButtonProps) {
     onToggle();
   }
 
-  const classes = [styles.star, starred && styles.starred, justStarred && styles.pop].filter(Boolean).join(" ");
+  const classes = [styles.star, starred && styles.starred, verb && styles.verb, justStarred && styles.pop].filter(Boolean).join(" ");
 
   return (
     <button
       type="button"
       className={classes}
       aria-pressed={starred}
-      aria-label={starred ? "Remove from saved words" : "Save this word"}
+      aria-label={label ?? (verb ? (starred ? "Remove this verb from saved words" : "Save this verb with all its forms") : starred ? "Remove from saved words" : "Save this word")}
       onClick={handleClick}
       onAnimationEnd={() => setJustStarred(false)}
     >

@@ -11,7 +11,7 @@ import { submitFlashcardsDurably } from "../api/flashcards";
 import { checkAnswer, type AnswerVerdict } from "../domain/answerFeedback";
 import { resolveExerciseType } from "../domain/exerciseResolution";
 import { isPlayable } from "../domain/recordings";
-import { buildClozeDeck, type ClozeCard } from "../domain/cloze";
+import { buildClozeDeck, practiceClozeSources, type ClozeCard } from "../domain/cloze";
 import { flashcardWords, type FlashcardWord } from "../domain/flashcards";
 import { needsRetype } from "../domain/retype";
 import { versionMismatch } from "../domain/lessonPin";
@@ -29,6 +29,7 @@ import { loadCardStates } from "../lib/cardStateStore";
 import { submitRecordedAnswers, type RecordedAnswer, type SubmitOutcome } from "../lib/submitRecordedAnswers";
 import { ExerciseSessionScreen, type ExerciseSessionFeedback, type ExerciseSessionItem } from "../components/lesson/ExerciseSessionScreen";
 import { SessionProgressBar } from "../components/lesson/SessionProgressBar";
+import { PractisingWord } from "../components/vocabulary/PractisingWord";
 import { LessonResults } from "../components/lesson/LessonResults";
 import { ClozeDeckRound } from "../components/flashcards/ClozeDeckRound";
 import { Flashcard } from "../components/flashcards/Flashcard";
@@ -46,6 +47,9 @@ interface RemixExercise extends ExerciseSessionItem {
   unitKey: string;
   skillKey: string;
   ordinal: number;
+  /** The saved word this exercise was picked for, and the tag of it the exercise practises — another form, for a saved verb. */
+  savedTag: string;
+  form: string;
 }
 
 interface RemixCard {
@@ -140,7 +144,7 @@ export function SavedPracticePage() {
     for (const word of practice.data!.words) {
       const [card] = flashcardWords([word.tag], lexemeIndex.data);
       if (card) items.push({ kind: "flashcard", key: `card/${word.tag}`, word: card });
-      for (const { unitKey, skillKey, ordinal } of word.exercises) {
+      for (const { unitKey, skillKey, ordinal, form } of word.exercises) {
         const key = `${unitKey}/${skillKey}/${ordinal}`;
         const exercise = content.skills.get(refKey({ unitKey, skillKey }))?.exercises[ordinal];
         if (seen.has(key) || !exercise || !isPlayable(exercise)) continue;
@@ -152,6 +156,8 @@ export function SavedPracticePage() {
           unitKey,
           skillKey,
           ordinal,
+          savedTag: word.tag,
+          form,
           exercise,
           renderType: resolveExerciseType(exercise, (primaryTag ? cardStates[primaryTag] : null) ?? null),
         });
@@ -172,13 +178,10 @@ export function SavedPracticePage() {
   const [clozeSeed] = useState(() => Math.random());
   const clozeDeck = useMemo<ClozeCard[] | null>(() => {
     if (!ready) return null;
-    const sources = practice.data!.words.map((word) => ({
-      tag: word.tag,
-      exercises: word.exercises.flatMap(({ unitKey, skillKey, ordinal }) => {
-        const exercise = content.skills.get(refKey({ unitKey, skillKey }))?.exercises[ordinal];
-        return exercise ? [exercise] : [];
-      }),
-    }));
+    const sources = practiceClozeSources(
+      practice.data!.words,
+      ({ unitKey, skillKey, ordinal }) => content.skills.get(refKey({ unitKey, skillKey }))?.exercises[ordinal],
+    );
     return buildClozeDeck(sources, session.courseHintMap, lexemeIndex.data!, (count) => Math.floor(clozeSeed * count));
   }, [ready, practice.data, content.skills, lexemeIndex.data, session.courseHintMap, clozeSeed]);
   const [hardcore, setHardcore] = useState(false);
@@ -347,6 +350,9 @@ export function SavedPracticePage() {
   }
 
   const progress = { completed: position, total: queue?.length ?? 0 };
+  const practising = (item: RemixExercise) => (
+    <PractisingWord form={item.form} savedTag={item.savedTag} lexemeIndex={lexemeIndex.data} courseCode={course?.code} />
+  );
 
   // The last answer's review outranks everything else, as on LessonPage.
   if (isReviewing) {
@@ -359,6 +365,7 @@ export function SavedPracticePage() {
         onSubmit={() => {}}
         feedbackXp={(feedback) => feedback.xp}
         onRetype={recordRetype}
+        focus={practising}
       />
     );
   }
@@ -481,6 +488,7 @@ export function SavedPracticePage() {
       current={current}
       onSubmit={(text, opts) => current && answerExercise(current, text, opts)}
       feedbackXp={(feedback) => feedback.xp}
+      focus={practising}
     />
   );
 }

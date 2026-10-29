@@ -1,0 +1,40 @@
+.word {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  align-self: flex-start;
+  gap: var(--space-1) var(--space-2);
+  margin: 0;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid #ffb800;
+  background: var(--color-surface);
+  font-size: 0.9rem;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+/* A saved verb: in the saved-verb colour, as on the vocabulary list. */
+.verb {
+  border-color: var(--color-saved-verb);
+  background: var(--color-saved-verb-bg);
+}
+
+.label {
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.verb .label {
+  color: var(--color-saved-verb);
+}
+
+.surface {
+  font-weight: 700;
+}
+
+.gloss {
+  color: var(--color-text-muted);
+}

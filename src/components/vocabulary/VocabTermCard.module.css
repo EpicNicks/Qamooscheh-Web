@@ -40,3 +40,38 @@
   gap: var(--space-2);
   flex-shrink: 0;
 }
+
+.savedVerb {
+  border-color: var(--color-saved-verb);
+  background: var(--color-saved-verb-bg);
+}
+
+.verbNote {
+  color: var(--color-saved-verb);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+/* A verb form's base verb, offered to save beside the form. */
+.baseVerb {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: var(--space-1);
+  padding: 0 0 0 var(--space-2);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+}
+
+.baseVerbSaved {
+  border: 1px solid var(--color-saved-verb);
+  background: var(--color-saved-verb-bg);
+}
+
+.verbLabel {
+  color: var(--color-saved-verb);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
