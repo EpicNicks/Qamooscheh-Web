@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useCompletedLessons } from "../hooks/useCompletedLessons";
 import { useBootstrap } from "../hooks/useBootstrap";
@@ -10,6 +10,9 @@ import { ErrorBanner } from "../components/common/ErrorBanner";
 import { Button } from "../components/common/Button";
 import { LessonRecap, type RecapNote } from "../components/lesson/LessonRecap";
 import { RecapStats } from "../components/lesson/RecapStats";
+import { ShareCardButton } from "../components/lesson/ShareCardButton";
+import { shareCardContent } from "../domain/shareCard";
+import { useStreak } from "../hooks/useStreak";
 import { useCoursePath } from "../hooks/useCourseContent";
 import { findLessonAfter } from "../domain/pathProgress";
 import { shouldCelebrate } from "../domain/lessonRecap";
@@ -61,6 +64,9 @@ function PracticeRun({ onTryAgain }: { onTryAgain: () => void }) {
   // on LessonPage. A run here never moves the cursor, so it's the cursor's
   // own lesson, not whatever sits after this one behind it.
   const { path } = useCoursePath(bootstrap.data?.course ?? null, bootstrap.data?.position ?? null);
+  // The answered exercises' tags, in order: where the share card's word comes from.
+  const answeredTags = useRef<string[]>([]);
+  const streak = useStreak();
   const nextLesson = walkthrough.status === "done" ? findLessonAfter(path, [{ unitKey, skillKey }]) : null;
 
   if (walkthrough.status === "loading" || (graded === null && walkthrough.status !== "error")) {
@@ -165,6 +171,9 @@ function PracticeRun({ onTryAgain }: { onTryAgain: () => void }) {
                 <Button variant="ghost" onClick={onTryAgain}>
                   Replay Parsle
                 </Button>
+                {!walkthrough.isPracticeMode && (
+                  <ShareCardButton content={() => shareCardContent(xp, streak.data?.currentStreakDays, answeredTags.current, session.courseHintMap)} />
+                )}
                 {nextLesson && (
                   <Button variant="ghost" onClick={() => navigate("/path")}>
                     Back to path
@@ -182,6 +191,7 @@ function PracticeRun({ onTryAgain }: { onTryAgain: () => void }) {
   function handleSubmit(text: string, opts?: { usedHint?: boolean; playsUsed?: number }) {
     const answered = walkthrough.current; // snapshot before submitAnswer advances the queue
     if (!answered) return;
+    answeredTags.current.push(...answered.exercise.tags);
     const result = walkthrough.submitAnswer(text, opts);
     confirmation.record(answered, result);
   }

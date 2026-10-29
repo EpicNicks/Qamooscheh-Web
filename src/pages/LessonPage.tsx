@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useIsFetching } from "@tanstack/react-query";
 import { useLessonEngine, type SubmitAnswerResult, type LessonExerciseInstance } from "../hooks/useLessonEngine";
@@ -23,6 +23,9 @@ import { RealLessonOverlay } from "../components/tutorial/RealLessonOverlay";
 import { LessonResults } from "../components/lesson/LessonResults";
 import { LessonRecap, type RecapNote } from "../components/lesson/LessonRecap";
 import { RecapStats } from "../components/lesson/RecapStats";
+import { ShareCardButton } from "../components/lesson/ShareCardButton";
+import { shareCardContent } from "../domain/shareCard";
+import { useStreak } from "../hooks/useStreak";
 import { DeepDivePanel } from "../components/lesson/DeepDivePanel";
 import { shouldCelebrate } from "../domain/lessonRecap";
 import { LESSON_PASS_THRESHOLD } from "../domain/lessonScore";
@@ -187,6 +190,9 @@ function LessonPageContent() {
   const [hardcore, setHardcore] = useState(false);
   const [clozeRound, setClozeRound] = useState<ClozeCard[] | null>(null);
   const [lastUsedHint, setLastUsedHint] = useState(false);
+  // The answered exercises' tags, in order: where the share card's word comes from.
+  const answeredTags = useRef<string[]>([]);
+  const streak = useStreak();
   const [forceShowTutorial, setForceShowTutorial] = useState(false);
 
   // The real-lesson walkthrough is only allowed to auto-trigger on the
@@ -490,6 +496,11 @@ function LessonPageContent() {
                 <Button variant="ghost" onClick={engine.replay}>
                   Replay Parsle
                 </Button>
+                {!engine.isPracticeMode && (
+                  <ShareCardButton
+                    content={() => shareCardContent(engine.sessionXp, streak.data?.currentStreakDays, answeredTags.current, session.courseHintMap)}
+                  />
+                )}
                 {nextLesson && (
                   <Button variant="ghost" onClick={() => navigate("/path")}>
                     Back to path
@@ -512,6 +523,7 @@ function LessonPageContent() {
   function handleSubmit(text: string, opts?: { usedHint?: boolean; playsUsed?: number }) {
     const answered = engine.current; // snapshot before submitAnswer advances the queue
     if (!answered) return;
+    answeredTags.current.push(...answered.exercise.tags);
     const result = engine.submitAnswer(text, opts);
     setLastUsedHint(opts?.usedHint ?? false);
     confirmation.record(answered, result);
