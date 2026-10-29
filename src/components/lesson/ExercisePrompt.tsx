@@ -23,6 +23,8 @@ interface ExercisePromptProps {
   tags?: readonly string[];
   /** Called when an English word's hover is revealed: the exercise then counts as hinted. */
   onHintReveal?: () => void;
+  /** Set once the exercise is answered (its review is showing): hovering is free then — no warning, and nothing left to halve (issue #133). */
+  answered?: boolean;
   /** The prompt's authored whole-sentence romanization (ExerciseArtifact.promptRomanization), for SentenceRomanization. */
   romanization?: string | null;
   courseCode?: string | null;
@@ -53,6 +55,7 @@ export function ExercisePrompt({
   text,
   tags,
   onHintReveal,
+  answered = false,
   romanization,
   courseCode,
   autoplayAudio,
@@ -91,7 +94,7 @@ export function ExercisePrompt({
   const [hintAgreed, setHintAgreed] = useState(false);
   const [warning, setWarning] = useState(false);
   const pendingReveal = useRef<(() => void) | null>(null);
-  const warnBeforeHint = !hintAgreed && !(userId && loadLocalAppPrefs(userId).suppressHintWarning);
+  const warnBeforeHint = !answered && !hintAgreed && !(userId && loadLocalAppPrefs(userId).suppressHintWarning);
   const gateHint = (proceed: () => void) => {
     if (warning) return;
     pendingReveal.current = proceed;
@@ -107,7 +110,7 @@ export function ExercisePrompt({
             natural browser default either way. */}
         <p className={styles.prompt} dir={direction} style={direction === "rtl" ? { textAlign: align } : undefined}>
           {textSettings.nativeEnabled && tags && isLatinText(text) ? (
-          <EnglishAnnotatedText text={text} tags={tags} hintMap={hintMap} settings={textSettings} onReveal={onHintReveal} gate={warnBeforeHint ? gateHint : undefined} />
+          <EnglishAnnotatedText text={text} tags={tags} hintMap={hintMap} settings={textSettings} onReveal={answered ? undefined : onHintReveal} gate={warnBeforeHint ? gateHint : undefined} />
         ) : (
           <AnnotatedText text={text} hintMap={hintMap} settings={textSettings} tags={tags} />
         )}

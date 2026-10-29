@@ -354,6 +354,7 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
           speaker={exercise.speaker}
           tags={exercise.tags}
           onHintReveal={() => setUsedHint(true)}
+          answered={advance != null}
           romanization={exercise.promptRomanization}
           courseCode={courseCode}
           autoplayAudio={autoplayAudio}

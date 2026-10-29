@@ -34,6 +34,7 @@ export function SpeakExercise({ exercise, onSubmit, disabled, courseCode, autopl
         speaker={exercise.speaker}
         tags={exercise.tags}
         onHintReveal={() => setUsedHint(true)}
+        answered={advance != null}
         romanization={exercise.promptRomanization}
         courseCode={courseCode}
         autoplayAudio={autoplayAudio}
