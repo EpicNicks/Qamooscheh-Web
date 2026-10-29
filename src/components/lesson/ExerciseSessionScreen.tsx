@@ -92,6 +92,8 @@ interface ExerciseSessionScreenProps<TItem extends ExerciseSessionItem, TFeedbac
   overlay?: (targets: { item: TItem; topRowEl: HTMLElement | null; exerciseEl: HTMLElement | null }) => ReactNode;
   /** Lessons only — lets the learner re-open the first-lesson walkthrough from the lesson-settings cog. */
   onReplayTutorial?: () => void;
+  /** Shown under the title in both states, for the item asked or under review — saved-words practice names the word each exercise practises. */
+  focus?: (item: TItem) => ReactNode;
 }
 
 export function ExerciseSessionScreen<TItem extends ExerciseSessionItem, TFeedback extends ExerciseSessionFeedback>({
@@ -105,6 +107,7 @@ export function ExerciseSessionScreen<TItem extends ExerciseSessionItem, TFeedba
   onRetype,
   overlay,
   onReplayTutorial,
+  focus,
 }: ExerciseSessionScreenProps<TItem, TFeedback>) {
   const { skip, confirmation, textSettings, courseHintMap, keyboardMode, autoplayAudio } = session;
   const grader = useGrader();
@@ -151,6 +154,7 @@ export function ExerciseSessionScreen<TItem extends ExerciseSessionItem, TFeedba
       <div className={styles.wrap}>
         {topRow()}
         {title && <h1 className={styles.chapterTitle}>{title}</h1>}
+        {focus?.(answeredItem)}
         {/* The answer's words, hovered, are heard in the question's voice too. */}
         <ExerciseVoiceScope.Provider value={answeredItem.exercise}>
           <AnswerFeedback
@@ -227,6 +231,7 @@ export function ExerciseSessionScreen<TItem extends ExerciseSessionItem, TFeedba
     <div className={styles.wrap}>
       {topRow(overlay ? setTopRowEl : undefined)}
       {title && <h1 className={styles.chapterTitle}>{title}</h1>}
+      {focus?.(current)}
       {/* Keyed apart from the exercise beside it, which is keyed by current.key: a
           shared key among siblings leaves this behind, one more after each answer. */}
       {askingReportContext && <ReportIssue key={`report:${current.key}`} context={askingReportContext} stage="unanswered" />}

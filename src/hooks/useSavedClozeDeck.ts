@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getStarredPractice } from "../api/vocab";
 import { useExerciseSession } from "./useExerciseSession";
 import { refKey, useLexemeIndex, useSkillArtifactsForRefs } from "./useCourseContent";
-import { buildClozeDeck, type ClozeCard, type ClozeSource } from "../domain/cloze";
+import { buildClozeDeck, practiceClozeSources, type ClozeCard } from "../domain/cloze";
 import type { CourseRef, SkillRef } from "../types/api";
 
 /**
@@ -43,13 +43,10 @@ export function useSavedClozeDeck(course: CourseRef, words: number, queryKey: st
   const ready = practice.data != null && lexemeIndex.data != null && refs.every((ref) => content.skills.has(refKey(ref)));
   const deck = useMemo<ClozeCard[] | null>(() => {
     if (!ready) return null;
-    const sources: ClozeSource[] = practice.data!.words.map((word) => ({
-      tag: word.tag,
-      exercises: word.exercises.flatMap(({ unitKey, skillKey, ordinal }) => {
-        const exercise = content.skills.get(refKey({ unitKey, skillKey }))?.exercises[ordinal];
-        return exercise ? [exercise] : [];
-      }),
-    }));
+    const sources = practiceClozeSources(
+      practice.data!.words,
+      ({ unitKey, skillKey, ordinal }) => content.skills.get(refKey({ unitKey, skillKey }))?.exercises[ordinal],
+    );
     return buildClozeDeck(sources, session.courseHintMap, lexemeIndex.data!, (count) => Math.floor(seed * count));
   }, [ready, practice.data, content.skills, lexemeIndex.data, session.courseHintMap, seed]);
 

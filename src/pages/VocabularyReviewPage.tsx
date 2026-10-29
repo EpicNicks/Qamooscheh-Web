@@ -4,6 +4,7 @@ import { useBootstrap } from "../hooks/useBootstrap";
 import { useLexemeIndex, useCourseVocabulary } from "../hooks/useCourseContent";
 import { useStarredLexemes } from "../hooks/useStarredLexemes";
 import { matchesVocabQuery } from "../domain/vocabSearch";
+import { baseVerbOf, baseVerbTags } from "../domain/baseVerb";
 import { lessonVocab, unitVocabTags, courseVocabTags } from "../domain/courseVocabulary";
 import { SegmentedToggle } from "../components/common/SegmentedToggle";
 import { VocabTermCard } from "../components/vocabulary/VocabTermCard";
@@ -76,6 +77,8 @@ export function VocabularyReviewPage() {
   const searching = query.trim() !== "";
   const shown = searching ? entries.filter((e) => matchesVocabQuery(e.tag, e.entry, query)) : entries;
 
+  const byLemma = baseVerbTags(lexemeIndex.data);
+
   const unitTitle = vocabulary.units.find((u) => u.unitKey === unitKey)?.title;
 
   return (
@@ -144,16 +147,20 @@ export function VocabularyReviewPage() {
         </p>
       ) : (
         <div className={styles.list}>
-          {shown.map(({ tag, entry }) => (
-            <VocabTermCard
-              key={tag}
-              tag={tag}
-              entry={entry}
-              courseCode={course?.code}
-              starred={starred.isStarred(tag)}
-              onToggleStar={() => starred.toggle(tag)}
-            />
-          ))}
+          {shown.map(({ tag, entry }) => {
+            const baseTag = baseVerbOf(entry, byLemma);
+            return (
+              <VocabTermCard
+                key={tag}
+                tag={tag}
+                entry={entry}
+                courseCode={course?.code}
+                starred={starred.isStarred(tag)}
+                onToggleStar={() => starred.toggle(tag)}
+                baseVerb={baseTag ? { tag: baseTag, starred: starred.isStarred(baseTag), onToggle: () => starred.toggle(baseTag) } : null}
+              />
+            );
+          })}
         </div>
       )}
     </div>

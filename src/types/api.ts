@@ -599,7 +599,8 @@ export interface StarredPracticeResponse {
 
 export interface StarredPracticeWord {
   tag: string;
-  exercises: { unitKey: string; skillKey: string; ordinal: number }[];
+  /** `form` is the tag the exercise practises: `tag` itself, or for a saved verb (an infinitive) the form of it the exercise uses. */
+  exercises: { unitKey: string; skillKey: string; ordinal: number; form: string }[];
 }
 
 /** PUT /v1/vocab/starred's body — absolute state, not a toggle (a retried toggle over a flaky connection would silently flip the wrong way). */
