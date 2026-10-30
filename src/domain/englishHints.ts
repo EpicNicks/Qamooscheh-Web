@@ -10,6 +10,8 @@ import type { WordHint } from "./romanization";
 
 /** What an English word's hover shows: the lexeme as it's written, its romanization, and its infinitive when it is a verb (the "Verb forms" entry). */
 export interface NativeHint {
+  /** The exercise tag it was matched from ("مادر<n>"). */
+  tag: string;
   native: string;
   romanization: string | null;
   verbLemma?: string;
@@ -137,7 +139,7 @@ export function englishCandidates(tags: readonly string[], hintMap: ReadonlyMap<
       romanization: hint.romanization,
       verbLemma: hint.verbLemma,
     };
-    const native: NativeHint = { native: surface, romanization: sense.romanization, verbLemma: sense.verbLemma };
+    const native: NativeHint = { tag, native: surface, romanization: sense.romanization, verbLemma: sense.verbLemma };
     for (const phrase of glossPhrases(tidyGloss(sense.translation))) {
       if (phrase.length === 0 || phrase[0].startsWith("-")) continue;
       const forms = phrase[0] === "to" && phrase.length > 1 ? [phrase, phrase.slice(1)] : [phrase];

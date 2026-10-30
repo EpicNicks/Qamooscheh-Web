@@ -133,7 +133,7 @@ describe("English prompt hints", () => {
 
   it("carries the romanization", () => {
     const [segment] = segmentEnglish("mother", englishCandidates(["مادر<n>"], hintMap));
-    expect(segment.hint).toEqual({ native: "مادر", romanization: "mādar" });
+    expect(segment.hint).toEqual({ tag: "مادر<n>", native: "مادر", romanization: "mādar" });
   });
 
   it("tells English prompts from native ones", () => {

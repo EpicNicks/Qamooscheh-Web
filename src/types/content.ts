@@ -74,6 +74,13 @@ export interface SkillArtifact {
    * checks only its shape; whether the page exists is this client's to resolve.
    */
   glossaryRef?: string | null;
+  /**
+   * The lexeme tags this lesson uses that no earlier main-path lesson did, in
+   * order of first appearance; each conjugated form is its own tag. Empty for
+   * stories, conversations, songs and listening lessons. Optional because
+   * artifacts published before the backend computed it omit it.
+   */
+  newLexemes?: string[];
   exercises: ExerciseArtifact[];
 }
 

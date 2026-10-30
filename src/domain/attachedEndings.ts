@@ -220,5 +220,6 @@ export function attachedEndingsHint(word: string, hintMap: ReadonlyMap<string, W
     romanization,
     ruby: romanization,
     register: parts.stem.hint.register,
+    stemTags: parts.stem.senses.map((sense) => sense.tag).filter((tag) => tag !== ""),
   };
 }

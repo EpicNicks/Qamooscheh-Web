@@ -38,6 +38,8 @@ export interface WordHint {
   senses?: WordSense[];
   /** The infinitive to look up in the verb index, when a verb lexeme is written this way (domain/verbForms.ts). Shown as a "Verb forms" entry in the tooltip. */
   verbLemma?: string;
+  /** Set on a word read as a stem plus attached endings (domain/attachedEndings.ts): the tags its stem was read as — what makes سرم new when سر is (domain/newWords.ts). */
+  stemTags?: string[];
 }
 
 export interface WordSense {

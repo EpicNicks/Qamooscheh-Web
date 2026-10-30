@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useContext, useRef, useState } from "react";
 import { useAuth } from "../../auth/useAuth";
 import { loadLocalAppPrefs, saveLocalAppPrefs } from "../../lib/localAppPrefs";
 import { HintWarningModal } from "./HintWarningModal";
@@ -13,6 +13,8 @@ import { NoVoiceButton } from "./NoVoiceButton";
 import { AnnotatedText, EnglishAnnotatedText } from "./AnnotatedText";
 import { isLatinText } from "../../domain/englishHints";
 import { SentenceRomanization } from "./SentenceRomanization";
+import { NewWordsScope } from "../../hooks/newWordsScope";
+import { hasNewTag } from "../../domain/newWords";
 import { EMPTY_HINT_MAP, PLAIN_TEXT, type TextDisplaySettings, type WordHint } from "../../domain/romanization";
 import type { AudioMap } from "../../types/content";
 import styles from "./Exercise.module.css";
@@ -91,6 +93,8 @@ export function ExercisePrompt({
   // (unless the learner turned the warning off); agreeing reveals this
   // exercise's hints freely from then on.
   const { userId } = useAuth();
+  // A Parsle's new words keep their English hover with the learner's off (domain/newWords.ts).
+  const newWords = useContext(NewWordsScope);
   const [hintAgreed, setHintAgreed] = useState(false);
   const [warning, setWarning] = useState(false);
   const pendingReveal = useRef<(() => void) | null>(null);
@@ -109,10 +113,10 @@ export function ExercisePrompt({
             localAppPrefs.ts's NativeTextAlign — an LTR prompt keeps its
             natural browser default either way. */}
         <p className={styles.prompt} dir={direction} style={direction === "rtl" ? { textAlign: align } : undefined}>
-          {textSettings.nativeEnabled && tags && isLatinText(text) ? (
-          <EnglishAnnotatedText text={text} tags={tags} hintMap={hintMap} settings={textSettings} onReveal={answered ? undefined : onHintReveal} gate={warnBeforeHint ? gateHint : undefined} />
+          {tags && isLatinText(text) && (textSettings.nativeEnabled || hasNewTag(tags, newWords)) ? (
+          <EnglishAnnotatedText text={text} tags={tags} hintMap={hintMap} settings={textSettings} onReveal={answered ? undefined : onHintReveal} gate={warnBeforeHint ? gateHint : undefined} newWords={newWords} />
         ) : (
-          <AnnotatedText text={text} hintMap={hintMap} settings={textSettings} tags={tags} />
+          <AnnotatedText text={text} hintMap={hintMap} settings={textSettings} tags={tags} newWords={newWords} />
         )}
         </p>
         {warning && (

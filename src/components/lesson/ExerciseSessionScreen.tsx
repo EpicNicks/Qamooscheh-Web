@@ -31,6 +31,8 @@ import { gateLexemeHintMap } from "../../domain/romanization";
 import { useAnswerAudio } from "../../hooks/useAnswerAudio";
 import { useExerciseReportContext } from "../../hooks/useExerciseReportContext";
 import { ExerciseVoiceScope } from "../../hooks/exerciseVoiceScope";
+import { NewWordsScope } from "../../hooks/newWordsScope";
+import { buildNewWords } from "../../domain/newWords";
 import type { ExerciseSession } from "../../hooks/useExerciseSession";
 import type { ExerciseType } from "../../domain/enums";
 import type { ExerciseArtifact } from "../../types/content";
@@ -45,6 +47,8 @@ export interface ExerciseSessionItem {
   unitKey?: string | null;
   skillKey?: string;
   ordinal?: number;
+  /** The words its Parsle introduces (SkillArtifact.newLexemes) — omitted where nothing is marked new (a Repack, saved-word practice — domain/newWords.ts). */
+  newLexemes?: readonly string[];
 }
 
 /** The part of an engine's answer result this screen reads — everything else on it (verdict/attempt/requeued) is the page's business. */
@@ -151,80 +155,84 @@ export function ExerciseSessionScreen<TItem extends ExerciseSessionItem, TFeedba
     // never changes the answer's grade, only earns retype XP via onRetype.
     const retyping = needsRetype(answeredItem.renderType, feedback.correct);
     return (
-      <div className={styles.wrap}>
-        {topRow()}
-        {title && <h1 className={styles.chapterTitle}>{title}</h1>}
-        {focus?.(answeredItem)}
-        {/* The answer's words, hovered, are heard in the question's voice too. */}
-        <ExerciseVoiceScope.Provider value={answeredItem.exercise}>
-          <AnswerFeedback
-            key={confirmation.submissionCount}
-            correct={feedback.correct}
-            answerAudio={answerAudio}
-            note={feedback.note}
-            xp={feedbackXp?.(feedback)}
-            xpNote={feedback.xpNote}
-            answer={revealedAnswers(answeredItem.exercise, feedback.submittedText)}
-            // A type-in or word-bank answer stays visible in the (red/green)
-            // exercise below, so the feedback box shows only the correct answer.
-            submittedText={answeredItem.renderType === "type_in" || answeredItem.renderType === "listen_type" || answeredItem.renderType === "word_bank" ? undefined : feedback.submittedText}
+      <NewWordsScope.Provider value={buildNewWords(answeredItem.newLexemes, courseHintMap)}>
+        <div className={styles.wrap}>
+          {topRow()}
+          {title && <h1 className={styles.chapterTitle}>{title}</h1>}
+          {focus?.(answeredItem)}
+          {/* The answer's words, hovered, are heard in the question's voice too. */}
+          <ExerciseVoiceScope.Provider value={answeredItem.exercise}>
+            <AnswerFeedback
+              key={confirmation.submissionCount}
+              correct={feedback.correct}
+              answerAudio={answerAudio}
+              note={feedback.note}
+              xp={feedbackXp?.(feedback)}
+              xpNote={feedback.xpNote}
+              answer={revealedAnswers(answeredItem.exercise, feedback.submittedText)}
+              // A type-in or word-bank answer stays visible in the (red/green)
+              // exercise below, so the feedback box shows only the correct answer.
+              submittedText={answeredItem.renderType === "type_in" || answeredItem.renderType === "listen_type" || answeredItem.renderType === "word_bank" ? undefined : feedback.submittedText}
+              hintMap={hintMap}
+              textSettings={textSettings}
+              answerRomanization={{
+                text: answerIsTokenized ? answeredItem.exercise.answer.join(" ") : answeredItem.exercise.answer[0],
+                romanization: answeredItem.exercise.answerRomanization,
+              }}
+              tags={answeredItem.exercise.tags}
+              registerNote={feedback.correct ? describeAnswerRegister(answeredItem.exercise, feedback.submittedText, courseHintMap) : null}
+              reportContext={reportContext}
+            />
+          </ExerciseVoiceScope.Provider>
+          <SaveWordsRow tags={answeredItem.exercise.tags} />
+          <ExerciseRenderer
+            key={answeredItem.key}
+            exercise={answeredItem.exercise}
+            renderType={answeredItem.renderType}
+            onSubmit={() => {}}
+            // A retype takes typing, so it stays enabled — but, as while asking,
+            // not under the Skip modal.
+            disabled={retyping ? skip.isConfirming : true}
+            courseCode={courseCode}
+            keyboardMode={keyboardMode}
+            autoplayAudio={autoplayAudio}
             hintMap={hintMap}
             textSettings={textSettings}
-            answerRomanization={{
-              text: answerIsTokenized ? answeredItem.exercise.answer.join(" ") : answeredItem.exercise.answer[0],
-              romanization: answeredItem.exercise.answerRomanization,
-            }}
-            tags={answeredItem.exercise.tags}
-            registerNote={feedback.correct ? describeAnswerRegister(answeredItem.exercise, feedback.submittedText, courseHintMap) : null}
-            reportContext={reportContext}
+            advance={{ label: "Continue", onAdvance: confirmation.confirm }}
+            reviewedAnswer={{ text: feedback.submittedText, correct: feedback.correct, separators: feedback.separators }}
+            retype={
+              retyping
+                ? { matches: (text) => retypeMatches(grader, courseCode, answeredItem.exercise, text), onMatched: (text) => onRetype?.(text) ?? 0 }
+                : undefined
+            }
           />
-        </ExerciseVoiceScope.Provider>
-        <SaveWordsRow tags={answeredItem.exercise.tags} />
-        <ExerciseRenderer
-          key={answeredItem.key}
-          exercise={answeredItem.exercise}
-          renderType={answeredItem.renderType}
-          onSubmit={() => {}}
-          // A retype takes typing, so it stays enabled — but, as while asking,
-          // not under the Skip modal.
-          disabled={retyping ? skip.isConfirming : true}
-          courseCode={courseCode}
-          keyboardMode={keyboardMode}
-          autoplayAudio={autoplayAudio}
-          hintMap={hintMap}
-          textSettings={textSettings}
-          advance={{ label: "Continue", onAdvance: confirmation.confirm }}
-          reviewedAnswer={{ text: feedback.submittedText, correct: feedback.correct, separators: feedback.separators }}
-          retype={
-            retyping
-              ? { matches: (text) => retypeMatches(grader, courseCode, answeredItem.exercise, text), onMatched: (text) => onRetype?.(text) ?? 0 }
-              : undefined
-          }
-        />
-        {skipModal}
-      </div>
+          {skipModal}
+        </div>
+      </NewWordsScope.Provider>
     );
   }
 
   if (!current) return null;
 
   const exercise = (
-    <ExerciseRenderer
-      key={current.key}
-      exercise={current.exercise}
-      renderType={current.renderType}
-      onSubmit={onSubmit}
-      // Suspends TypeInExercise's window-level keydown handling while the
-      // Skip modal is open — it has its own document-level keydown
-      // listener (Escape/Tab), and both firing for the same keystroke
-      // would type into the hidden answer at the same time.
-      disabled={skip.isConfirming}
-      courseCode={courseCode}
-      keyboardMode={keyboardMode}
-      autoplayAudio={autoplayAudio}
-      hintMap={hintMapFor(current.exercise)}
-      textSettings={textSettings}
-    />
+    <NewWordsScope.Provider value={buildNewWords(current.newLexemes, courseHintMap)}>
+      <ExerciseRenderer
+        key={current.key}
+        exercise={current.exercise}
+        renderType={current.renderType}
+        onSubmit={onSubmit}
+        // Suspends TypeInExercise's window-level keydown handling while the
+        // Skip modal is open — it has its own document-level keydown
+        // listener (Escape/Tab), and both firing for the same keystroke
+        // would type into the hidden answer at the same time.
+        disabled={skip.isConfirming}
+        courseCode={courseCode}
+        keyboardMode={keyboardMode}
+        autoplayAudio={autoplayAudio}
+        hintMap={hintMapFor(current.exercise)}
+        textSettings={textSettings}
+      />
+    </NewWordsScope.Provider>
   );
 
   return (

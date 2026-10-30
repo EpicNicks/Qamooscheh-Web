@@ -66,6 +66,8 @@ export interface LessonExerciseInstance {
   exercise: ExerciseArtifact;
   renderType: ExerciseType;
   attempt: number;
+  /** Its lesson's SkillArtifact.newLexemes; omitted in a Repack, which marks nothing new (domain/newWords.ts). */
+  newLexemes?: readonly string[];
 }
 
 export type LessonStatus = "loading" | "choosing" | "empty" | "ready" | "submitting" | "done" | "rejected" | "error" | "unavailable" | "outdated" | "needsNewerApp" | "missingRecording";
@@ -320,6 +322,7 @@ export function useLessonEngine(
           exercise,
           renderType: resolveExerciseType(exercise, primaryCardState),
           attempt: 0,
+          newLexemes: isRemix ? undefined : artifact.newLexemes,
         });
       });
     }
