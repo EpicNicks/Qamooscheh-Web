@@ -66,7 +66,7 @@ export interface LessonExerciseInstance {
   exercise: ExerciseArtifact;
   renderType: ExerciseType;
   attempt: number;
-  /** Its lesson's SkillArtifact.newLexemes; omitted in a Repack, which marks nothing new (domain/newWords.ts). */
+  /** Its lesson's SkillArtifact.newLexemes. In a blended session, the source lesson's or none (domain/newWords.ts). */
   newLexemes?: readonly string[];
 }
 
@@ -153,6 +153,13 @@ export function useLessonEngine(
   remixContents?: RemixContents | null,
   /** A hand-picked Repack (the builder) keeps every due exercise of its Parsles instead of the usual REMIX_MAX_EXERCISES cap. */
   uncapped = false,
+  /**
+   * A blended Deep Dive's source lesson's SkillArtifact.newLexemes: those are
+   * the only words it marks new, wherever they come up in the blend. A
+   * Repack has no source lesson and marks nothing. A single lesson ignores
+   * this and marks its own.
+   */
+  sourceNewLexemes?: readonly string[],
 ) {
   const maxExercises = uncapped ? Infinity : REMIX_MAX_EXERCISES;
   const { userId } = useAuth();
@@ -322,7 +329,7 @@ export function useLessonEngine(
           exercise,
           renderType: resolveExerciseType(exercise, primaryCardState),
           attempt: 0,
-          newLexemes: isRemix ? undefined : artifact.newLexemes,
+          newLexemes: isRemix ? sourceNewLexemes : artifact.newLexemes,
         });
       });
     }
