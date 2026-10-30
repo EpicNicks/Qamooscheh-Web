@@ -1,15 +1,25 @@
 import { describe, expect, it } from "vitest";
 import { NO_NEW_WORDS, buildNewWords, hasNewTag, isNewNativeWord, withNewWordHints } from "./newWords";
 import { buildLexemeHintMap, EMPTY_HINT_MAP } from "./romanization";
+import { segmentAnnotatedText } from "./annotation";
 import { englishCandidates, segmentEnglish } from "./englishHints";
 import type { LexemeIndex } from "../types/content";
 
 const lexemes: LexemeIndex = {
   "مادر<n>": { gloss: "mother", register: null, romanization: "mādar", romanizationIsAuthored: true },
   "خسته<adj>": { gloss: "tired", register: null, romanization: "khaste", romanizationIsAuthored: true },
-  "کتاب<n>": { gloss: "book", register: null, romanization: "ketāb", romanizationIsAuthored: true },
+  "سر<n>": { gloss: "head", register: null, romanization: "sar", romanizationIsAuthored: true },
+  "ـم<poss>": { gloss: "my (attached to a noun: سرم = my head)", register: null, romanization: "-am", romanizationIsAuthored: true },
 };
 const courseHintMap = buildLexemeHintMap(lexemes);
+
+/** The prompt's words marked new, as AnnotatedText reads them with hover hints off. */
+function newIn(text: string, newLexemes: string[], tags: string[]): string[] {
+  const newWords = buildNewWords(newLexemes, courseHintMap);
+  return segmentAnnotatedText(text, withNewWordHints(EMPTY_HINT_MAP, newWords), tags)
+    .filter((segment) => segment.isWord && isNewNativeWord(segment.hint, newWords, tags))
+    .map((segment) => segment.text);
+}
 
 describe("buildNewWords", () => {
   it("is empty without newLexemes", () => {
@@ -17,28 +27,36 @@ describe("buildNewWords", () => {
     expect(buildNewWords([], courseHintMap)).toBe(NO_NEW_WORDS);
   });
 
-  it("keys new words by tag and by surface, with their course hints", () => {
+  it("hands out the same object for the same artifact list", () => {
+    const newLexemes = ["مادر<n>"];
+    expect(buildNewWords(newLexemes, courseHintMap)).toBe(buildNewWords(newLexemes, courseHintMap));
+  });
+
+  it("tells whether an exercise has a new tag", () => {
     const newWords = buildNewWords(["مادر<n>"], courseHintMap);
     expect(hasNewTag(["مادر<n>", "خسته<adj>"], newWords)).toBe(true);
     expect(hasNewTag(["خسته<adj>"], newWords)).toBe(false);
-    expect(isNewNativeWord("مادر", newWords)).toBe(true);
-    expect(isNewNativeWord("خسته", newWords)).toBe(false);
-    expect(newWords.hintMap.get("مادر")?.translation).toBe("mother");
+  });
+});
+
+describe("isNewNativeWord", () => {
+  it("marks a new word, and leaves the others, with hover hints off", () => {
+    expect(newIn("مادر خسته است", ["مادر<n>"], ["مادر<n>", "خسته<adj>"])).toEqual(["مادر"]);
   });
 
-  it("matches a word written with its reading aids", () => {
-    expect(isNewNativeWord("کِتاب", buildNewWords(["کتاب<n>"], courseHintMap))).toBe(true);
+  it("marks a word written with endings when its stem is new", () => {
+    expect(newIn("سرم", ["سر<n>"], ["سر<n>", "ـم<poss>"])).toEqual(["سرم"]);
+  });
+
+  it("doesn't mark a word for a new ending alone", () => {
+    expect(newIn("مادرم", ["ـم<poss>"], ["مادر<n>", "ـم<poss>"])).toEqual([]);
   });
 });
 
 describe("withNewWordHints", () => {
-  it("adds the new words' hints to a map gated empty by the learner's toggles", () => {
-    const map = withNewWordHints(EMPTY_HINT_MAP, buildNewWords(["مادر<n>"], courseHintMap));
-    expect([...map.keys()]).toEqual(["مادر"]);
-  });
-
-  it("leaves a map that already has them as it is", () => {
+  it("leaves a map that already has the new words as it is", () => {
     expect(withNewWordHints(courseHintMap, buildNewWords(["مادر<n>"], courseHintMap))).toBe(courseHintMap);
+    expect(withNewWordHints(EMPTY_HINT_MAP, NO_NEW_WORDS)).toBe(EMPTY_HINT_MAP);
   });
 
   it("lets an English prompt hover just the new words", () => {

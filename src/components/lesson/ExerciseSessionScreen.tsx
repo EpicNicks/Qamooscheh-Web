@@ -47,7 +47,7 @@ export interface ExerciseSessionItem {
   unitKey?: string | null;
   skillKey?: string;
   ordinal?: number;
-  /** The words its Parsle introduces (SkillArtifact.newLexemes) — omitted where nothing is new (a Repack, saved-word practice). */
+  /** The words its Parsle introduces (SkillArtifact.newLexemes) — omitted where nothing is marked new (a Repack, saved-word practice — domain/newWords.ts). */
   newLexemes?: readonly string[];
 }
 

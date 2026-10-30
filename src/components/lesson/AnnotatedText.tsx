@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { segmentAnnotatedText } from "../../domain/annotation";
 import { PLAIN_TEXT, registerLabel, type TextDisplaySettings, type WordHint } from "../../domain/romanization";
 import { MISTAKE_HINTS, type MistakeKind } from "../../domain/mistakeHints";
@@ -8,8 +8,7 @@ import { createHoverCloser } from "../../domain/hintHover";
 import { useVerbEntry } from "../../hooks/useVerbEntry";
 import { VerbFormsModal } from "./VerbFormsModal";
 import { cancelHoverSpeech, useHoverSpeech, type WordSpeech } from "../../hooks/useHoverSpeech";
-import { NewWordsScope } from "../../hooks/newWordsScope";
-import { isNewNativeWord, withNewWordHints } from "../../domain/newWords";
+import { NO_NEW_WORDS, isNewNativeWord, withNewWordHints, type NewWords } from "../../domain/newWords";
 import styles from "./AnnotatedText.module.css";
 
 interface TooltipPart {
@@ -492,6 +491,7 @@ export function AnnotatedText({
   focusable,
   tags,
   tooltip,
+  newWords = NO_NEW_WORDS,
 }: {
   text: string;
   hintMap: ReadonlyMap<string, WordHint>;
@@ -500,18 +500,19 @@ export function AnnotatedText({
   tags?: readonly string[];
   /** See AnnotatedWord's `tooltip`. */
   tooltip?: boolean;
+  /** The Parsle's new words, for a prompt (ExercisePrompt) — highlighted, and shown with hover hints off. */
+  newWords?: NewWords;
 }) {
   // Not inside a control (a word-bank tile): picking a tile already reads it.
   const speech = useHoverSpeech(tags);
   const wordSpeech = focusable === false ? null : speech;
   // A new word shows its translation even with the learner's hover hints off.
-  const newWords = useContext(NewWordsScope);
   const newWordSettings: TextDisplaySettings = { ...settings, translationEnabled: true };
   return (
     <>
       {segmentAnnotatedText(text, withNewWordHints(hintMap, newWords), tags).map((segment, i) => {
         if (!segment.isWord) return settings.vowelMarks ? segment.text : stripReadingAids(segment.text);
-        const isNew = segment.hint != null && isNewNativeWord(segment.text, newWords);
+        const isNew = isNewNativeWord(segment.hint, newWords, tags);
         return (
           <AnnotatedWord
             key={i}
@@ -545,6 +546,7 @@ export function EnglishAnnotatedText({
   settings,
   onReveal,
   gate,
+  newWords = NO_NEW_WORDS,
 }: {
   text: string;
   tags: readonly string[];
@@ -552,6 +554,8 @@ export function EnglishAnnotatedText({
   settings: TextDisplaySettings;
   onReveal?: () => void;
   gate?: (proceed: () => void) => void;
+  /** See AnnotatedText's `newWords`. */
+  newWords?: NewWords;
 }) {
   const wordSettings: TextDisplaySettings = {
     ...settings,
@@ -561,7 +565,6 @@ export function EnglishAnnotatedText({
   const speech = useHoverSpeech(tags);
   // A new word's hover is there even with the learner's English hover hints
   // off, and is free: no warning, and the exercise doesn't count as hinted.
-  const newWords = useContext(NewWordsScope);
   const hoverTags = settings.nativeEnabled ? tags : tags.filter((tag) => newWords.tags.has(tag));
   return (
     <>

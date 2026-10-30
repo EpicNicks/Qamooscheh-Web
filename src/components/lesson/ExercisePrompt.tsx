@@ -114,9 +114,9 @@ export function ExercisePrompt({
             natural browser default either way. */}
         <p className={styles.prompt} dir={direction} style={direction === "rtl" ? { textAlign: align } : undefined}>
           {tags && isLatinText(text) && (textSettings.nativeEnabled || hasNewTag(tags, newWords)) ? (
-          <EnglishAnnotatedText text={text} tags={tags} hintMap={hintMap} settings={textSettings} onReveal={answered ? undefined : onHintReveal} gate={warnBeforeHint ? gateHint : undefined} />
+          <EnglishAnnotatedText text={text} tags={tags} hintMap={hintMap} settings={textSettings} onReveal={answered ? undefined : onHintReveal} gate={warnBeforeHint ? gateHint : undefined} newWords={newWords} />
         ) : (
-          <AnnotatedText text={text} hintMap={hintMap} settings={textSettings} tags={tags} />
+          <AnnotatedText text={text} hintMap={hintMap} settings={textSettings} tags={tags} newWords={newWords} />
         )}
         </p>
         {warning && (
