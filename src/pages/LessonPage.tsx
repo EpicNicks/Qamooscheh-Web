@@ -168,6 +168,8 @@ function LessonPageContent() {
     searchParams.get("skill"),
     remixContents,
     isThemeRemixRoute && pickedLessonIds.length > 0,
+    // Started from a lesson, so its new words are marked across the blend.
+    isRemixRoute ? sourceArtifact?.newLexemes : undefined,
   );
   const session = useExerciseSession<LessonExerciseInstance, SubmitAnswerResult>(engine.course);
   const { confirmation } = session;
