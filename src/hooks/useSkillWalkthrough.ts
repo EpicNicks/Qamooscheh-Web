@@ -46,6 +46,8 @@ export interface WalkthroughExerciseInstance {
   ordinal: number;
   exercise: ExerciseArtifact;
   renderType: ExerciseType;
+  /** The skill's SkillArtifact.newLexemes. */
+  newLexemes?: readonly string[];
 }
 
 export type WalkthroughStatus = "loading" | "empty" | "ready" | "submitting" | "done" | "error";
@@ -104,6 +106,7 @@ export function useSkillWalkthrough(unitKey: string, skillKey: string, options: 
         ordinal,
         exercise,
         renderType: resolveExerciseType(exercise, null),
+        newLexemes: artifact.newLexemes,
       }] : []))
     : [];
 

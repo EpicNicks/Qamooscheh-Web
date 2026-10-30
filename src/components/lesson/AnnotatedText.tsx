@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useContext, useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { segmentAnnotatedText } from "../../domain/annotation";
 import { PLAIN_TEXT, registerLabel, type TextDisplaySettings, type WordHint } from "../../domain/romanization";
 import { MISTAKE_HINTS, type MistakeKind } from "../../domain/mistakeHints";
@@ -8,6 +8,8 @@ import { createHoverCloser } from "../../domain/hintHover";
 import { useVerbEntry } from "../../hooks/useVerbEntry";
 import { VerbFormsModal } from "./VerbFormsModal";
 import { cancelHoverSpeech, useHoverSpeech, type WordSpeech } from "../../hooks/useHoverSpeech";
+import { NewWordsScope } from "../../hooks/newWordsScope";
+import { isNewNativeWord, withNewWordHints } from "../../domain/newWords";
 import styles from "./AnnotatedText.module.css";
 
 interface TooltipPart {
@@ -53,6 +55,8 @@ interface AnnotatedWordProps {
   speech?: WordSpeech | null;
   /** A button: click, tap, Enter or Space opens the tooltip and keeps it open until pressed again or left (MistakeHintChip). */
   toggle?: boolean;
+  /** One of the words its Parsle introduces (domain/newWords.ts): highlighted under its underline. */
+  isNew?: boolean;
 }
 
 /**
@@ -109,6 +113,7 @@ export function AnnotatedWord({
   tooltip = true,
   speech,
   toggle = false,
+  isNew = false,
 }: AnnotatedWordProps) {
   const wrapRef = useRef<HTMLSpanElement>(null);
   const tooltipRef = useRef<HTMLSpanElement>(null);
@@ -314,6 +319,7 @@ export function AnnotatedWord({
         ref={wrapRef}
         className={styles.wrap}
         data-ezafe={ezafe ? "" : undefined}
+        data-new={isNew ? "" : undefined}
         data-open={open ? "" : undefined}
         data-dismissed={dismissed ? "" : undefined}
         tabIndex={focusable ? 0 : undefined}
@@ -498,25 +504,27 @@ export function AnnotatedText({
   // Not inside a control (a word-bank tile): picking a tile already reads it.
   const speech = useHoverSpeech(tags);
   const wordSpeech = focusable === false ? null : speech;
+  // A new word shows its translation even with the learner's hover hints off.
+  const newWords = useContext(NewWordsScope);
+  const newWordSettings: TextDisplaySettings = { ...settings, translationEnabled: true };
   return (
     <>
-      {segmentAnnotatedText(text, hintMap, tags).map((segment, i) =>
-        segment.isWord ? (
+      {segmentAnnotatedText(text, withNewWordHints(hintMap, newWords), tags).map((segment, i) => {
+        if (!segment.isWord) return settings.vowelMarks ? segment.text : stripReadingAids(segment.text);
+        const isNew = segment.hint != null && isNewNativeWord(segment.text, newWords);
+        return (
           <AnnotatedWord
             key={i}
             word={segment.text}
             hint={segment.hint}
-            settings={settings}
+            settings={isNew ? newWordSettings : settings}
             focusable={focusable}
             tooltip={tooltip}
             speech={wordSpeech}
+            isNew={isNew}
           />
-        ) : settings.vowelMarks ? (
-          segment.text
-        ) : (
-          stripReadingAids(segment.text)
-        ),
-      )}
+        );
+      })}
     </>
   );
 }
@@ -551,10 +559,18 @@ export function EnglishAnnotatedText({
     translationEnabled: true,
   };
   const speech = useHoverSpeech(tags);
+  // A new word's hover is there even with the learner's English hover hints
+  // off, and is free: no warning, and the exercise doesn't count as hinted.
+  const newWords = useContext(NewWordsScope);
+  const hoverTags = settings.nativeEnabled ? tags : tags.filter((tag) => newWords.tags.has(tag));
   return (
     <>
-      {segmentEnglish(text, englishCandidates(tags, hintMap)).map((segment, i) =>
-        segment.hint ? (
+      {segmentEnglish(text, englishCandidates(hoverTags, withNewWordHints(hintMap, newWords))).map((segment, i) => {
+        if (!segment.hint) {
+          return segment.isWord && speech ? <AnnotatedWord key={i} word={segment.text} hint={null} settings={wordSettings} speech={speech} /> : segment.text;
+        }
+        const isNew = newWords.tags.has(segment.hint.tag);
+        return (
           <AnnotatedWord
             key={i}
             word={segment.text}
@@ -565,16 +581,13 @@ export function EnglishAnnotatedText({
               verbLemma: segment.hint.verbLemma,
             }}
             settings={wordSettings}
-            onReveal={onReveal}
-            gate={gate}
+            onReveal={isNew ? undefined : onReveal}
+            gate={isNew ? undefined : gate}
             speech={speech}
+            isNew={isNew}
           />
-        ) : segment.isWord && speech ? (
-          <AnnotatedWord key={i} word={segment.text} hint={null} settings={wordSettings} speech={speech} />
-        ) : (
-          segment.text
-        ),
-      )}
+        );
+      })}
     </>
   );
 }

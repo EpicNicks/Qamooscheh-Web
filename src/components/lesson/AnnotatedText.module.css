@@ -13,6 +13,14 @@
   border-radius: 3px;
 }
 
+/* A word its Parsle introduces (domain/newWords.ts): a standing highlight
+   under the dotted underline, so a learner can tell it's new before hovering. */
+.wrap[data-new] {
+  background: var(--color-info-bg);
+  border-bottom-color: var(--color-info);
+  border-radius: 3px 3px 0 0;
+}
+
 /* The ezafe itself, as its own piece: a chip in the tooltip ([book](-e)),
    and an accented suffix on a romanized word (ketāb-e). */
 .ezafeChip {
