@@ -82,6 +82,8 @@ export interface PathPosition {
 
 export interface PathUnit {
   unitKey: string;
+  /** 1-based position of the unit in the course. */
+  number: number;
   title: string;
   standardPositions: PathPosition[];
   otherSkills: PathSkill[];
@@ -237,7 +239,7 @@ export function computePathProgress(
     });
 
     const deferred = standardPositions.some((p) => p.skills.some((s) => s.stowed));
-    return { unitKey: unit.unitKey, title: unit.title, standardPositions, otherSkills, deferred };
+    return { unitKey: unit.unitKey, number: unitIndex + 1, title: unit.title, standardPositions, otherSkills, deferred };
   });
 }
 
@@ -388,4 +390,9 @@ export function findPathSkill(
   const position = unit?.standardPositions.find((p) => p.skills.some((s) => s.skillKey === skillKey));
   const skill = position?.skills.find((s) => s.skillKey === skillKey);
   return unit && position && skill ? { unit, skill, siblings: position.skills } : null;
+}
+
+/** How a unit is named in the UI: "3: Unit title". */
+export function unitHeading(unit: { number: number; title: string }): string {
+  return `${unit.number}: ${unit.title}`;
 }

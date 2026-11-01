@@ -1,3 +1,4 @@
+import { unitHeading } from "../domain/pathProgress";
 import { useParams } from "react-router-dom";
 import { useBootstrap } from "../hooks/useBootstrap";
 import { useCoursePath } from "../hooks/useCourseContent";
@@ -37,7 +38,7 @@ export function CategoryPage() {
     <PathThemeProvider>
       {unitsWithContent.map((unit) => (
         <section key={unit.unitKey} className={styles.section}>
-          <h2 className={styles.title}>{unit.title}</h2>
+          <h2 className={styles.title}>{unitHeading(unit)}</h2>
           <SkillList skills={unit.skills} />
         </section>
       ))}
