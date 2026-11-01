@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useBootstrap } from "../hooks/useBootstrap";
 import { useIsMobile } from "../hooks/useMediaQuery";
 import { useCoursePath } from "../hooks/useCourseContent";
-import { findNextStandardTarget, findNextUnitEntryTarget } from "../domain/pathProgress";
+import { findNextStandardTarget, findNextUnitEntryTarget, unitHeading } from "../domain/pathProgress";
 import { SkillRoad } from "../components/path/SkillRoad";
 import { PlacementTestNode } from "../components/path/PlacementTestNode";
 import { DailyGoalRing } from "../components/path/DailyGoalRing";
@@ -95,7 +95,7 @@ export function PathPage() {
       {path.map((unit) => (
         <section key={unit.unitKey} className={styles.section}>
           <h2 className={styles.title}>
-            <span className={styles.titleText}>{unit.title}</span>
+            <span className={styles.titleText}>{unitHeading(unit)}</span>
             {unit.deferred && (
               <span className={styles.deferred} title="A stowed Parsle in this unit is waiting for another try">
                 Stowed Parsle waiting
@@ -104,7 +104,7 @@ export function PathPage() {
             <Link
               to={`/vocabulary/${unit.unitKey}`}
               className={styles.vocabLink}
-              aria-label={`Review vocabulary for ${unit.title}`}
+              aria-label={`Review vocabulary for ${unitHeading(unit)}`}
               title="Review vocabulary"
             >
               <BookIcon size="1.25rem" />

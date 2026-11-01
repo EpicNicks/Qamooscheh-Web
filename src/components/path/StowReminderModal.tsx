@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { muteStowage, snoozeStowage } from "../../api/stow";
-import { findPathSkill, type PathUnit } from "../../domain/pathProgress";
+import { findPathSkill, unitHeading, type PathUnit } from "../../domain/pathProgress";
 import { skillStartRoute } from "../../domain/skillRoute";
 import { hasReadyPrompt } from "../../domain/stowage";
 import { useBootstrap } from "../../hooks/useBootstrap";
@@ -69,7 +69,7 @@ export function StowReminderModal({ path }: { path: PathUnit[] }) {
       <div className={listStyles.units}>
         {stowage.map((unit) => (
           <section key={unit.unitKey}>
-            <h3 className={listStyles.unitTitle}>{path.find((u) => u.unitKey === unit.unitKey)?.title ?? unit.unitKey}</h3>
+            <h3 className={listStyles.unitTitle}>{(() => { const u = path.find((u) => u.unitKey === unit.unitKey); return u ? unitHeading(u) : unit.unitKey; })()}</h3>
             <ul className={listStyles.lessons}>
               {unit.lessons.map((lesson) => {
                 const found = findPathSkill(path, unit.unitKey, lesson.lessonKey);
