@@ -392,7 +392,7 @@ export function findPathSkill(
   return unit && position && skill ? { unit, skill, siblings: position.skills } : null;
 }
 
-/** How a unit is named in the UI: "3: Unit title". */
+/** How a unit is named in the UI: "Unit 3: Unit title". */
 export function unitHeading(unit: { number: number; title: string }): string {
-  return `${unit.number}: ${unit.title}`;
+  return `Unit ${unit.number}: ${unit.title}`;
 }
