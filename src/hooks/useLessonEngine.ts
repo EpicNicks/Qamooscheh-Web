@@ -44,6 +44,7 @@ import type { SessionPlanResponse, SkillRef, SubmittedItem, SubmittedSession, Su
 import type { ExerciseArtifact, SkillArtifact } from "../types/content";
 import { isPlayable } from "../domain/recordings";
 import { isKnownExerciseType, type ExerciseType, type SkillCategory } from "../domain/enums";
+import { recordGradedCompletion } from "../lib/journeyTransition";
 
 const RETRY_DEPTH = 3;
 // attempt < MAX_RETRIES gates the requeue in submitAnswer below — 2 means a
@@ -810,6 +811,11 @@ export function useLessonEngine(
       }
       // A pass that cleared a stowed lesson: drop it from the Stowage now, ahead of the refetch below.
       applyStowCleared(queryClient, response.sessions);
+      // A graded pass (not a Repack) the server counted: the Journey animates its progress once on return.
+      if (!isRemix) {
+        const passed = new Set(response.sessions.filter((s) => s.lessonCompleted === true).map((s) => s.submissionId));
+        recordGradedCompletion(sessions.filter((s) => passed.has(s.submissionId)).map((s) => s.skillKey));
+      }
       queryClient.invalidateQueries({ queryKey: ["bootstrap"] });
       queryClient.invalidateQueries({ queryKey: ["sessionPlan"] });
       // Whichever lesson(s) this session covered may now be complete, in the

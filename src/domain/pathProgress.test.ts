@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computePathProgress, findLessonAfter, storyRoadStatus, positionBranches, findNextStandardTarget, findNextUnitEntryTarget, groupByArc, isFirstStandardPosition, findPathSkill } from "./pathProgress";
+import { computePathProgress, diffPathProgress, findLessonAfter, storyRoadStatus, positionBranches, findNextStandardTarget, findNextUnitEntryTarget, groupByArc, isFirstStandardPosition, findPathSkill } from "./pathProgress";
 import type { PathUnitInput, SkillStatus } from "./pathProgress";
 
 function standard(skillKey: string) {
@@ -431,5 +431,33 @@ describe("findPathSkill", () => {
     expect(findPathSkill(path, "nope", "a1")).toBeNull();
     expect(findPathSkill(path, "u1", "zzz")).toBeNull();
     expect(findPathSkill(path, "u1", "s1")).toBeNull();
+  });
+});
+
+describe("diffPathProgress", () => {
+  const units = courseFixture();
+  const at = (skillKey: string, unitKey: string, done: string[]) => computePathProgress(units, { unitKey, skillKey }, new Set(done));
+
+  it("draws the edge out of a finished lesson and unlocks the next", () => {
+    const t = diffPathProgress(at("a1", "u1", []), at("b1", "u1", ["a1"]), "a1");
+    expect(t).toEqual({ completedSkillKey: "a1", edges: [{ from: "a1", to: "b1" }, { from: "a1", to: "b2" }], unlockedSkillKeys: ["b1", "b2"] });
+  });
+
+  it("runs a fork's edge from the completed alternate only", () => {
+    const t = diffPathProgress(at("b1", "u1", ["a1"]), at("c1", "u1", ["a1", "b2"]), "b2");
+    expect(t?.edges).toEqual([{ from: "b2", to: "c1" }]);
+    expect(t?.unlockedSkillKeys).toEqual(["c1"]);
+  });
+
+  it("crosses a unit boundary with an unlock and no edge", () => {
+    const t = diffPathProgress(at("c1", "u1", ["a1", "b1"]), at("d1", "u2", ["a1", "b1", "c1"]), "c1");
+    expect(t).toEqual({ completedSkillKey: "c1", edges: [], unlockedSkillKeys: ["d1"] });
+  });
+
+  it("is null for a passed-over alternate, a replay and a story", () => {
+    const before = at("c1", "u1", ["a1", "b1"]);
+    expect(diffPathProgress(before, at("c1", "u1", ["a1", "b1", "b2"]), "b2")).toBeNull();
+    expect(diffPathProgress(before, before, "a1")).toBeNull();
+    expect(diffPathProgress(before, at("c1", "u1", ["a1", "b1", "s1"]), "s1")).toBeNull();
   });
 });
