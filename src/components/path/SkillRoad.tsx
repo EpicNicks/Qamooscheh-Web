@@ -127,6 +127,8 @@ export function SkillRoad({ unit, nextSkipTarget }: { unit: PathUnit; nextSkipTa
                     key={`${key}#${i}`}
                     className={[styles.edge, styles[forkLineKind(fork.status, s.completed, leaving)]].join(" ")}
                     d={`M ${edge.x1 + dx},${edge.y1} L ${edge.x2 + dx},${edge.y2}`}
+                    data-edge-from={leaving ? s.skillKey : from?.skills[0].skillKey}
+                    data-edge-to={leaving ? to?.skills[0].skillKey : s.skillKey}
                   />
                 );
               });
@@ -142,7 +144,15 @@ export function SkillRoad({ unit, nextSkipTarget }: { unit: PathUnit; nextSkipTa
           // fork alternate still to do, which is blue.
           const target = to.skills[edge.toSkillIndex!];
           const open = !collapseForks && to.skills.length > 1 && to.status !== "locked" && !target.completed;
-          return <path key={key} className={[styles.edge, open ? styles.open : styles[to.status]].join(" ")} d={edge.d} />;
+          return (
+            <path
+              key={key}
+              className={[styles.edge, open ? styles.open : styles[to.status]].join(" ")}
+              d={edge.d}
+              data-edge-from={from?.skills[edge.fromSkillIndex ?? 0].skillKey}
+              data-edge-to={target.skillKey}
+            />
+          );
         })}
       </svg>
 
@@ -191,6 +201,7 @@ export function SkillRoad({ unit, nextSkipTarget }: { unit: PathUnit; nextSkipTa
             // a collapsed fork has no per-skill node for PathPage's
             // scroll-to-current effect to find otherwise.
             data-current-node={position.status === "current" ? "" : undefined}
+            data-skill-key={skill.skillKey}
           >
             {isGroup ? (
               <SkillGroupNode position={position} nextSkipTarget={nextSkipTarget} />

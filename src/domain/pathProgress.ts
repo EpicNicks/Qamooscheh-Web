@@ -396,3 +396,56 @@ export function findPathSkill(
 export function unitHeading(unit: { number: number; title: string }): string {
   return `Unit ${unit.number}: ${unit.title}`;
 }
+
+/**
+ * What a graded completion changed on the Journey, for the one-shot completion
+ * animation (shared with Android's `JourneyTransition`). An edge is a
+ * (from, to) skill-key pair that went from not-walked to walked between two
+ * snapshots: it leaves a completed, passed-over position and runs to every
+ * skill at the next position in the same unit, in path order.
+ */
+export interface JourneyTransition {
+  completedSkillKey: string;
+  edges: { from: string; to: string }[];
+  /** Every skill at the position that just became current (a fork has several); the next unit's first position on a boundary. Empty when there is none. */
+  unlockedSkillKeys: string[];
+}
+
+/**
+ * Null unless `completedSkillKey` is a standard skill whose position moved the
+ * cursor on: a passed-over fork alternate, a story, a replay and a stowed
+ * pass that only clears the Stowage all leave the cursor where it was.
+ */
+export function diffPathProgress(before: PathUnit[], after: PathUnit[], completedSkillKey: string): JourneyTransition | null {
+  const status = (path: PathUnit[], unitIndex: number, posIndex: number) => path[unitIndex]?.standardPositions[posIndex]?.status;
+
+  let advancedUnit = -1;
+  after.forEach((unit, u) =>
+    unit.standardPositions.forEach((pos, p) => {
+      if (pos.skills.some((s) => s.skillKey === completedSkillKey) && status(before, u, p) === "current" && pos.status === "unlocked") {
+        advancedUnit = u;
+      }
+    }),
+  );
+  if (advancedUnit < 0) return null;
+
+  const edges: JourneyTransition["edges"] = [];
+  after.forEach((unit, u) =>
+    unit.standardPositions.forEach((pos, p) => {
+      const next = unit.standardPositions[p + 1];
+      if (!next || pos.status !== "unlocked") return;
+      for (const from of pos.skills) {
+        const wasWalked = status(before, u, p) === "unlocked" && before[u].standardPositions[p].skills.find((s) => s.skillKey === from.skillKey)?.completed;
+        if (!from.completed || wasWalked) continue;
+        for (const to of next.skills) edges.push({ from: from.skillKey, to: to.skillKey });
+      }
+    }),
+  );
+
+  let unlockedSkillKeys: string[] = [];
+  for (let u = 0; u < after.length && unlockedSkillKeys.length === 0; u++) {
+    const pos = after[u].standardPositions.find((p, i) => p.status === "current" && status(before, u, i) !== "current");
+    if (pos) unlockedSkillKeys = pos.skills.map((s) => s.skillKey);
+  }
+  return { completedSkillKey, edges, unlockedSkillKeys };
+}
