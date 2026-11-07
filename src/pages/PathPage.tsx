@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useBootstrap } from "../hooks/useBootstrap";
 import { useIsMobile } from "../hooks/useMediaQuery";
 import { useCoursePath } from "../hooks/useCourseContent";
+import { useJourneyTransition } from "../hooks/useJourneyTransition";
 import { findNextStandardTarget, findNextUnitEntryTarget, unitHeading } from "../domain/pathProgress";
 import { SkillRoad } from "../components/path/SkillRoad";
 import { PlacementTestNode } from "../components/path/PlacementTestNode";
@@ -25,6 +26,7 @@ export function PathPage() {
   // At most one position across the whole journey is ever "current" — computed
   // once here and handed to every unit's road, rather than each SkillNode
   // re-deriving it, since only the one node that's actually current ever uses it.
+  useJourneyTransition(isLoading || isError ? [] : path);
   const nextSkipTarget = findNextStandardTarget(path);
   // Same reasoning: at most one unit boundary is ever offered for skipping
   // (GitHub #4) — the next unit only, not any future one (see
