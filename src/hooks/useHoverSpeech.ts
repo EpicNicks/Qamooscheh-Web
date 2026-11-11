@@ -12,6 +12,7 @@ import { useRecordings } from "./useRecordings";
 import { getLanguageInfo, getSpeechLang } from "../domain/language";
 import { play } from "../domain/playback";
 import { hasVoiceFor } from "../domain/tts";
+import { isMainStoryAudioPlaying } from "../domain/storyAudioState";
 
 const NO_TAGS: readonly string[] = [];
 
@@ -54,6 +55,8 @@ export function useHoverSpeech(tags: readonly string[] = NO_TAGS): WordSpeech | 
         clearPending();
         const timer = setTimeout(() => {
           pending = null;
+          // The story reader's narration isn't interrupted for a word.
+          if (isMainStoryAudioPlaying()) return;
           const speechLang = getSpeechLang(courseCode, word);
           if (!speechLang) return;
           const native = speechLang === courseLang;

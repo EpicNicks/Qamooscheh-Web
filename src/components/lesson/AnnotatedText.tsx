@@ -7,6 +7,7 @@ import { englishCandidates, segmentEnglish } from "../../domain/englishHints";
 import { createHoverCloser } from "../../domain/hintHover";
 import { useVerbEntry } from "../../hooks/useVerbEntry";
 import { VerbFormsModal } from "./VerbFormsModal";
+import { StarButton } from "../vocabulary/StarButton";
 import { cancelHoverSpeech, useHoverSpeech, type WordSpeech } from "../../hooks/useHoverSpeech";
 import { NO_NEW_WORDS, isNewNativeWord, withNewWordHints, type NewWords } from "../../domain/newWords";
 import styles from "./AnnotatedText.module.css";
@@ -56,6 +57,21 @@ interface AnnotatedWordProps {
   toggle?: boolean;
   /** One of the words its Parsle introduces (domain/newWords.ts): highlighted under its underline. */
   isNew?: boolean;
+  /** A saved word, highlighted gold, or purple for a saved verb (the story reader). */
+  savedKind?: "word" | "verb" | null;
+  /** A save/unsave star shown in the word's tooltip (the story reader). Its presence also keeps the tooltip even when no hint line is on. */
+  star?: { starred: boolean; verb: boolean; onToggle: () => void };
+}
+
+/**
+ * How a sentence's words are saved from where they are read (the story
+ * reader): which saved-word tag a word stands for, if it can be saved at all,
+ * and the learner's saved list.
+ */
+export interface WordSaving {
+  tagFor: (hint: WordHint | null) => { tag: string; verb: boolean } | null;
+  isSaved: (tag: string) => boolean;
+  toggle: (tag: string) => void;
 }
 
 /**
@@ -113,6 +129,8 @@ export function AnnotatedWord({
   speech,
   toggle = false,
   isNew = false,
+  savedKind = null,
+  star,
 }: AnnotatedWordProps) {
   const wrapRef = useRef<HTMLSpanElement>(null);
   const tooltipRef = useRef<HTMLSpanElement>(null);
@@ -302,9 +320,13 @@ export function AnnotatedWord({
       base
     );
 
-  if (!tooltip || (tooltipLines.length === 0 && !verbEntry)) {
+  if (!tooltip || (tooltipLines.length === 0 && !verbEntry && !star)) {
     return speech ? (
-      <span onMouseEnter={speak} onMouseLeave={unspeak}>
+      <span data-saved={savedKind ?? undefined} className={styles.savedPlain} onMouseEnter={speak} onMouseLeave={unspeak}>
+        {content}
+      </span>
+    ) : savedKind ? (
+      <span data-saved={savedKind} className={styles.savedPlain}>
         {content}
       </span>
     ) : (
@@ -319,6 +341,7 @@ export function AnnotatedWord({
         className={styles.wrap}
         data-ezafe={ezafe ? "" : undefined}
         data-new={isNew ? "" : undefined}
+        data-saved={savedKind ?? undefined}
         data-open={open ? "" : undefined}
         data-dismissed={dismissed ? "" : undefined}
         tabIndex={focusable ? 0 : undefined}
@@ -411,6 +434,12 @@ export function AnnotatedWord({
               {line}
             </span>
           ))}
+          {star && (
+            // Its own click, not the word's: on a touch screen a press on the word pins and unpins the tooltip.
+            <span className={styles.starRow} onClick={(event) => event.stopPropagation()}>
+              <StarButton starred={star.starred} verb={star.verb} onToggle={star.onToggle} />
+            </span>
+          )}
           {verbEntry && (
             <button
               type="button"
@@ -492,6 +521,7 @@ export function AnnotatedText({
   tags,
   tooltip,
   newWords = NO_NEW_WORDS,
+  saving,
 }: {
   text: string;
   hintMap: ReadonlyMap<string, WordHint>;
@@ -500,6 +530,8 @@ export function AnnotatedText({
   tags?: readonly string[];
   /** See AnnotatedWord's `tooltip`. */
   tooltip?: boolean;
+  /** Highlights saved words and lets each be saved from its tooltip (the story reader). */
+  saving?: WordSaving;
   /** The Parsle's new words, for a prompt (ExercisePrompt) — highlighted, and shown with hover hints off. */
   newWords?: NewWords;
 }) {
@@ -513,6 +545,8 @@ export function AnnotatedText({
       {segmentAnnotatedText(text, withNewWordHints(hintMap, newWords), tags).map((segment, i) => {
         if (!segment.isWord) return settings.vowelMarks ? segment.text : stripReadingAids(segment.text);
         const isNew = isNewNativeWord(segment.hint, newWords, tags);
+        const target = saving?.tagFor(segment.hint) ?? null;
+        const starred = target !== null && saving!.isSaved(target.tag);
         return (
           <AnnotatedWord
             key={i}
@@ -523,6 +557,8 @@ export function AnnotatedText({
             tooltip={tooltip}
             speech={wordSpeech}
             isNew={isNew}
+            savedKind={starred ? (target.verb ? "verb" : "word") : null}
+            star={target ? { starred, verb: target.verb, onToggle: () => saving!.toggle(target.tag) } : undefined}
           />
         );
       })}

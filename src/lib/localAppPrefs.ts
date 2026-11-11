@@ -231,6 +231,13 @@ export interface LocalAppPrefs {
    * synced mute) neither reads nor changes it. Defaults on.
    */
   stowReminders: boolean;
+  /**
+   * Whether the story reader scrolls on its own to keep the line being read
+   * aloud in the same place on screen. A per-device motion choice like
+   * smoulderingStreak, for a learner who would rather scroll by hand.
+   * Defaults on.
+   */
+  storyAutoscroll: boolean;
 }
 
 const DEFAULTS: LocalAppPrefs = {
@@ -267,6 +274,7 @@ const DEFAULTS: LocalAppPrefs = {
   remixContents: { lesson: "all", saved: "flashcards_and_all" },
   usernamePromptDismissed: false,
   stowReminders: true,
+  storyAutoscroll: true,
 };
 
 function storageKey(userId: string): string {

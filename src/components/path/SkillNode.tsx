@@ -58,7 +58,9 @@ export function SkillNode({ skill, layout = "node", nextSkipTarget = null, markC
       // GET /v1/checkpoint rejects a non-standard target, so routing them to
       // checkpoint the way standard skills go would make every one of them
       // dead on tap.
-      navigate(`/story/${skill.unitKey}/${skill.skillKey}`);
+      // A story opens in the reader, with its exercises a "Practise" button
+      // away; conversations and songs go straight to the exercises.
+      navigate(`/${skill.category === "story" ? "read" : "story"}/${skill.unitKey}/${skill.skillKey}`);
       return;
     }
 

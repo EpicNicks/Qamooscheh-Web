@@ -34,7 +34,7 @@ const NAV_ITEMS: { to: string; label: string; icon: ComponentType<IconProps> }[]
 // Lesson/story/practice/checkpoint are full-screen, focused exercise
 // flows — the header and sidebar would just be a way to accidentally
 // navigate away mid-answer, so neither renders while one of these is active.
-const LESSON_MODE_PATH = /^\/(lesson|story|practice|checkpoint)(\/|$)/;
+const LESSON_MODE_PATH = /^\/(lesson|story|read|practice|checkpoint)(\/|$)/;
 
 export function AppShell() {
   const { logout } = useAuth();

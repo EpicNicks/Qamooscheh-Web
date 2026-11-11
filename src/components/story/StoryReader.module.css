@@ -1,0 +1,165 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* Play/pause and the timeline: one segment per line, so it fills as the clips
+   play and a press seeks to a line. Stays in view while the lines scroll. */
+.playerBar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.mainButton,
+.lineButton {
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text);
+  cursor: pointer;
+  font: inherit;
+  line-height: 1;
+}
+
+.mainButton {
+  width: 44px;
+  height: 44px;
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-bg);
+}
+
+.lineButton {
+  width: 32px;
+  height: 32px;
+  font-size: 0.75rem;
+}
+
+.lineButton[data-playing] {
+  background: var(--color-info-bg);
+  border-color: var(--color-info);
+  color: var(--color-info);
+}
+
+.timeline {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.segmentItem {
+  flex: 1;
+  min-width: 0;
+}
+
+/* A tall hit area around a thin bar, so a finger can find one of many. */
+.segment {
+  display: block;
+  width: 100%;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  background: linear-gradient(var(--color-border), var(--color-border)) center / 100% 6px no-repeat;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.segment[data-state="done"] {
+  background-image: linear-gradient(var(--color-primary), var(--color-primary));
+}
+
+.segment[data-state="active"] {
+  background-image: linear-gradient(var(--color-info), var(--color-info));
+}
+
+/* A line with no recording: a plain, unfilled bar that can't be pressed. */
+.segment:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--color-text-muted);
+}
+
+/* The chapter's own scroller, like StoryTranscript's: AppShell's lesson-mode
+   layout gives no height to fill. Autoscroll moves this box. */
+.scroller {
+  height: calc(100dvh - 240px);
+  min-height: 240px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--space-2) var(--space-1) 40vh;
+}
+
+.lines {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.line {
+  display: flex;
+  direction: ltr;
+  gap: var(--space-2);
+  align-items: flex-start;
+  padding: var(--space-1) 0;
+  border-radius: var(--radius-sm);
+  transition: background 0.2s ease;
+}
+
+.line[data-active] {
+  background: var(--color-info-bg);
+}
+
+.gutter {
+  flex: none;
+  width: 32px;
+  min-height: 32px;
+}
+
+.text {
+  flex: 1;
+  min-width: 0;
+}
+
+.sentence {
+  margin: 0;
+  font-size: 1.35rem;
+  line-height: 2;
+}
+
+.practise {
+  position: fixed;
+  right: var(--space-4);
+  bottom: var(--space-4);
+  padding: var(--space-2) var(--space-4);
+  border: 0;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: var(--color-bg);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.25);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .line {
+    transition: none;
+  }
+}
