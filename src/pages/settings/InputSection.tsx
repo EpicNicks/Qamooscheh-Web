@@ -13,6 +13,7 @@ export function InputSection({ form, editForm, courseCode }: SettingsSectionProp
   const [speakHovered, setSpeakHovered] = useLocalAppPref("speakHoveredWords", true);
   const [speakHoveredEnglish, setSpeakHoveredEnglish] = useLocalAppPref("speakHoveredEnglish", false);
   const [soundEffects, setSoundEffects] = useLocalAppPref("soundEffects", true);
+  const [storyAutoscroll, setStoryAutoscroll] = useLocalAppPref("storyAutoscroll", true);
 
   return (
     <div className={styles.section}>
@@ -54,6 +55,11 @@ export function InputSection({ form, editForm, courseCode }: SettingsSectionProp
       <label className={`${styles.field} ${styles.checkboxRow}`}>
         <input type="checkbox" checked={speakHoveredEnglish} onChange={(e) => setSpeakHoveredEnglish(e.target.checked)} />
         Read English words aloud that way too
+      </label>
+
+      <label className={`${styles.field} ${styles.checkboxRow}`}>
+        <input type="checkbox" checked={storyAutoscroll} onChange={(e) => setStoryAutoscroll(e.target.checked)} />
+        Scroll a story along as it plays
       </label>
 
       <label className={`${styles.field} ${styles.checkboxRow}`}>

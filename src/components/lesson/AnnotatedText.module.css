@@ -21,6 +21,27 @@
   border-radius: 3px 3px 0 0;
 }
 
+/* A saved word in the story reader: the star's gold, or the saved verb's
+   purple. Unsaved words keep no highlight. */
+.wrap[data-saved="word"],
+.savedPlain[data-saved="word"] {
+  background: var(--color-warning-bg);
+  border-bottom-color: var(--color-warning);
+  border-radius: 3px 3px 0 0;
+}
+
+.wrap[data-saved="verb"],
+.savedPlain[data-saved="verb"] {
+  background: var(--color-saved-verb-bg);
+  border-bottom-color: var(--color-saved-verb);
+  border-radius: 3px 3px 0 0;
+}
+
+.starRow {
+  display: flex;
+  justify-content: center;
+}
+
 /* The ezafe itself, as its own piece: a chip in the tooltip ([book](-e)),
    and an accented suffix on a romanized word (ketāb-e). */
 .ezafeChip {

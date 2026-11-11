@@ -15,6 +15,7 @@ import { GlossaryEntryPage } from "./pages/GlossaryEntryPage";
 import { VocabularyReviewPage } from "./pages/VocabularyReviewPage";
 import { LessonPage } from "./pages/LessonPage";
 import { StoryPage } from "./pages/StoryPage";
+import { StoryReaderPage } from "./pages/StoryReaderPage";
 import { PracticePage } from "./pages/PracticePage";
 import { FlashcardsPage } from "./pages/FlashcardsPage";
 import { RacePage } from "./pages/RacePage";
@@ -106,6 +107,8 @@ export default function App() {
           <Route path="/story/:unitKey/:skillKey" element={<StoryPage />} />
           <Route path="/practice/:unitKey/:skillKey" element={<PracticePage />} />
         </Route>
+        {/* Nothing in the reader is graded, so it doesn't wait for the grader. */}
+        <Route path="/read/:unitKey/:skillKey" element={<StoryReaderPage />} />
         <Route path="/checkpoint/:unitKey/:skillKey" element={<CheckpointPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/settings" element={<SettingsPage />} />
