@@ -1,0 +1,20 @@
+.actor {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+}
+
+/* Rive loads over the fallback, hidden until its first frame, then the fallback unmounts. */
+.pending {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.riveLayer,
+.canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}

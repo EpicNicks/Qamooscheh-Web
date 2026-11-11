@@ -1,0 +1,87 @@
+/* Fallback parcel. Every duration divides by --speed so the actor's speed prop works without Rive. */
+.parcel {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  --speed: 1;
+}
+
+.body {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+
+.box {
+  fill: var(--parcel-box, var(--color-current));
+}
+
+.shade {
+  fill: rgb(0 0 0 / 0.12);
+}
+
+.tape,
+.knot {
+  fill: var(--parcel-tape, #ffffff);
+}
+
+.tag {
+  fill: var(--parcel-tag, var(--color-primary-contrast));
+}
+
+.check {
+  fill: none;
+  stroke: var(--color-primary-contrast);
+  stroke-width: 7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.locked .box {
+  fill: var(--color-locked);
+}
+
+.locked .tape,
+.locked .knot {
+  fill: var(--color-surface);
+}
+
+.unlocked .box {
+  fill: var(--color-current);
+}
+
+.done .box,
+.celebrate .box {
+  fill: var(--color-success);
+}
+
+.current .body {
+  animation: bob calc(1.4s / var(--speed)) ease-in-out infinite;
+}
+
+.celebrate .body {
+  animation: hop calc(0.7s / var(--speed)) cubic-bezier(0.3, 0, 0.3, 1) both;
+}
+
+@keyframes bob {
+  50% {
+    transform: translateY(-6px) scaleY(1.03);
+  }
+}
+
+@keyframes hop {
+  30% {
+    transform: translateY(-14px) scale(0.94, 1.08);
+  }
+  55% {
+    transform: translateY(0) scale(1.1, 0.88);
+  }
+  80% {
+    transform: translateY(-3px) scale(0.98, 1.02);
+  }
+}
+
+.parcel[data-still] .body,
+.parcel[data-still] .body * {
+  animation: none;
+}

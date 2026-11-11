@@ -1,0 +1,100 @@
+.box {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  --speed: 1;
+}
+
+.back {
+  fill: var(--color-deepdive);
+  filter: brightness(0.8);
+}
+
+.front {
+  fill: var(--color-deepdive);
+}
+
+.lidPanel {
+  fill: var(--color-deepdive);
+  filter: brightness(1.15);
+}
+
+.chip {
+  fill: var(--color-primary);
+  opacity: 0;
+}
+
+.lid {
+  transform-box: fill-box;
+  transform-origin: 0% 100%;
+  transform: rotate(-70deg);
+}
+
+.open .lid,
+.receive .lid,
+.opening .lid {
+  transform: rotate(-70deg);
+}
+
+.closed .lid,
+.closing .lid {
+  transform: rotate(0deg) translateY(18px);
+}
+
+.closing .lid {
+  animation: close calc(0.5s / var(--speed)) ease-in both;
+}
+
+.opening .lid {
+  animation: close calc(0.5s / var(--speed)) ease-out reverse both;
+}
+
+.receive .chip {
+  animation: drop calc(0.6s / var(--speed)) ease-in both;
+}
+
+.receive {
+  animation: thud calc(0.6s / var(--speed)) ease-out both;
+}
+
+@keyframes close {
+  from {
+    transform: rotate(-70deg);
+  }
+  to {
+    transform: rotate(0deg) translateY(18px);
+  }
+}
+
+@keyframes drop {
+  0% {
+    opacity: 1;
+    transform: translateY(-40px);
+  }
+  80% {
+    opacity: 1;
+    transform: translateY(50px);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(60px);
+  }
+}
+
+@keyframes thud {
+  75% {
+    transform: none;
+  }
+  85% {
+    transform: scale(1.03, 0.97);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+.box[data-still],
+.box[data-still] * {
+  animation: none;
+}
