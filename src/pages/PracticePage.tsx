@@ -3,6 +3,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useCompletedLessons } from "../hooks/useCompletedLessons";
 import { useBootstrap } from "../hooks/useBootstrap";
 import { useSkillWalkthrough, type WalkthroughExerciseInstance, type WalkthroughAnswerResult } from "../hooks/useSkillWalkthrough";
+import { useLessonOrigin } from "../hooks/useLessonOrigin";
 import { useExerciseSession } from "../hooks/useExerciseSession";
 import { ExerciseSessionScreen } from "../components/lesson/ExerciseSessionScreen";
 import { Spinner } from "../components/common/Spinner";
@@ -44,6 +45,7 @@ function PracticeRun({ onTryAgain }: { onTryAgain: () => void }) {
   const { unitKey = "", skillKey = "" } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const origin = useLessonOrigin();
   const bootstrap = useBootstrap();
   const completed = useCompletedLessons(bootstrap.data?.course?.code);
   // The URL only asks for a graded run; a stale or bookmarked `?first=1` on a
@@ -67,7 +69,7 @@ function PracticeRun({ onTryAgain }: { onTryAgain: () => void }) {
   // The answered exercises' tags, in order: where the share card's word comes from.
   const answeredTags = useRef<string[]>([]);
   const streak = useStreak();
-  const nextLesson = walkthrough.status === "done" ? findLessonAfter(path, [{ unitKey, skillKey }]) : null;
+  const nextLesson = walkthrough.status === "done" && origin.to === "/path" ? findLessonAfter(path, [{ unitKey, skillKey }]) : null;
 
   if (walkthrough.status === "loading" || (graded === null && walkthrough.status !== "error")) {
     return <Spinner label="Preparing practice…" />;
@@ -82,7 +84,7 @@ function PracticeRun({ onTryAgain }: { onTryAgain: () => void }) {
       <div className={styles.done}>
         <h1>Nothing here yet</h1>
         <p>This Parsle has no content to practice.</p>
-        <Button onClick={() => navigate("/path")}>Back to path</Button>
+        <Button onClick={() => navigate(origin.to)}>{origin.label}</Button>
       </div>
     );
   }
@@ -104,7 +106,7 @@ function PracticeRun({ onTryAgain }: { onTryAgain: () => void }) {
           <h1>This Parsle wasn't saved</h1>
           <p>{"The server didn't record this session, so it won't count toward your progress."}</p>
           <div className={styles.doneActions}>
-            <Button onClick={() => navigate("/path")}>Back to path</Button>
+            <Button onClick={() => navigate(origin.to)}>{origin.label}</Button>
           </div>
         </div>
       );
@@ -134,8 +136,8 @@ function PracticeRun({ onTryAgain }: { onTryAgain: () => void }) {
           actions={
             <>
               <Button onClick={onTryAgain}>Try again</Button>
-              <Button variant="ghost" onClick={() => navigate("/path")}>
-                Back to path
+              <Button variant="ghost" onClick={() => navigate(origin.to)}>
+                {origin.label}
               </Button>
             </>
           }
@@ -163,9 +165,9 @@ function PracticeRun({ onTryAgain }: { onTryAgain: () => void }) {
           actions={
             <>
               <Button
-                onClick={() => (nextLesson ? navigate(`/lesson?skill=${encodeURIComponent(nextLesson.skillKey)}`) : navigate("/path"))}
+                onClick={() => (nextLesson ? navigate(`/lesson?skill=${encodeURIComponent(nextLesson.skillKey)}`) : navigate(origin.to))}
               >
-                {nextLesson ? "Next Parsle" : "Back to path"}
+                {nextLesson ? "Next Parsle" : origin.label}
               </Button>
               <div className={styles.ghostRow}>
                 <Button variant="ghost" onClick={onTryAgain}>
@@ -175,8 +177,8 @@ function PracticeRun({ onTryAgain }: { onTryAgain: () => void }) {
                   <ShareCardButton content={() => shareCardContent(xp, streak.data?.currentStreakDays, answeredTags.current, session.courseHintMap)} />
                 )}
                 {nextLesson && (
-                  <Button variant="ghost" onClick={() => navigate("/path")}>
-                    Back to path
+                  <Button variant="ghost" onClick={() => navigate(origin.to)}>
+                    {origin.label}
                   </Button>
                 )}
               </div>

@@ -14,7 +14,7 @@ import styles from "./SkillList.module.css";
  * a readability aid, not a lock — every chapter is tappable the moment its
  * unit is.
  */
-export function SkillList({ skills }: { skills: PathSkill[] }) {
+export function SkillList({ skills, from }: { skills: PathSkill[]; /** The Library page hosting the list; passed to each row (see SkillNode). */ from?: string }) {
   if (skills.length === 0) return null;
 
   const groups = groupByArc(skills);
@@ -23,11 +23,11 @@ export function SkillList({ skills }: { skills: PathSkill[] }) {
     <div className={styles.list}>
       {groups.map((group) =>
         group.arc === null || group.skills.length === 1 ? (
-          group.skills.map((skill) => <SkillNode key={skill.skillKey} skill={skill} layout="row" />)
+          group.skills.map((skill) => <SkillNode key={skill.skillKey} skill={skill} layout="row" from={from} />)
         ) : (
           <div key={group.key} className={styles.arcGroup}>
             {group.skills.map((skill) => (
-              <SkillNode key={skill.skillKey} skill={skill} layout="row" />
+              <SkillNode key={skill.skillKey} skill={skill} layout="row" from={from} />
             ))}
           </div>
         ),

@@ -9,9 +9,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/useAuth";
+import { useLessonOrigin } from "./useLessonOrigin";
 import { loadLocalAppPrefs, saveLocalAppPrefs } from "../lib/localAppPrefs";
-
-const DESTINATION = "/path";
 
 export interface SkipConfirmation {
   /** True while the confirm modal should be on screen. */
@@ -26,6 +25,7 @@ export interface SkipConfirmation {
 
 export function useSkipConfirmation(): SkipConfirmation {
   const navigate = useNavigate();
+  const destination = useLessonOrigin().to;
   const { userId } = useAuth();
   const [isConfirming, setIsConfirming] = useState(false);
 
@@ -38,7 +38,7 @@ export function useSkipConfirmation(): SkipConfirmation {
       // which by definition hasn't happened while a Skip button is still on
       // screen.
       if (userId && loadLocalAppPrefs(userId).suppressSkipWarning) {
-        navigate(DESTINATION);
+        navigate(destination);
         return;
       }
       setIsConfirming(true);
@@ -46,7 +46,7 @@ export function useSkipConfirmation(): SkipConfirmation {
 
     confirmSkip(dontAskAgain: boolean) {
       if (dontAskAgain && userId) saveLocalAppPrefs(userId, { suppressSkipWarning: true });
-      navigate(DESTINATION);
+      navigate(destination);
     },
 
     cancelSkip() {

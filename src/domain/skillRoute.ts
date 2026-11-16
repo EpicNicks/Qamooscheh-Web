@@ -1,3 +1,4 @@
+import { withLessonOrigin } from "./lessonOrigin";
 import type { PathSkill } from "./pathProgress";
 
 type RouteSkill = Pick<PathSkill, "status" | "completed" | "unitKey" | "skillKey"> & Partial<Pick<PathSkill, "stowed">>;
@@ -23,13 +24,14 @@ export function isPassedOverAlternate(skill: RouteSkill, siblings: readonly Rout
  * the lesson player (/practice), never the story reader. It never moves the
  * cursor, so a first pass is submitted through `?first=1` (POST
  * /v1/sessions/submit, like any lesson) and a replay of a completed one is
- * local-only.
+ * local-only. `from` (see lessonOrigin.ts) is the Library page that
+ * launched it, so leaving returns there.
  */
-export function sideSkillRoute(skill: Pick<PathSkill, "category" | "unitKey" | "skillKey" | "completed">): string {
+export function sideSkillRoute(skill: Pick<PathSkill, "category" | "unitKey" | "skillKey" | "completed">, from?: string): string {
   const path = `${skill.unitKey}/${skill.skillKey}`;
-  if (skill.category === "story") return `/read/${path}`;
-  if (skill.category === "listening") return skill.completed ? `/practice/${path}` : `/practice/${path}?first=1`;
-  return `/story/${path}`;
+  if (skill.category === "story") return withLessonOrigin(`/read/${path}`, from);
+  if (skill.category === "listening") return withLessonOrigin(skill.completed ? `/practice/${path}` : `/practice/${path}?first=1`, from);
+  return withLessonOrigin(`/story/${path}`, from);
 }
 
 /**

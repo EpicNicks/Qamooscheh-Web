@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useSkillWalkthrough, type WalkthroughExerciseInstance, type WalkthroughAnswerResult } from "../hooks/useSkillWalkthrough";
+import { useLessonOrigin } from "../hooks/useLessonOrigin";
 import { useExerciseSession } from "../hooks/useExerciseSession";
 import { StoryTranscript } from "../components/lesson/StoryTranscript";
 import { Spinner } from "../components/common/Spinner";
@@ -21,6 +22,7 @@ import storyStyles from "./StoryPage.module.css";
 export function StoryPage() {
   const { unitKey = "", skillKey = "" } = useParams();
   const navigate = useNavigate();
+  const origin = useLessonOrigin();
   const walkthrough = useSkillWalkthrough(unitKey, skillKey);
   const session = useExerciseSession<WalkthroughExerciseInstance, WalkthroughAnswerResult>(walkthrough.course);
   const { confirmation } = session;
@@ -47,7 +49,7 @@ export function StoryPage() {
       <div className={styles.done}>
         <h1>Nothing here yet</h1>
         <p>This chapter has no content to read.</p>
-        <Button onClick={() => navigate("/path")}>Back to path</Button>
+        <Button onClick={() => navigate(origin.to)}>{origin.label}</Button>
       </div>
     );
   }
@@ -77,7 +79,7 @@ export function StoryPage() {
               sound="storyComplete"
             />
           </div>
-          <Button onClick={() => navigate("/path")}>Back to path</Button>
+          <Button onClick={() => navigate(origin.to)}>{origin.label}</Button>
         </div>
       );
     }
