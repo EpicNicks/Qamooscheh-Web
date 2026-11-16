@@ -9,6 +9,7 @@ const CATEGORY_LABEL: Record<Exclude<SkillCategory, "standard">, string> = {
   story: "Stories",
   conversation: "Conversations",
   song: "Songs",
+  listening: "Listening",
 };
 
 /**

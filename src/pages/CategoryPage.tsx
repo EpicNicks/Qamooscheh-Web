@@ -10,7 +10,7 @@ import { errorMessage } from "../lib/errors";
 import type { SkillCategory } from "../domain/enums";
 import styles from "./CourseSection.module.css";
 
-const VALID_CATEGORIES: readonly SkillCategory[] = ["story", "conversation", "song"];
+const VALID_CATEGORIES: readonly SkillCategory[] = ["story", "conversation", "song", "listening"];
 
 /** One non-standard category (story/conversation/song/…), reached via the sidebar — a generic page, not one hardcoded per category, so a new category needs no new page. */
 export function CategoryPage() {

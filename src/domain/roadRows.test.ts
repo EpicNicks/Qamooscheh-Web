@@ -5,6 +5,7 @@ import type { PathSkillInput } from "./pathProgress";
 
 const lesson = (skillKey: string): PathSkillInput => ({ skillKey, title: skillKey, category: "standard" });
 const story = (skillKey: string): PathSkillInput => ({ skillKey, title: skillKey, category: "story" });
+const listening = (skillKey: string): PathSkillInput => ({ skillKey, title: skillKey, category: "listening" });
 const conversation = (skillKey: string): PathSkillInput => ({ skillKey, title: skillKey, category: "conversation" });
 
 function unitOf(positions: PathSkillInput[][]) {
@@ -67,6 +68,20 @@ describe("buildRoadRows", () => {
 
   it("leaves conversations and songs off the road", () => {
     expect(summary([[lesson("a")], [conversation("talk")], [story("s")]])).toEqual(["p0", "s:s"]);
+  });
+
+  it("hangs a listening lesson off the position it follows like a story, locked until that position is passed", () => {
+    const unit = unitOf([[lesson("a")], [lesson("review")], [listening("hear")], [story("tale")]]);
+    expect(buildRoadRows(unit).map((r) => (r.kind === "position" ? `p${r.positionIndex}` : `s:${r.skill.skillKey}`))).toEqual(["p0", "p1", "s:hear", "s:tale"]);
+    const hear = unit.otherSkills.find((s) => s.skillKey === "hear");
+    expect(hear?.anchorPositionIndex).toBe(1);
+    expect(hear?.roadStatus).toBe("locked");
+    expect(hear?.status).toBe("unlocked");
+  });
+
+  it("never lets a listening lesson move the cursor", () => {
+    const unit = unitOf([[lesson("a")], [listening("hear")], [lesson("b")]]);
+    expect(unit.standardPositions.map((p) => p.skills.map((s) => s.skillKey))).toEqual([["a"], ["b"]]);
   });
 
   it("falls back to the last position for a story with no recorded anchor", () => {

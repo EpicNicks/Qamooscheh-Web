@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isPassedOverAlternate, skillStartRoute } from "./skillRoute";
+import { isPassedOverAlternate, sideSkillRoute, skillStartRoute } from "./skillRoute";
 
 const alt = (skillKey: string, status: "current" | "unlocked", completed: boolean) => ({ unitKey: "u1", skillKey, status, completed });
 
@@ -38,5 +38,23 @@ describe("skillStartRoute", () => {
   it("does not count an alternate as its own completed sibling", () => {
     const b1 = alt("b1", "unlocked", false);
     expect(isPassedOverAlternate(b1, [b1, alt("b2", "unlocked", false)])).toBe(false);
+  });
+});
+
+describe("sideSkillRoute", () => {
+  const s = (category: "story" | "conversation" | "song" | "listening", completed = false) => ({ category, unitKey: "u1", skillKey: "k", completed });
+
+  it("opens a story in the reader and a conversation or song in the walkthrough", () => {
+    expect(sideSkillRoute(s("story"))).toBe("/read/u1/k");
+    expect(sideSkillRoute(s("conversation"))).toBe("/story/u1/k");
+    expect(sideSkillRoute(s("song"))).toBe("/story/u1/k");
+  });
+
+  it("opens a listening lesson in the lesson player, never the story reader", () => {
+    expect(sideSkillRoute(s("listening"))).toBe("/practice/u1/k?first=1");
+  });
+
+  it("replays a completed listening lesson locally", () => {
+    expect(sideSkillRoute(s("listening", true))).toBe("/practice/u1/k");
   });
 });
