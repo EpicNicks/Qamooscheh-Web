@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useIsFetching } from "@tanstack/react-query";
 import { useLessonEngine, type SubmitAnswerResult, type LessonExerciseInstance } from "../hooks/useLessonEngine";
+import { useLessonOrigin } from "../hooks/useLessonOrigin";
 import { useExerciseSession } from "../hooks/useExerciseSession";
 import { useBootstrap } from "../hooks/useBootstrap";
 import { useAuth } from "../auth/useAuth";
@@ -54,6 +55,7 @@ export function LessonPage() {
 function LessonPageContent() {
   const navigate = useNavigate();
   const location = useLocation();
+  const origin = useLessonOrigin();
   const { lessonKey } = useParams();
   const [searchParams] = useSearchParams();
   const isRemixRoute = location.pathname.startsWith("/lesson/deep-dive-remix/") && lessonKey != null;
@@ -293,8 +295,8 @@ function LessonPageContent() {
         deck={clozeRound}
         hardcore={hardcore}
         inRemix
-        exitLabel="Back to path"
-        onExit={() => navigate("/path")}
+        exitLabel={origin.label}
+        onExit={() => navigate(origin.to)}
         secondaryExit={{ label: "Back to browsing", onExit: backToBrowsing }}
       />
     );
@@ -359,8 +361,8 @@ function LessonPageContent() {
         <h1>This Parsle was updated</h1>
         <p>A newer version came out while it was opening. Reopen it to get the latest.</p>
         <div className={styles.doneActions}>
-          <Button variant="secondary" onClick={() => navigate(isDeepDive ? "/themes" : "/path")}>
-            {isDeepDive ? "Back to browsing" : "Back to path"}
+          <Button variant="secondary" onClick={() => navigate(isDeepDive ? "/themes" : origin.to)}>
+            {isDeepDive ? "Back to browsing" : origin.label}
           </Button>
           <Button onClick={() => window.location.reload()}>Reopen Parsle</Button>
         </div>
@@ -375,8 +377,8 @@ function LessonPageContent() {
         <h1>This Parsle needs a newer version of this app</h1>
         <p>Reload to get the latest version, then open it again.</p>
         <div className={styles.doneActions}>
-          <Button variant="secondary" onClick={() => navigate(isDeepDive ? "/themes" : "/path")}>
-            {isDeepDive ? "Back to browsing" : "Back to path"}
+          <Button variant="secondary" onClick={() => navigate(isDeepDive ? "/themes" : origin.to)}>
+            {isDeepDive ? "Back to browsing" : origin.label}
           </Button>
           <Button onClick={() => window.location.reload()}>Reload</Button>
         </div>
@@ -391,7 +393,7 @@ function LessonPageContent() {
         <h1>This Parsle isn't ready yet</h1>
         <p>One of its listening exercises has no recording yet. Try again later.</p>
         <div className={styles.doneActions}>
-          <Button onClick={() => navigate(isDeepDive ? "/themes" : "/path")}>{isDeepDive ? "Back to browsing" : "Back to path"}</Button>
+          <Button onClick={() => navigate(isDeepDive ? "/themes" : origin.to)}>{isDeepDive ? "Back to browsing" : origin.label}</Button>
         </div>
       </div>
     );
@@ -406,8 +408,8 @@ function LessonPageContent() {
           don't count toward your review schedule.
         </p>
         <div className={styles.doneActions}>
-          <Button variant="secondary" onClick={() => navigate(isDeepDive ? "/themes" : "/path")}>
-            {isDeepDive ? "Back to browsing" : "Back to path"}
+          <Button variant="secondary" onClick={() => navigate(isDeepDive ? "/themes" : origin.to)}>
+            {isDeepDive ? "Back to browsing" : origin.label}
           </Button>
           <Button onClick={engine.startPractice}>Practice anyway</Button>
         </div>
@@ -439,7 +441,7 @@ function LessonPageContent() {
           </p>
           <LessonResults correct={engine.score.correct} total={engine.score.total} />
           <div className={styles.doneActions}>
-            <Button onClick={() => navigate("/path")}>Back to path</Button>
+            <Button onClick={() => navigate(origin.to)}>{origin.label}</Button>
           </div>
         </div>
       );
@@ -473,8 +475,8 @@ function LessonPageContent() {
           actions={
             <>
               <Button onClick={engine.retake}>Try again</Button>
-              <Button variant="ghost" onClick={() => navigate(isDeepDive ? "/themes" : "/path")}>
-                {isDeepDive ? "Back to browsing" : "Back to path"}
+              <Button variant="ghost" onClick={() => navigate(isDeepDive ? "/themes" : origin.to)}>
+                {isDeepDive ? "Back to browsing" : origin.label}
               </Button>
             </>
           }
@@ -503,9 +505,9 @@ function LessonPageContent() {
           actions={
             <>
               <Button
-                onClick={() => (nextLesson ? navigate(`/lesson?skill=${encodeURIComponent(nextLesson.skillKey)}`) : navigate("/path"))}
+                onClick={() => (nextLesson ? navigate(`/lesson?skill=${encodeURIComponent(nextLesson.skillKey)}`) : navigate(origin.to))}
               >
-                {nextLesson ? "Next Parsle" : "Back to path"}
+                {nextLesson ? "Next Parsle" : origin.label}
               </Button>
               <div className={styles.ghostRow}>
                 <Button variant="ghost" onClick={engine.replay}>
@@ -517,8 +519,8 @@ function LessonPageContent() {
                   />
                 )}
                 {nextLesson && (
-                  <Button variant="ghost" onClick={() => navigate("/path")}>
-                    Back to path
+                  <Button variant="ghost" onClick={() => navigate(origin.to)}>
+                    {origin.label}
                   </Button>
                 )}
               </div>

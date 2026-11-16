@@ -31,9 +31,11 @@ interface SkillNodeProps {
   markCompleted?: boolean;
   /** The other alternates at a fork's position, so a passed-over one is told apart from a lesson tested out of. */
   siblings?: readonly PathSkill[];
+  /** The Library page this row sits on (lessonOrigin.ts), so a lesson launched from it returns there. Absent on the Journey. */
+  from?: string;
 }
 
-export function SkillNode({ skill, layout = "node", nextSkipTarget = null, markCompleted = false, siblings = [] }: SkillNodeProps) {
+export function SkillNode({ skill, layout = "node", nextSkipTarget = null, markCompleted = false, siblings = [], from }: SkillNodeProps) {
   const navigate = useNavigate();
   const theme = usePathTheme();
   // A story on the road is gated by what it follows, not just by its unit.
@@ -62,7 +64,7 @@ export function SkillNode({ skill, layout = "node", nextSkipTarget = null, markC
       // A story opens in the reader, with its exercises a "Practise" button
       // away; conversations and songs go straight to the exercises. A
       // listening lesson opens in the lesson player (sideSkillRoute).
-      navigate(sideSkillRoute(skill));
+      navigate(sideSkillRoute(skill, from));
       return;
     }
 

@@ -7,6 +7,8 @@ import { useLexemeIndex, useSkillArtifactsForRefs } from "../hooks/useCourseCont
 import { useRecordings } from "../hooks/useRecordings";
 import { useStarredLexemes } from "../hooks/useStarredLexemes";
 import { useStoryPlayer } from "../hooks/useStoryPlayer";
+import { useLessonOrigin } from "../hooks/useLessonOrigin";
+import { withLessonOrigin } from "../domain/lessonOrigin";
 import { useAuth } from "../auth/useAuth";
 import { flushCompletions, sendCompletion } from "../lib/readerCompletionQueue";
 import { savedTagFor } from "../domain/storyWords";
@@ -27,6 +29,7 @@ import type { StoryLine } from "../domain/storyLines";
 export function StoryReaderPage() {
   const { unitKey = "", skillKey = "" } = useParams();
   const navigate = useNavigate();
+  const { raw: from } = useLessonOrigin();
   const queryClient = useQueryClient();
   const { userId } = useAuth();
   const course = useBootstrap().data?.course ?? null;
@@ -89,7 +92,7 @@ export function StoryReaderPage() {
         textSettings={session.textSettings}
         savingFor={savingFor}
         onReachedEnd={() => void markRead()}
-        practise={{ label: "Practise", onPress: () => navigate(`/story/${unitKey}/${skillKey}`) }}
+        practise={{ label: "Practise", onPress: () => navigate(withLessonOrigin(`/story/${unitKey}/${skillKey}`, from)) }}
       />
     </>
   );

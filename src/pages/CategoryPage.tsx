@@ -1,3 +1,4 @@
+import { libraryOrigin } from "../domain/lessonOrigin";
 import { unitHeading } from "../domain/pathProgress";
 import { useParams } from "react-router-dom";
 import { useBootstrap } from "../hooks/useBootstrap";
@@ -39,7 +40,7 @@ export function CategoryPage() {
       {unitsWithContent.map((unit) => (
         <section key={unit.unitKey} className={styles.section}>
           <h2 className={styles.title}>{unitHeading(unit)}</h2>
-          <SkillList skills={unit.skills} />
+          <SkillList skills={unit.skills} from={libraryOrigin(category as SkillCategory)} />
         </section>
       ))}
     </PathThemeProvider>
