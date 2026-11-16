@@ -10,6 +10,7 @@ import { DeepDiveChooserModal } from "./DeepDiveChooserModal";
 import { StowFlow } from "./StowFlow";
 import { StowedMark } from "./StowedMark";
 import { useSkillActions } from "./useSkillActions";
+import { sideSkillRoute } from "../../domain/skillRoute";
 import styles from "./SkillNode.module.css";
 
 /**
@@ -59,8 +60,9 @@ export function SkillNode({ skill, layout = "node", nextSkipTarget = null, markC
       // checkpoint the way standard skills go would make every one of them
       // dead on tap.
       // A story opens in the reader, with its exercises a "Practise" button
-      // away; conversations and songs go straight to the exercises.
-      navigate(`/${skill.category === "story" ? "read" : "story"}/${skill.unitKey}/${skill.skillKey}`);
+      // away; conversations and songs go straight to the exercises. A
+      // listening lesson opens in the lesson player (sideSkillRoute).
+      navigate(sideSkillRoute(skill));
       return;
     }
 
@@ -90,7 +92,7 @@ export function SkillNode({ skill, layout = "node", nextSkipTarget = null, markC
   const tagSymbol = layout === "node" ? mainTagSymbol(skill.themes, theme.tagSymbols, themeIndex.data) : null;
   const label =
     layout === "story"
-      ? `Story: ${skill.title}${skill.completed ? ", done" : locked ? ", locked" : ""}`
+      ? `${skill.category === "listening" ? "Listening" : "Story"}: ${skill.title}${skill.completed ? ", done" : locked ? ", locked" : ""}`
       : skill.stowed
         ? `${skill.title}, stowed`
         : undefined;

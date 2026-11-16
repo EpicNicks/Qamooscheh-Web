@@ -26,7 +26,7 @@ export type ExerciseScriptMode = "native" | "romanized";
 export type ScriptMode = "native" | "romanized" | "both";
 
 /** Qamooscheh.Domain.SkillCategory. Only "standard" advances user_progress's cursor. */
-export type SkillCategory = "standard" | "story" | "conversation" | "song";
+export type SkillCategory = "standard" | "story" | "conversation" | "song" | "listening";
 
 /** Qamooscheh.Domain.Register (user_prefs.register / lexeme index entries). */
 export type Register = "spoken" | "written" | "both";

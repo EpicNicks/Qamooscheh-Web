@@ -30,12 +30,12 @@ export function storySide(unitKey: string, skillKey: string): StorySide {
 /**
  * The unit's rows top to bottom: each standard position, immediately followed
  * by the stories anchored to it (in published order); stories anchored before
- * the first position come first. Only stories branch off the road —
+ * the first position come first. Only stories and listening lessons branch off the road —
  * conversations and songs stay in their library page.
  */
 export function buildRoadRows(unit: PathUnit): RoadRow[] {
   const last = unit.standardPositions.length - 1;
-  const stories = unit.otherSkills.filter((s) => s.category === "story");
+  const stories = unit.otherSkills.filter((s) => s.category === "story" || s.category === "listening");
   // A story with no recorded anchor, or one past the end, hangs off the last position.
   const anchorOf = (s: PathSkill) => Math.min(s.anchorPositionIndex ?? last, last);
   const storyRows = (anchor: number): RoadRow[] =>

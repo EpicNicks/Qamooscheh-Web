@@ -88,6 +88,7 @@ export const defaultPathTheme: PathTheme = {
     story: "📖",
     conversation: "💬",
     song: "🎵",
+    listening: "🎧",
   },
   tagSymbols: {
     // Roots of the tag tree (ThemeTaxonomy.cs) first — they are every other tag's fallback.

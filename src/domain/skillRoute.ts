@@ -18,6 +18,21 @@ export function isPassedOverAlternate(skill: RouteSkill, siblings: readonly Rout
 }
 
 /**
+ * Where tapping a non-standard skill goes. A story opens in the reader; a
+ * conversation or song in the transcript walkthrough; a listening lesson in
+ * the lesson player (/practice), never the story reader. It never moves the
+ * cursor, so a first pass is submitted through `?first=1` (POST
+ * /v1/sessions/submit, like any lesson) and a replay of a completed one is
+ * local-only.
+ */
+export function sideSkillRoute(skill: Pick<PathSkill, "category" | "unitKey" | "skillKey" | "completed">): string {
+  const path = `${skill.unitKey}/${skill.skillKey}`;
+  if (skill.category === "story") return `/read/${path}`;
+  if (skill.category === "listening") return skill.completed ? `/practice/${path}` : `/practice/${path}?first=1`;
+  return `/story/${path}`;
+}
+
+/**
  * Where tapping a path skill's primary button goes. Only the cursor's own
  * lesson runs through /lesson (it's the only one the server plans); anything
  * else is served by /practice, which is a local-only practice round unless
