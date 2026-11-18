@@ -9,6 +9,7 @@ import { parseLexemeTag } from "../domain/lexemeTag";
 import { lessonVocab, unitVocabTags, courseVocabTags } from "../domain/courseVocabulary";
 import { SegmentedToggle } from "../components/common/SegmentedToggle";
 import { VocabTermCard } from "../components/vocabulary/VocabTermCard";
+import { DictionaryLookup } from "../components/vocabulary/DictionaryLookup";
 import { VerbFormsModal } from "../components/lesson/VerbFormsModal";
 import type { LexemeIndexEntry, VerbIndexEntry } from "../types/content";
 import { Spinner } from "../components/common/Spinner";
@@ -156,7 +157,12 @@ export function VocabularyReviewPage() {
       </div>
       {starred.limitMessage && <ErrorBanner message={starred.limitMessage} />}
 
-      {shown.length === 0 ? (
+      {shown.length === 0 && searching && scope === "course" ? (
+        <>
+          <p className={styles.missMessage}>Word not found in course.</p>
+          <DictionaryLookup query={query} />
+        </>
+      ) : shown.length === 0 ? (
         <p>
           {searching
             ? `No words match “${query.trim()}”.`
