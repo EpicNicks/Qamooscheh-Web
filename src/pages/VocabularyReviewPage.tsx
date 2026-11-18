@@ -1,13 +1,16 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useBootstrap } from "../hooks/useBootstrap";
-import { useLexemeIndex, useCourseVocabulary } from "../hooks/useCourseContent";
+import { useLexemeIndex, useCourseVocabulary, useVerbIndex } from "../hooks/useCourseContent";
 import { useStarredLexemes } from "../hooks/useStarredLexemes";
-import { matchesVocabQuery } from "../domain/vocabSearch";
-import { baseVerbOf, baseVerbTags } from "../domain/baseVerb";
+import { matchesVocabQuery, matchingInfinitives } from "../domain/vocabSearch";
+import { baseVerbOf, baseVerbTags, isBaseVerb } from "../domain/baseVerb";
+import { parseLexemeTag } from "../domain/lexemeTag";
 import { lessonVocab, unitVocabTags, courseVocabTags } from "../domain/courseVocabulary";
 import { SegmentedToggle } from "../components/common/SegmentedToggle";
 import { VocabTermCard } from "../components/vocabulary/VocabTermCard";
+import { VerbFormsModal } from "../components/lesson/VerbFormsModal";
+import type { LexemeIndexEntry, VerbIndexEntry } from "../types/content";
 import { Spinner } from "../components/common/Spinner";
 import { ErrorBanner } from "../components/common/ErrorBanner";
 import { Button } from "../components/common/Button";
@@ -33,6 +36,8 @@ export function VocabularyReviewPage() {
   const lexemeIndex = useLexemeIndex(course);
   const vocabulary = useCourseVocabulary(course);
   const starred = useStarredLexemes(course?.code);
+  const verbIndex = useVerbIndex(course).data;
+  const [verbForms, setVerbForms] = useState<{ entry: VerbIndexEntry; anchor: HTMLElement } | null>(null);
 
   // The scope a given route arrives at (see App.tsx's three /vocabulary
   // entries). It's only the STARTING point — the toggle below is free to move
@@ -75,7 +80,21 @@ export function VocabularyReviewPage() {
     .map((tag) => ({ tag, entry: lexemeIndex.data?.[tag] }))
     .filter((e): e is { tag: string; entry: NonNullable<typeof e.entry> } => e.entry != null);
   const searching = query.trim() !== "";
-  const shown = searching ? entries.filter((e) => matchesVocabQuery(e.tag, e.entry, query)) : entries;
+  const matched = searching ? entries.filter((e) => matchesVocabQuery(e.tag, e.entry, query)) : entries;
+  // Outside Saved, a search also finds every verb in the course by its
+  // infinitive, after the matching taught words, so any verb can be opened
+  // for its forms.
+  const addedVerbs =
+    searching && scope !== "saved"
+      ? matchingInfinitives(lexemeIndex.data, tags, query).map((tag) => ({ tag, entry: lexemeIndex.data![tag] }))
+      : [];
+  const shown = [...matched, ...addedVerbs];
+
+  // An infinitive's forms in verbs.json, keyed by its written infinitive (its lemma, which publish sets to its own word).
+  const verbEntryOf = (tag: string, entry: LexemeIndexEntry | undefined): VerbIndexEntry | null =>
+    (entry && verbIndex?.[entry.lemma ?? parseLexemeTag(tag).surface]) || null;
+  const openVerbForms = (verbEntry: VerbIndexEntry | null) =>
+    verbEntry ? (anchor: HTMLElement) => setVerbForms({ entry: verbEntry, anchor }) : null;
 
   const byLemma = baseVerbTags(lexemeIndex.data);
 
@@ -149,6 +168,7 @@ export function VocabularyReviewPage() {
         <div className={styles.list}>
           {shown.map(({ tag, entry }) => {
             const baseTag = baseVerbOf(entry, byLemma);
+            const baseEntry = baseTag ? lexemeIndex.data?.[baseTag] : undefined;
             return (
               <VocabTermCard
                 key={tag}
@@ -157,11 +177,34 @@ export function VocabularyReviewPage() {
                 courseCode={course?.code}
                 starred={starred.isStarred(tag)}
                 onToggleStar={() => starred.toggle(tag)}
-                baseVerb={baseTag ? { tag: baseTag, starred: starred.isStarred(baseTag), onToggle: () => starred.toggle(baseTag) } : null}
+                baseVerb={
+                  baseTag
+                    ? {
+                        tag: baseTag,
+                        gloss: baseEntry?.gloss ?? null,
+                        starred: starred.isStarred(baseTag),
+                        onToggle: () => starred.toggle(baseTag),
+                        onOpen: openVerbForms(verbEntryOf(baseTag, baseEntry)) ?? undefined,
+                      }
+                    : null
+                }
+                onOpenVerbForms={isBaseVerb(entry) ? openVerbForms(verbEntryOf(tag, entry)) : null}
               />
             );
           })}
         </div>
+      )}
+      {verbForms && (
+        <VerbFormsModal
+          entry={verbForms.entry}
+          anchorEl={verbForms.anchor}
+          onClose={() => {
+            verbForms.anchor.focus({ preventScroll: true });
+            setVerbForms(null);
+          }}
+          onPointerEnter={() => {}}
+          onPointerLeave={() => {}}
+        />
       )}
     </div>
   );

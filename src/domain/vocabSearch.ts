@@ -1,5 +1,6 @@
 import { parseLexemeTag } from "./lexemeTag";
-import type { LexemeIndexEntry } from "../types/content";
+import { isBaseVerb } from "./baseVerb";
+import type { LexemeIndex, LexemeIndexEntry } from "../types/content";
 
 /**
  * Folds text for vocabulary search: case, Latin accents/macrons and Arabic
@@ -25,4 +26,18 @@ export function matchesVocabQuery(tag: string, entry: LexemeIndexEntry, query: s
   const needle = foldForSearch(query);
   if (needle === "") return true;
   return [parseLexemeTag(tag).surface, entry.gloss, entry.romanization ?? ""].some((field) => foldForSearch(field).includes(needle));
+}
+
+/**
+ * The course's verb infinitives that match [query] and aren't already in
+ * [taughtTags], in index order: a search also finds verbs the learner hasn't
+ * met as taught words, so they can be opened for their forms. A blank query
+ * adds nothing.
+ */
+export function matchingInfinitives(lexemeIndex: LexemeIndex | null | undefined, taughtTags: readonly string[], query: string): string[] {
+  if (!lexemeIndex || foldForSearch(query) === "") return [];
+  const taught = new Set(taughtTags);
+  return Object.entries(lexemeIndex)
+    .filter(([tag, entry]) => isBaseVerb(entry) && !taught.has(tag) && matchesVocabQuery(tag, entry, query))
+    .map(([tag]) => tag);
 }
