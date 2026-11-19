@@ -19,7 +19,12 @@
   overflow-wrap: anywhere;
 }
 
+/* Shrink to the word and sit at the card's left edge. Stretched across the
+   column, an RTL word would start at the column's right edge instead, which
+   is wherever the longest line (often the gloss) ends. */
 .surface {
+  align-self: flex-start;
+  max-width: 100%;
   font-size: 1.15rem;
   font-weight: 700;
 }
