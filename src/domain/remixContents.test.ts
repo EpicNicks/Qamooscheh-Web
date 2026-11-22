@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ExerciseType } from "./enums";
-import { filterRemixExercises, includesExercise, includesFlashcards, initialRemixContents, isClozeContents, remixContentsOptions } from "./remixContents";
+import { composeRemix, filterRemixExercises, includesExercise, includesFlashcards, initialRemixContents, isClozeContents, remixContentsOptions } from "./remixContents";
 
 function exercises(...types: ExerciseType[]) {
   return types.map((renderType, index) => ({ id: index, renderType }));
@@ -61,5 +61,27 @@ describe("cloze contents", () => {
     expect(includesFlashcards("cloze")).toBe(false);
     expect(isClozeContents("cloze")).toBe(true);
     expect(isClozeContents("all")).toBe(false);
+  });
+});
+
+describe("composeRemix", () => {
+  const ex = (key: string, renderType: ExerciseType) => ({ key, renderType });
+  const rough = [ex("u/s/1", "type_in"), ex("u/s/2", "word_bank")];
+  const topics = [ex("u/s/1", "type_in"), ex("a/b/0", "type_in"), ex("a/b/1", "word_bank"), ex("a/b/2", "type_in")];
+
+  it("is filterRemixExercises when nothing is rough", () => {
+    expect(composeRemix([], topics, "all", 2)).toEqual(topics.slice(0, 2));
+  });
+
+  it("puts rough spots first, plays a shared exercise once, and caps only the topics", () => {
+    expect(composeRemix(rough, topics, "all", 2).map((e) => e.key)).toEqual(["u/s/1", "u/s/2", "a/b/0", "a/b/1"]);
+  });
+
+  it("applies the contents filter to both parts", () => {
+    expect(composeRemix(rough, topics, "type_in").map((e) => e.key)).toEqual(["u/s/1", "a/b/0", "a/b/2"]);
+  });
+
+  it("works with rough spots alone", () => {
+    expect(composeRemix(rough, [], "all", 20)).toEqual(rough);
   });
 });

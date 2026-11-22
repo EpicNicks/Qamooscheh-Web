@@ -1,6 +1,8 @@
 import { NavLink } from "react-router-dom";
 import { useBootstrap } from "../../hooks/useBootstrap";
 import { useCoursePath } from "../../hooks/useCourseContent";
+import { useRoughSpots } from "../../hooks/useRoughSpots";
+import { REVIEW_URL } from "../../domain/repackUrl";
 import { glossaryForCourse } from "../../domain/glossaryContent";
 import type { SkillCategory } from "../../domain/enums";
 import styles from "./Sidebar.module.css";
@@ -23,7 +25,8 @@ const CATEGORY_LABEL: Record<Exclude<SkillCategory, "standard">, string> = {
 export function Sidebar({ variant = "rail" }: { variant?: "rail" | "drawer" }) {
   const bootstrap = useBootstrap();
   const { path } = useCoursePath(bootstrap.data?.course ?? null, bootstrap.data?.position ?? null);
-  const hasGlossary = glossaryForCourse(bootstrap.data?.course?.code).length > 0;
+  const hasRoughSpots = (useRoughSpots().data?.words.length ?? 0) > 0;
+  const hasGlossary =glossaryForCourse(bootstrap.data?.course?.code).length > 0;
 
   const categories = new Set<Exclude<SkillCategory, "standard">>();
   for (const unit of path) {
@@ -48,6 +51,12 @@ export function Sidebar({ variant = "rail" }: { variant?: "rail" | "drawer" }) {
       <NavLink to="/themes" className={({ isActive }) => (isActive ? `${styles.link} ${styles.active}` : styles.link)}>
         Deep Dives
       </NavLink>
+      {/* Review: a Repack of Rough spots alone. Only offered while there are some. */}
+      {hasRoughSpots && (
+        <NavLink to={REVIEW_URL} className={styles.link}>
+          Review
+        </NavLink>
+      )}
       {[...categories].map((category) => (
         <NavLink
           key={category}

@@ -67,3 +67,26 @@ export function filterRemixExercises<T extends { renderType: ExerciseType }>(
 ): T[] {
   return exercises.filter((exercise) => includesExercise(contents, exercise.renderType)).slice(0, max);
 }
+
+/**
+ * A Repack with Rough spots ticked: the rough-spot exercises first (worst word
+ * first), then the chosen topics' exercises, which keep their own cap. The
+ * rough ones are never capped away by the topics, and a topic exercise that is
+ * also a rough one is played once. With no rough exercises this is exactly
+ * filterRemixExercises.
+ */
+export function composeRemix<T extends { key: string; renderType: ExerciseType }>(
+  rough: readonly T[],
+  topics: readonly T[],
+  contents: RemixContents,
+  max: number = Infinity,
+): T[] {
+  const roughKept = rough.filter((exercise) => includesExercise(contents, exercise.renderType));
+  const roughKeys = new Set(roughKept.map((exercise) => exercise.key));
+  const topicKept = filterRemixExercises(
+    topics.filter((exercise) => !roughKeys.has(exercise.key)),
+    contents,
+    max,
+  );
+  return [...roughKept, ...topicKept];
+}

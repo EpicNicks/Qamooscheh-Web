@@ -23,6 +23,8 @@ import { useBootstrap } from "../hooks/useBootstrap";
 import { useAllThemeSkillArtifacts, useThemeIndex, refKey } from "../hooks/useCourseContent";
 import { ancestorsOf, dfsAllThemes, subtreeIds } from "../domain/themeTree";
 import { buildRemixPool } from "../domain/deepDiveRemix";
+import { repackUrl } from "../domain/repackUrl";
+import { useRoughSpots } from "../hooks/useRoughSpots";
 import { Spinner } from "../components/common/Spinner";
 import { ErrorBanner } from "../components/common/ErrorBanner";
 import { Button } from "../components/common/Button";
@@ -175,6 +177,12 @@ export function ThemeRemixPage() {
   const [highlight, setHighlight] = useState(0);
   const [activeThemeId, setActiveThemeId] = useState<string | null>(null);
   const listboxId = useId();
+  // Rough spots (API_SPEC.md §2.2a): a virtual topic that combines with the
+  // chosen ones, offered only while the learner has some.
+  const rough = useRoughSpots();
+  const roughCount = rough.data?.words.length ?? 0;
+  const [roughPicked, setRoughPicked] = useState(false);
+  const roughOn = roughPicked && roughCount > 0;
 
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 4 } }),
@@ -367,7 +375,7 @@ export function ThemeRemixPage() {
   }
 
   function remix() {
-    navigate(`/lesson/deep-dive-remix?themeIds=${selected.map(encodeURIComponent).join(",")}`);
+    navigate(repackUrl(selected, roughOn));
   }
 
   return (
@@ -383,6 +391,18 @@ export function ThemeRemixPage() {
       </p>
 
       {skillsError && <ErrorBanner message="Some Parsles couldn't be loaded." />}
+
+      {roughCount > 0 && (
+        <button
+          type="button"
+          className={roughOn ? `${styles.rough} ${styles.roughOn}` : styles.rough}
+          aria-pressed={roughOn}
+          onClick={() => setRoughPicked((on) => !on)}
+        >
+          <span className={styles.tileName}>Rough spots</span>
+          <span className={styles.tileCount}>{roughCount}</span>
+        </button>
+      )}
 
       <div className={styles.search}>
         <input
@@ -487,13 +507,14 @@ export function ThemeRemixPage() {
             <div className={styles.actions}>
               <span className={styles.poolSize}>
                 {selected.length === 0 ? "" : `${poolSize} ${poolSize === 1 ? "Parsle" : "Parsles"} in the mix`}
+                {roughOn && (selected.length === 0 ? "Rough spots only" : " + Rough spots")}
               </span>
               {selected.length > 0 && (
                 <Button variant="secondary" onClick={() => removeAnimated(selected)}>
                   Clear
                 </Button>
               )}
-              <Button variant="deepDive" onClick={remix} disabled={selected.length === 0}>
+              <Button variant="deepDive" onClick={remix} disabled={selected.length === 0 && !roughOn}>
                 Repack
               </Button>
             </div>

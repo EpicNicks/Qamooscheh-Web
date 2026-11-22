@@ -286,6 +286,36 @@
   flex-wrap: wrap;
 }
 
+/* The virtual "Rough spots" topic: a toggle above the panes, since it is not a
+   place in the theme tree and so has nothing to drag. */
+.rough {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  align-self: flex-start;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.rough:focus-visible {
+  outline: 2px solid var(--color-deepdive);
+  outline-offset: 2px;
+}
+
+.roughOn {
+  border-color: var(--color-deepdive);
+}
+
+.rough:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .poolSize {
   margin-right: auto;
   font-size: 0.9rem;

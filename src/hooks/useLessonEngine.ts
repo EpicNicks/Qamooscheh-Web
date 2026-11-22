@@ -38,9 +38,9 @@ import type { Grader } from "../grader/types";
 import { resolveExerciseType } from "../domain/exerciseResolution";
 import { LESSON_PASS_THRESHOLD, retryWeight } from "../domain/lessonScore";
 import { clozeSourcesForTags } from "../domain/cloze";
-import { filterRemixExercises, type RemixContents } from "../domain/remixContents";
+import { composeRemix, type RemixContents } from "../domain/remixContents";
 import { MAX_CREDITED_RETYPES, needsRetype } from "../domain/retype";
-import type { SessionPlanResponse, SkillRef, SubmittedItem, SubmittedSession, SubmittedSessionResponse } from "../types/api";
+import type { RoughSpotsResponse, SessionPlanResponse, SkillRef, SubmittedItem, SubmittedSession, SubmittedSessionResponse } from "../types/api";
 import type { ExerciseArtifact, SkillArtifact } from "../types/content";
 import { isPlayable } from "../domain/recordings";
 import { isKnownExerciseType, type ExerciseType, type SkillCategory } from "../domain/enums";
@@ -161,7 +161,15 @@ export function useLessonEngine(
    * this and marks its own.
    */
   sourceNewLexemes?: readonly string[],
+  /**
+   * Rough spots (API_SPEC.md §2.2a) ticked for this Repack: its exercises are
+   * played alongside the chosen lessons' (or alone, with no lesson keys), and
+   * make the session a remix even when only one lesson is chosen. Pass it
+   * only once it has loaded, and not before the lesson keys are resolved.
+   */
+  roughSpots?: RoughSpotsResponse | null,
 ) {
+  const rough = roughSpots ?? null;
   const maxExercises = uncapped ? Infinity : REMIX_MAX_EXERCISES;
   const { userId } = useAuth();
   const queryClient = useQueryClient();
@@ -213,6 +221,15 @@ export function useLessonEngine(
   const deepDiveSucceeded = deepDiveQueries
     .map((q) => q.data)
     .filter((d): d is SessionPlanResponse => d != null);
+  // With Rough spots there can be no lesson plan at all (only Rough spots
+  // ticked, or the chosen lessons all unavailable): the plan is then empty and
+  // the rough exercises are the whole session.
+  const roughOnlyPlan =
+    isDeepDive &&
+    rough != null &&
+    deepDiveSucceeded.length === 0 &&
+    !deepDiveQueries.some((q) => q.isLoading) &&
+    deepDiveQueries.every((q) => q.isError);
   const deepDivePlanData: SessionPlanResponse | undefined =
     isDeepDive && deepDiveSucceeded.length > 0
       ? {
@@ -222,7 +239,9 @@ export function useLessonEngine(
           newTags: [...new Set(deepDiveSucceeded.flatMap((p) => p.newTags))],
           prefetchTags: [...new Set(deepDiveSucceeded.flatMap((p) => p.prefetchTags))],
         }
-      : undefined;
+      : roughOnlyPlan
+        ? { courseVersion: rough!.courseVersion, skills: [], reviewTags: [], newTags: [], prefetchTags: [] }
+        : undefined;
   // "Unavailable" only once every key has failed AND at least one of those
   // failures was a real 404 — otherwise a batch of transient network errors
   // would misreport as "this lesson doesn't exist" (falls through to the
@@ -283,15 +302,35 @@ export function useLessonEngine(
     themeIndex.data,
     isDeepDive ? skillRefsToLoad : [],
   );
-  const { skills: skillArtifacts, isLoading: skillsLoading, isError: skillsError } = isDeepDive
+  // Rough spots point into journey lessons (unit + skill), which the cursor
+  // path's unit-artifact lookup resolves; a themed lesson's own path isn't
+  // needed for them.
+  const roughRefs = useMemo<SkillRef[]>(() => {
+    const byKey = new Map<string, SkillRef>();
+    for (const word of rough?.words ?? []) {
+      for (const { unitKey, skillKey } of word.exercises) byKey.set(refKey({ unitKey, skillKey }), { unitKey, skillKey });
+    }
+    return [...byKey.values()];
+  }, [rough]);
+  const roughContent = useSkillArtifactsForRefs(isDeepDive && rough ? course : null, roughRefs);
+  const baseContent = isDeepDive
     ? {
         skills: deepDiveContent.skills,
         isLoading: deepDiveContent.isLoading || themeIndex.isLoading,
         isError: deepDiveContent.isError || themeIndex.isError,
       }
     : cursorContent;
+  const skillArtifacts = useMemo<ReadonlyMap<string, SkillArtifact>>(
+    () => (roughRefs.length === 0 ? baseContent.skills : new Map([...baseContent.skills, ...roughContent.skills])),
+    [baseContent.skills, roughContent.skills, roughRefs.length],
+  );
+  const skillsLoading = baseContent.isLoading || roughContent.isLoading;
+  const skillsError = baseContent.isError || roughContent.isError;
 
-  const skillsReady = !!plan.data && plan.data.skills.every((ref) => skillArtifacts.has(refKey(ref)));
+  const skillsReady =
+    !!plan.data &&
+    plan.data.skills.every((ref) => skillArtifacts.has(refKey(ref))) &&
+    roughRefs.every((ref) => skillArtifacts.has(refKey(ref)));
 
   const dueTags = useMemo(() => new Set([...(plan.data?.reviewTags ?? []), ...(plan.data?.newTags ?? [])]), [plan.data]);
 
@@ -337,7 +376,7 @@ export function useLessonEngine(
     return instances;
   }
 
-  const isRemix = !!deepDiveLessonKeys && deepDiveLessonKeys.length > 1;
+  const isRemix = !!deepDiveLessonKeys && (deepDiveLessonKeys.length > 1 || rough != null);
 
   /** The skills this session actually runs — see selectedSkillKey. A deep dive already names exactly the lesson(s) it wants. */
   function lessonSkills(skills: readonly SkillRef[]): SkillRef[] {
@@ -345,19 +384,64 @@ export function useLessonEngine(
     return [skills.find((ref) => ref.skillKey === selectedSkillKey) ?? skills[0]];
   }
 
-  /** A remix's due exercises before any contents filter — what the learner chooses from. */
-  const remixBuilt = useMemo<LessonExerciseInstance[]>(() => {
+  /**
+   * The Rough spots' exercises, worst word first: exactly the ones the server
+   * pointed at, not their whole lessons. One that can't be played here (no
+   * recording, a type this build doesn't know) is left out.
+   */
+  function buildRoughInstances(): LessonExerciseInstance[] {
+    if (!userId || !rough) return [];
+    const localCards = loadCardStates(userId);
+    const instances: LessonExerciseInstance[] = [];
+    const seen = new Set<string>();
+    for (const word of rough.words) {
+      for (const { unitKey, skillKey, ordinal } of word.exercises) {
+        const ref = { unitKey, skillKey };
+        const key = `${refKey(ref)}/${ordinal}`;
+        const exercise = skillArtifacts.get(refKey(ref))?.exercises[ordinal];
+        if (seen.has(key) || !exercise || !isKnownExerciseType(exercise.type) || !isPlayable(exercise)) continue;
+        seen.add(key);
+        const primaryTag = exercise.tags[0];
+        instances.push({
+          key,
+          unitKey,
+          skillKey,
+          ordinal,
+          exercise,
+          renderType: resolveExerciseType(exercise, (primaryTag ? localCards[primaryTag] : null) ?? null),
+          attempt: 0,
+          newLexemes: sourceNewLexemes,
+        });
+      }
+    }
+    return instances;
+  }
+
+  /** The chosen lessons' due exercises, before any contents filter. */
+  const remixTopicBuilt = useMemo<LessonExerciseInstance[]>(() => {
     if (!isRemix || !skillsReady || !plan.data || !userId) return [];
     return buildInstances(plan.data.skills, dueTags);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [skillsReady, plan.data, userId, dueTags, isRemix]);
+  const remixRoughBuilt = useMemo<LessonExerciseInstance[]>(() => {
+    if (!isRemix || !skillsReady || !userId) return [];
+    return buildRoughInstances();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [skillsReady, userId, isRemix, rough]);
+
+  /** A remix's exercises before any contents filter — what the learner chooses from. */
+  const remixBuilt = useMemo<LessonExerciseInstance[]>(() => {
+    if (remixRoughBuilt.length === 0) return remixTopicBuilt;
+    const roughKeys = new Set(remixRoughBuilt.map((instance) => instance.key));
+    return [...remixRoughBuilt, ...remixTopicBuilt.filter((instance) => !roughKeys.has(instance.key))];
+  }, [remixRoughBuilt, remixTopicBuilt]);
 
   const initialQueue = useMemo<LessonExerciseInstance[]>(() => {
     if (!skillsReady || !plan.data || !userId) return [];
     if (!isRemix) return buildInstances(lessonSkills(plan.data.skills), null);
-    return filterRemixExercises(remixBuilt, remixContents ?? "all", maxExercises);
+    return composeRemix(remixRoughBuilt, remixTopicBuilt, remixContents ?? "all", maxExercises);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [skillsReady, plan.data, userId, isRemix, selectedSkillKey, remixBuilt, remixContents]);
+  }, [skillsReady, plan.data, userId, isRemix, selectedSkillKey, remixRoughBuilt, remixTopicBuilt, remixContents]);
 
   // Nothing due at all goes straight to the "empty" screen as before — there
   // is nothing to choose between.
@@ -365,7 +449,7 @@ export function useLessonEngine(
 
   /** How many exercises a remix would hold with `contents` — 0 means that choice leaves nothing. */
   function remixCount(contents: RemixContents): number {
-    return filterRemixExercises(remixBuilt, contents, maxExercises).length;
+    return composeRemix(remixRoughBuilt, remixTopicBuilt, contents, maxExercises).length;
   }
 
   /**
@@ -378,11 +462,11 @@ export function useLessonEngine(
     () =>
       isRemix
         ? clozeSourcesForTags(
-            [...(plan.data?.reviewTags ?? []), ...(plan.data?.newTags ?? [])],
+            [...(rough?.words.map((word) => word.tag) ?? []), ...(plan.data?.reviewTags ?? []), ...(plan.data?.newTags ?? [])],
             remixBuilt.map((instance) => instance.exercise),
           )
         : [],
-    [isRemix, plan.data, remixBuilt],
+    [isRemix, plan.data, remixBuilt, rough],
   );
 
   const [queue, setQueue] = useState<LessonExerciseInstance[] | null>(null);
@@ -486,7 +570,9 @@ export function useLessonEngine(
   // of useEffect entirely, which matters here because re-seeding on every
   // background refetch of `plan`/`skillArtifacts` would blow away in-progress
   // answers.
-  const outdated = started.current == null && versionMismatch(plan.data?.courseVersion, liveCourse?.version);
+  const outdated =
+    started.current == null &&
+    (versionMismatch(plan.data?.courseVersion, liveCourse?.version) || versionMismatch(rough?.courseVersion, liveCourse?.version));
   // The stale side is usually the cached bootstrap; re-reading it once may
   // settle the mismatch without the learner doing anything.
   const refetchBootstrap = bootstrap.refetch;
@@ -550,7 +636,7 @@ export function useLessonEngine(
     const refs = plan.data.skills.length > 0 ? lessonSkills(plan.data.skills) : positionRef ? [positionRef] : [];
     if (refs.length === 0) return;
     const built = buildInstances(refs, null);
-    const instances = isRemix ? filterRemixExercises(built, remixContents ?? "all", maxExercises) : built;
+    const instances = isRemix ? composeRemix(remixRoughBuilt, built, remixContents ?? "all", maxExercises) : built;
     if (instances.length === 0) return;
     // The nothing-due screen seeded an empty session, so this round is what
     // replay() and the recap's Next lesson have to go on.
@@ -578,7 +664,7 @@ export function useLessonEngine(
   function replay() {
     if (sessionSkillRefs.length === 0) return;
     const built = buildInstances(sessionSkillRefs, null, sessionArtifacts);
-    restart(isRemix ? filterRemixExercises(built, remixContents ?? "all", maxExercises) : built, true);
+    restart(isRemix ? composeRemix(remixRoughBuilt, built, remixContents ?? "all", maxExercises) : built, true);
   }
 
   function restart(instances: LessonExerciseInstance[], practice: boolean) {
@@ -818,6 +904,8 @@ export function useLessonEngine(
       }
       queryClient.invalidateQueries({ queryKey: ["bootstrap"] });
       queryClient.invalidateQueries({ queryKey: ["sessionPlan"] });
+      // A session moves the reviews and lapses rough spots are counted from.
+      queryClient.invalidateQueries({ queryKey: ["roughSpots"] });
       // Whichever lesson(s) this session covered may now be complete, in the
       // journey or standalone — theme-browsing's grey-out relies on this
       // being fresh.
