@@ -603,6 +603,24 @@ export interface StarredPracticeWord {
   exercises: { unitKey: string; skillKey: string; ordinal: number; form: string }[];
 }
 
+/**
+ * GET /v1/sessions/rough-spots (API_SPEC.md §2.2a): the learner's worst words
+ * (at least 3 reviews and a lapse), worst first, resolved to exercises like
+ * saved-words practice. `words: []` means nothing is rough.
+ */
+export interface RoughSpotsResponse {
+  courseVersion: number;
+  words: RoughSpotWord[];
+}
+
+export interface RoughSpotWord {
+  tag: string;
+  lapses: number;
+  reviews: number;
+  retrievability: number;
+  exercises: { unitKey: string; skillKey: string; ordinal: number; form: string }[];
+}
+
 /** PUT /v1/vocab/starred's body — absolute state, not a toggle (a retried toggle over a flaky connection would silently flip the wrong way). */
 export interface SetStarredRequest {
   tag: string;

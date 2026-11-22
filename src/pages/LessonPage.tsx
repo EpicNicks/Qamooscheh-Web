@@ -26,6 +26,7 @@ import { RecapStats } from "../components/lesson/RecapStats";
 import { ShareCardButton } from "../components/lesson/ShareCardButton";
 import { shareCardContent } from "../domain/shareCard";
 import { useStreak } from "../hooks/useStreak";
+import { useRoughSpots } from "../hooks/useRoughSpots";
 import { DeepDivePanel } from "../components/lesson/DeepDivePanel";
 import { shouldCelebrate } from "../domain/lessonRecap";
 import { LESSON_PASS_THRESHOLD } from "../domain/lessonScore";
@@ -150,7 +151,13 @@ function LessonPageContent() {
     // Randomized on purpose (weighted sampling) — recompute only when the pool itself changes, same as remixKeys above.
     [themeRemixPool, pickedLessonIds],
   );
-  const themeRemixIsEmpty = themeRemixReady && themeRemixPool.length === 0;
+  // ?rough=1: Rough spots is ticked (the topic picker's virtual topic, or the
+  // sidebar's Review, which is Rough spots alone). Read fresh on every open.
+  const wantsRough = isThemeRemixRoute && searchParams.get("rough") === "1";
+  const roughQuery = useRoughSpots(wantsRough);
+  const roughReady = wantsRough && roughQuery.data != null;
+  const themeRemixIsEmpty = themeRemixReady && themeRemixPool.length === 0 && !wantsRough;
+  const nothingRough = roughReady && roughQuery.data!.words.length === 0 && themeRemixReady && themeRemixPool.length === 0;
 
   // What a remix holds (issue #45): `chosenContents` is the learner's pick in
   // the picker, `remixContents` only becomes set once Start finds something
@@ -164,12 +171,14 @@ function LessonPageContent() {
   const [remixChoiceEmpty, setRemixChoiceEmpty] = useState(false);
 
   const engine = useLessonEngine(
-    isThemeRemixRoute ? themeRemixKeys : isRemixRoute ? remixKeys : isDeepDive && lessonKey ? [lessonKey] : undefined,
+    // Held back (empty = still loading) until Rough spots have arrived, so the session never starts without them.
+    isThemeRemixRoute ? (wantsRough && !roughReady ? [] : themeRemixKeys) : isRemixRoute ? remixKeys : isDeepDive && lessonKey ? [lessonKey] : undefined,
     searchParams.get("skill"),
     remixContents,
     isThemeRemixRoute && pickedLessonIds.length > 0,
     // Started from a lesson, so its new words are marked across the blend.
     isRemixRoute ? sourceArtifact?.newLexemes : undefined,
+    roughReady && themeRemixReady ? roughQuery.data : null,
   );
   const session = useExerciseSession<LessonExerciseInstance, SubmitAnswerResult>(engine.course);
   const { confirmation } = session;
@@ -260,6 +269,22 @@ function LessonPageContent() {
 
   if (isThemeRemixRoute && themeIndex.isError && !lessonOpen) {
     return <ErrorBanner message="Couldn't load themes from the CDN." />;
+  }
+
+  if (wantsRough && roughQuery.isError && !lessonOpen) {
+    return <ErrorBanner message="Couldn't load your rough spots." />;
+  }
+
+  if (nothingRough && !lessonOpen) {
+    return (
+      <div className={styles.done}>
+        <h1>No rough spots right now</h1>
+        <p>Words you keep getting wrong show up here. Nothing is giving you trouble at the moment.</p>
+        <div className={styles.doneActions}>
+          <Button onClick={() => navigate("/path")}>Back to path</Button>
+        </div>
+      </div>
+    );
   }
 
   if (themeRemixIsEmpty && !lessonOpen) {
@@ -356,13 +381,13 @@ function LessonPageContent() {
   if (engine.status === "outdated") {
     return (
       <div className={styles.done}>
-        <h1>This Parsle was updated</h1>
+        <h1>{isThemeRemixRoute ? "This Repack was updated" : "This Parsle was updated"}</h1>
         <p>A newer version came out while it was opening. Reopen it to get the latest.</p>
         <div className={styles.doneActions}>
           <Button variant="secondary" onClick={() => navigate(isDeepDive ? "/themes" : "/path")}>
             {isDeepDive ? "Back to browsing" : "Back to path"}
           </Button>
-          <Button onClick={() => window.location.reload()}>Reopen Parsle</Button>
+          <Button onClick={() => window.location.reload()}>{isThemeRemixRoute ? "Reopen Repack" : "Reopen Parsle"}</Button>
         </div>
       </div>
     );
