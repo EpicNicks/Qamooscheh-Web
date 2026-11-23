@@ -108,6 +108,10 @@ export interface ExerciseArtifact {
   promptAudio?: AudioMap | null;
   /** Recordings of the first accepted answer, the same shape. */
   answerAudio?: AudioMap | null;
+  /** Dedicated slow recordings of the prompt, by voice id (ONE path per voice, only voices that have one). Missing or null when none; the slow button then slows the normal take down. */
+  promptSlowAudio?: SlowAudioMap | null;
+  /** The same for the first accepted answer (`answerAudio`). */
+  answerSlowAudio?: SlowAudioMap | null;
   /**
    * One entry per accepted answer, null where that variant has no recording yet
    * (domain/answerVariants.ts). word_bank/match: 0 = `answer` joined, i =
@@ -126,6 +130,9 @@ export interface ExerciseArtifact {
  * no take of this.
  */
 export type AudioMap = Record<string, string[]>;
+
+/** Voice id -> the path of that voice's dedicated slow recording (one path, not a take list). Same path base as AudioMap. Only voices that have one are listed. */
+export type SlowAudioMap = Record<string, string>;
 
 /** audio.json: the course's voices (first is the default) and its cast. Phrases are listed there too, but every exercise and lexeme already carries its own. */
 export interface AudioIndexArtifact {
@@ -169,6 +176,8 @@ export interface LexemeIndexEntry {
   forms?: string[] | null;
   /** The word said on its own, by voice id (domain/recordings.ts). Missing or null when it hasn't been recorded. */
   audio?: AudioMap | null;
+  /** The word said slowly, by voice id. Missing or null when no voice has a slow take. */
+  slowAudio?: SlowAudioMap | null;
 }
 
 export type VerbForm = "infinitive" | "conjugated" | "modal" | "copula" | "aux" | "idiom";

@@ -7,7 +7,7 @@
 // (domain/tts.ts) is only for what has no recording at all.
 import { stripReadingAids } from "./persian/normalize";
 import { parseLexemeTag } from "./lexemeTag";
-import type { AudioMap, LexemeIndex } from "../types/content";
+import type { AudioMap, LexemeIndex, SlowAudioMap } from "../types/content";
 
 export interface VoiceChoice {
   /** user_prefs.preferred_voice — null means the course default. */
@@ -116,27 +116,40 @@ export function lineVoice(audio: AudioMap | null | undefined, speakerVoices: rea
 }
 
 /**
- * The path of the take to play, relative to the version root, or null when
- * nothing usable is recorded. Always a voice's FIRST take — the one the
- * publisher says to play when the client doesn't pick.
+ * The voice whose first take is played for `audio`, or null when nothing
+ * usable is recorded. Always a voice's FIRST take — the one the publisher says
+ * to play when the client doesn't pick.
  */
-export function pickRecording(audio: AudioMap | null | undefined, choice: VoiceChoice): string | null {
+export function pickRecordingVoice(audio: AudioMap | null | undefined, choice: VoiceChoice): string | null {
   if (!audio) return null;
-  const takeOf = (voice: string | null | undefined) => (voice ? (audio[voice]?.[0] ?? null) : null);
+  const has = (voice: string | null | undefined): voice is string => !!voice && !!audio[voice]?.[0];
 
   const speakerVoices = choice.speakerVoices ?? [];
   if (speakerVoices.length > 0) {
-    if (choice.preferredVoice && speakerVoices.includes(choice.preferredVoice)) {
-      const preferred = takeOf(choice.preferredVoice);
-      if (preferred) return preferred;
-    }
-    for (const voice of speakerVoices) {
-      const take = takeOf(voice);
-      if (take) return take;
-    }
+    if (choice.preferredVoice && speakerVoices.includes(choice.preferredVoice) && has(choice.preferredVoice)) return choice.preferredVoice;
+    const own = speakerVoices.find(has);
+    if (own) return own;
   }
 
-  return takeOf(choice.preferredVoice) ?? takeOf(choice.defaultVoice) ?? Object.values(audio).find((takes) => takes.length > 0)?.[0] ?? null;
+  if (has(choice.preferredVoice)) return choice.preferredVoice;
+  if (has(choice.defaultVoice)) return choice.defaultVoice;
+  return Object.keys(audio).find(has) ?? null;
+}
+
+/** The path of the take to play, relative to the version root, or null when nothing usable is recorded. */
+export function pickRecording(audio: AudioMap | null | undefined, choice: VoiceChoice): string | null {
+  const voice = pickRecordingVoice(audio, choice);
+  return voice && audio ? audio[voice][0] : null;
+}
+
+/**
+ * The dedicated slow recording of the voice `pickRecording` plays for `audio`,
+ * or null when that voice has none (another voice's slow take is never used:
+ * the slow button then slows the normal take down instead).
+ */
+export function pickSlowRecording(audio: AudioMap | null | undefined, slowAudio: SlowAudioMap | null | undefined, choice: VoiceChoice): string | null {
+  const voice = pickRecordingVoice(audio, choice);
+  return (voice && slowAudio?.[voice]) || null;
 }
 
 /** Spelling compared without reading aids, so a vowel-marked tile (کِتاب) still finds its lexeme (کتاب). */

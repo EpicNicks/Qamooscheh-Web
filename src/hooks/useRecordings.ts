@@ -10,9 +10,9 @@ import { usePrefs } from "./usePrefs";
 import { useLocalAppPref } from "./useLocalAppPref";
 import { useAudioIndex, useLexemeIndex } from "./useCourseContent";
 import { contentUrl } from "../api/content";
-import { exerciseVoice, lineVoice, pickRecording, wordRecording, type ShuffleExercise, type VoiceChoice } from "../domain/recordings";
+import { exerciseVoice, lineVoice, pickRecording, pickSlowRecording, wordRecording, type ShuffleExercise, type VoiceChoice } from "../domain/recordings";
 import { ExerciseVoiceScope } from "./exerciseVoiceScope";
-import type { AudioMap } from "../types/content";
+import type { AudioMap, SlowAudioMap } from "../types/content";
 
 /**
  * One seed per page load: with shuffleVoices on, a question keeps the voice it
@@ -24,6 +24,8 @@ const SHUFFLE_SEED = Math.floor(Math.random() * 0x7fffffff);
 export interface Recordings {
   /** URL of a phrase's recording (an exercise's promptAudio/answerAudio), or null. `speaker` keeps a story line to its character's voices. */
   phraseUrl: (audio: AudioMap | null | undefined, speaker?: string | null) => string | null;
+  /** URL of the dedicated slow recording of the voice phraseUrl plays for `audio`, or null when that voice has none (the caller then slows the normal take down). */
+  slowPhraseUrl: (audio: AudioMap | null | undefined, slowAudio: SlowAudioMap | null | undefined, speaker?: string | null) => string | null;
   /** The same take as phraseUrl, as its version-root-relative path — what an exercise report cites. */
   phrasePath: (audio: AudioMap | null | undefined, speaker?: string | null) => string | null;
   /** URL of one written word's recording (a word-bank tile), or null — see wordRecording for how the word is found. */
@@ -74,6 +76,7 @@ export function useRecordings(exercise?: ShuffleExercise | null): Recordings {
     const toUrl = (path: string | null) => (path && course ? contentUrl(course.code, course.version, path) : null);
     return {
       phraseUrl: (audio, speaker) => toUrl(pickRecording(audio, choiceFor(audio, speaker))),
+      slowPhraseUrl: (audio, slowAudio, speaker) => toUrl(pickSlowRecording(audio, slowAudio, choiceFor(audio, speaker))),
       phrasePath: (audio, speaker) => pickRecording(audio, choiceFor(audio, speaker)),
       // Outside a question a word has no one recording to draw by, so it keeps the learner's own choice.
       wordUrl: (text, exerciseTags) => toUrl(wordRecording(text, exerciseTags, lexemeIndex, choiceFor(null))),

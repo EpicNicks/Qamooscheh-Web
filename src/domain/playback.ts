@@ -19,6 +19,14 @@ export interface PlaybackRequest {
 /** The slowed replay's speed: slow enough to hear each word, not so slow a recording smears. */
 export const SLOW_RATE = 0.7;
 
+/**
+ * What the slow button plays: the voice's dedicated slow recording at normal
+ * speed (it is already slow), or, with none, the normal recording slowed down.
+ */
+export function slowPlayback(audioUrl: string | null | undefined, slowUrl: string | null | undefined): { url: string | null; rate: number } {
+  return slowUrl ? { url: slowUrl, rate: 1 } : { url: audioUrl ?? null, rate: SLOW_RATE };
+}
+
 /** Whatever is playing now. One voice at a time, app-wide: picking a word-bank tile while the prompt is still being read cuts the prompt off, the same as speak() cancelling its own queue. */
 let active: { stop: () => void } | null = null;
 

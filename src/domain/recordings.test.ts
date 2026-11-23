@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { exerciseVoice, isPlayable, lineVoice, pickRecording, wordRecording } from "./recordings";
+import { exerciseVoice, isPlayable, lineVoice, pickRecording, pickSlowRecording, wordRecording } from "./recordings";
 import type { LexemeIndex, LexemeIndexEntry } from "../types/content";
 
 const NO_PREFERENCE = { preferredVoice: null, defaultVoice: "setareh" };
@@ -31,6 +31,30 @@ describe("pickRecording", () => {
   it("is null when nothing is recorded", () => {
     expect(pickRecording(null, NO_PREFERENCE)).toBeNull();
     expect(pickRecording({ setareh: [] }, NO_PREFERENCE)).toBeNull();
+  });
+});
+
+describe("pickSlowRecording (dedicated slow takes)", () => {
+  const audio = { setareh: ["s0.mp3"], hooman: ["h0.mp3"] };
+  const slow = { hooman: "h-slow.mp3" };
+
+  it("picks the slow path of the voice that is playing", () => {
+    expect(pickSlowRecording(audio, slow, { preferredVoice: "hooman", defaultVoice: "setareh" })).toBe("h-slow.mp3");
+  });
+
+  it("is null when the playing voice has no slow take, even if another voice does", () => {
+    expect(pickSlowRecording(audio, slow, { preferredVoice: "setareh", defaultVoice: "setareh" })).toBeNull();
+  });
+
+  it("is null when the slow field is missing or null, or nothing is recorded", () => {
+    const choice = { preferredVoice: "hooman", defaultVoice: "setareh" };
+    expect(pickSlowRecording(audio, undefined, choice)).toBeNull();
+    expect(pickSlowRecording(audio, null, choice)).toBeNull();
+    expect(pickSlowRecording(null, slow, choice)).toBeNull();
+  });
+
+  it("follows the speaker's voices like the normal take does", () => {
+    expect(pickSlowRecording(audio, slow, { preferredVoice: null, defaultVoice: "setareh", speakerVoices: ["hooman"] })).toBe("h-slow.mp3");
   });
 });
 

@@ -4,7 +4,7 @@
 // has one (hooks/useRecordings.ts) and text-to-speech otherwise — see
 // domain/playback.ts.
 import { useEffect, useRef, useState } from "react";
-import { play as startPlayback, SLOW_RATE } from "../domain/playback";
+import { play as startPlayback, slowPlayback } from "../domain/playback";
 
 export type PhraseAudioStatus = "idle" | "playing";
 
@@ -22,10 +22,12 @@ export function usePhraseAudio(params: {
   speechLang: string | null;
   /** The recording's URL, when there is one. Undefined/null, or a file that fails to load, falls back to TTS. */
   audioUrl?: string | null;
+  /** The dedicated slow recording of the same voice, when there is one: playSlow plays it at normal speed instead of slowing the normal take down. */
+  slowAudioUrl?: string | null;
   /** Fires play() once, the first time text/audioUrl/speechLang are all available — mirrors user_prefs.autoplay_audio. */
   autoplay?: boolean;
 }): PhraseAudio {
-  const { text, speechLang, audioUrl, autoplay } = params;
+  const { text, speechLang, audioUrl, slowAudioUrl, autoplay } = params;
   const [status, setStatus] = useState<PhraseAudioStatus>("idle");
 
   const stopRef = useRef<() => void>(() => {});
@@ -34,8 +36,8 @@ export function usePhraseAudio(params: {
   // otherwise mark this render's playback idle out from under it.
   const generationRef = useRef(0);
 
-  function play(rate = 1) {
-    if (!speechLang && !audioUrl) return;
+  function play(rate = 1, url: string | null | undefined = audioUrl) {
+    if (!speechLang && !url) return;
     stopRef.current();
     const generation = ++generationRef.current;
     setStatus("playing");
@@ -44,7 +46,7 @@ export function usePhraseAudio(params: {
       if (generation === generationRef.current) setStatus("idle");
     }
 
-    stopRef.current = startPlayback({ url: audioUrl ?? null, text, speechLang, rate }, finish).stop;
+    stopRef.current = startPlayback({ url: url ?? null, text, speechLang, rate }, finish).stop;
   }
 
   // Stop on unmount — a phrase shouldn't keep talking after its exercise has
@@ -60,5 +62,12 @@ export function usePhraseAudio(params: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [text, audioUrl, speechLang]);
 
-  return { status, play: () => play(), playSlow: () => play(SLOW_RATE) };
+  return {
+    status,
+    play: () => play(),
+    playSlow: () => {
+      const slow = slowPlayback(audioUrl, slowAudioUrl);
+      play(slow.rate, slow.url);
+    },
+  };
 }

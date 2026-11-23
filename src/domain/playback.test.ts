@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { play, SLOW_RATE } from "./playback";
+import { play, SLOW_RATE, slowPlayback } from "./playback";
 
 // Stand-ins for the two browser APIs playback drives: an <audio> element that
 // a test can end or fail, and a speech engine that records what it was asked.
@@ -59,6 +59,18 @@ beforeEach(() => {
 });
 
 afterEach(() => vi.unstubAllGlobals());
+
+describe("slowPlayback", () => {
+  it("plays the dedicated slow take at normal speed", () => {
+    expect(slowPlayback("https://cdn/a.mp3", "https://cdn/a-slow.mp3")).toEqual({ url: "https://cdn/a-slow.mp3", rate: 1 });
+  });
+
+  it("falls back to the normal take slowed down when there is no slow take", () => {
+    expect(slowPlayback("https://cdn/a.mp3", null)).toEqual({ url: "https://cdn/a.mp3", rate: SLOW_RATE });
+    expect(slowPlayback("https://cdn/a.mp3", undefined)).toEqual({ url: "https://cdn/a.mp3", rate: SLOW_RATE });
+    expect(slowPlayback(null, null)).toEqual({ url: null, rate: SLOW_RATE });
+  });
+});
 
 describe("play", () => {
   it("plays slowed at the requested rate, recording or text-to-speech (issue #36)", () => {

@@ -46,10 +46,14 @@ export function useAnswerAudio(
   const text = shown?.text ?? "";
   const courseLang = getLanguageInfo(courseCode)?.speechLang ?? null;
   const inCourseLanguage = !!text && !!courseLang && getSpeechLang(courseCode, text) === courseLang;
-  const audioUrl = useRecordings(exercise).phraseUrl(inCourseLanguage && exercise && shown ? variantAudio(exercise, shown.index) : null, exercise?.speaker);
+  const recordings = useRecordings(exercise);
+  const answerRecording = inCourseLanguage && exercise && shown ? variantAudio(exercise, shown.index) : null;
+  const audioUrl = recordings.phraseUrl(answerRecording, exercise?.speaker);
+  // Only the first answer's recording has a slow take; a variant with its own recording slows that one down.
+  const slowAudioUrl = recordings.slowPhraseUrl(answerRecording, answerRecording && answerRecording === exercise?.answerAudio ? exercise.answerSlowAudio : null, exercise?.speaker);
   const voiceAvailable = useVoiceAvailability(inCourseLanguage ? courseLang : null);
   const playable = inCourseLanguage && (audioUrl != null || voiceAvailable);
-  const audio = usePhraseAudio({ text, speechLang: inCourseLanguage ? courseLang : null, audioUrl });
+  const audio = usePhraseAudio({ text, speechLang: inCourseLanguage ? courseLang : null, audioUrl, slowAudioUrl });
   const shownAsTiles = renderType === "word_bank" || renderType === "match";
   // The text read out is one whole tile: a word bank's single token, or a
   // composite type-in's first answer. A longer answer still plays.

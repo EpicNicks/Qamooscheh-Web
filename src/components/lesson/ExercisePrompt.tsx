@@ -16,7 +16,7 @@ import { SentenceRomanization } from "./SentenceRomanization";
 import { NewWordsScope } from "../../hooks/newWordsScope";
 import { hasNewTag } from "../../domain/newWords";
 import { EMPTY_HINT_MAP, PLAIN_TEXT, type TextDisplaySettings, type WordHint } from "../../domain/romanization";
-import type { AudioMap } from "../../types/content";
+import type { AudioMap, SlowAudioMap } from "../../types/content";
 import styles from "./Exercise.module.css";
 
 interface ExercisePromptProps {
@@ -38,6 +38,8 @@ interface ExercisePromptProps {
   textSettings?: TextDisplaySettings;
   /** The prompt's recordings (ExerciseArtifact.promptAudio). Played instead of text-to-speech when there's one in a usable voice. */
   audio?: AudioMap | null;
+  /** The prompt's dedicated slow recordings (ExerciseArtifact.promptSlowAudio). */
+  slowAudio?: SlowAudioMap | null;
   /** ExerciseArtifact.speaker — keeps a story line to its character's voices. */
   speaker?: string | null;
 }
@@ -64,6 +66,7 @@ export function ExercisePrompt({
   hintMap = EMPTY_HINT_MAP,
   textSettings = PLAIN_TEXT,
   audio: recordings,
+  slowAudio,
   speaker,
 }: ExercisePromptProps) {
   const languageInfo = getLanguageInfo(courseCode);
@@ -72,7 +75,9 @@ export function ExercisePrompt({
   // "Translate to Japanese: dog" prompts in English), so this can resolve to
   // "en-US" even under a Japanese/Persian course.
   const speechLang = getSpeechLang(courseCode, text);
-  const audioUrl = useRecordings().phraseUrl(recordings, speaker);
+  const recordingUrls = useRecordings();
+  const audioUrl = recordingUrls.phraseUrl(recordings, speaker);
+  const slowAudioUrl = recordingUrls.slowPhraseUrl(recordings, slowAudio, speaker);
   // A recording plays whatever the device's system voices are.
   const voiceAvailable = useVoiceAvailability(speechLang) || audioUrl != null;
   // isForeignLanguageText is what autoplay gates on beyond just "there's a
@@ -86,7 +91,7 @@ export function ExercisePrompt({
   // usePhraseAudio keeps the original native `text` regardless of display —
   // TTS reads the actual language, not whatever "romanized" substitutes on
   // screen.
-  const audio = usePhraseAudio({ text, speechLang, audioUrl, autoplay: autoplayAudio && voiceAvailable && isForeignLanguageText });
+  const audio = usePhraseAudio({ text, speechLang, audioUrl, slowAudioUrl, autoplay: autoplayAudio && voiceAvailable && isForeignLanguageText });
   const { align } = useNativeTextAlign();
   const direction = displayDirection(text, textSettings.display);
   // The first hint reveal on an exercise warns that it halves the answer's XP

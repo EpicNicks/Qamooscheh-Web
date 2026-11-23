@@ -5,7 +5,7 @@
 // end is counted, and a recording that fails to load is not charged. The
 // slowed replay counts the same as any other.
 import { useEffect, useRef, useState } from "react";
-import { play as startPlayback, SLOW_RATE } from "../domain/playback";
+import { play as startPlayback, slowPlayback } from "../domain/playback";
 
 export const MAX_PLAYS = 3;
 
@@ -21,8 +21,11 @@ export interface ListenPlays {
   playSlow: () => void;
 }
 
-/** `free` is set once the answer is in: the review can replay without limit, and nothing more is counted. */
-export function useListenPlays(audioUrl: string | null, free: boolean): ListenPlays {
+/**
+ * `free` is set once the answer is in: the review can replay without limit, and nothing more is counted.
+ * `slowAudioUrl` is the same voice's dedicated slow recording, when it has one; the slow replay counts like any other.
+ */
+export function useListenPlays(audioUrl: string | null, free: boolean, slowAudioUrl: string | null = null): ListenPlays {
   const [status, setStatus] = useState<"idle" | "playing">("idle");
   const [completed, setCompleted] = useState(0);
   const completedRef = useRef(0);
@@ -30,14 +33,14 @@ export function useListenPlays(audioUrl: string | null, free: boolean): ListenPl
   const generationRef = useRef(0);
   const playingRef = useRef(false);
 
-  function start(rate: number) {
-    if (!audioUrl || (!free && (completedRef.current >= MAX_PLAYS || playingRef.current))) return;
+  function start(rate: number, url: string | null = audioUrl) {
+    if (!url || (!free && (completedRef.current >= MAX_PLAYS || playingRef.current))) return;
     stopRef.current();
     const generation = ++generationRef.current;
     playingRef.current = true;
     setStatus("playing");
     // No text or language: a listening test never reads aloud in a synthetic voice.
-    stopRef.current = startPlayback({ url: audioUrl, text: "", speechLang: null, rate }, (ranToEnd) => {
+    stopRef.current = startPlayback({ url, text: "", speechLang: null, rate }, (ranToEnd) => {
       if (generation !== generationRef.current) return;
       playingRef.current = false;
       setStatus("idle");
@@ -56,6 +59,9 @@ export function useListenPlays(audioUrl: string | null, free: boolean): ListenPl
     playsUsed: () => Math.min(MAX_PLAYS, Math.max(1, completedRef.current)),
     canPlay: !!audioUrl && (free || (completed < MAX_PLAYS && status === "idle")),
     play: () => start(1),
-    playSlow: () => start(SLOW_RATE),
+    playSlow: () => {
+      const slow = slowPlayback(audioUrl, slowAudioUrl);
+      start(slow.rate, slow.url);
+    },
   };
 }

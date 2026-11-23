@@ -351,6 +351,7 @@ export function TypeInExercise({ exercise, onSubmit, disabled, courseCode, keybo
         <ExercisePrompt
           text={exercise.prompt}
           audio={exercise.promptAudio}
+          slowAudio={exercise.promptSlowAudio}
           speaker={exercise.speaker}
           tags={exercise.tags}
           onHintReveal={() => setUsedHint(true)}
