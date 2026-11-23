@@ -22,9 +22,11 @@ import styles from "./Exercise.module.css";
  */
 export function ListenTypeExercise(props: ExerciseProps) {
   const { exercise, textSettings, reviewedAnswer } = props;
-  const audioUrl = useRecordings().phraseUrl(exercise.promptAudio, exercise.speaker);
+  const recordings = useRecordings();
+  const audioUrl = recordings.phraseUrl(exercise.promptAudio, exercise.speaker);
+  const slowAudioUrl = recordings.slowPhraseUrl(exercise.promptAudio, exercise.promptSlowAudio, exercise.speaker);
   const answered = !!reviewedAnswer;
-  const plays = useListenPlays(audioUrl, answered);
+  const plays = useListenPlays(audioUrl, answered, slowAudioUrl);
   const direction = displayDirection(exercise.prompt, textSettings?.display ?? "native");
 
   const promptSlot = (
